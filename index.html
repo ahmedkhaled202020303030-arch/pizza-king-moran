@@ -114,6 +114,33 @@ input[type=file]{padding:10px;background:#f8fafc}
 .export-row .muted{font-size:12px}
 @media(max-width:560px){.export-btn{width:100%}}
 
+
+.monthly-report{margin-top:0}
+.monthly-report .report-heading input{max-width:190px}
+.monthly-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0 20px}
+.monthly-kpis>div{padding:14px;border:1px solid var(--line);border-radius:13px;background:#fbfcfe}
+.monthly-kpis span{display:block;color:var(--muted);font-size:12px;font-weight:700}
+.monthly-kpis strong{display:block;color:var(--navy);font-size:23px;font-weight:900;margin-top:4px}
+.monthly-chart{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;align-items:end;min-height:175px;padding:10px 2px 0}
+.month-bar{display:flex;flex-direction:column;align-items:center;justify-content:end;gap:7px;min-width:0;height:160px}
+.month-bar-value{font-size:11px;font-weight:800;color:var(--navy)}
+.month-bar-track{width:min(100%,42px);height:112px;background:#edf1f5;border-radius:9px;display:flex;align-items:end;overflow:hidden}
+.month-bar-fill{width:100%;background:linear-gradient(180deg,#f7b45f,var(--orange-dark));border-radius:8px 8px 0 0;min-height:2px}
+.month-bar-label{font-size:11px;color:var(--muted);font-weight:700;text-align:center}
+.date-filters{margin-top:8px}
+.date-filters>div{flex:1;min-width:140px}
+.date-filters label{margin-top:0}
+.date-filters button{width:auto;min-width:120px;align-self:end}
+.profile-overlay{position:fixed;inset:0;z-index:999;background:rgba(12,25,40,.62);display:flex;align-items:center;justify-content:center;padding:14px}
+.profile-dialog{width:min(680px,100%);max-height:88vh;overflow:auto;background:#fff;border-radius:18px;padding:20px;box-shadow:0 18px 55px rgba(0,0,0,.25)}
+.close-profile{width:auto;margin:0;padding:8px 13px}
+.profile-summary{padding:14px;border-radius:13px;background:#f3f6fa;margin-bottom:14px}
+.profile-visit{padding:13px 0;border-bottom:1px solid var(--line)}
+.profile-visit:last-child{border-bottom:0}
+.profile-visit p{margin:5px 0;overflow-wrap:anywhere}
+.profile-btn{width:auto!important;margin:8px 5px 0 0!important}
+@media(max-width:600px){.monthly-kpis{grid-template-columns:1fr}.monthly-kpis>div{padding:10px 13px}.monthly-chart{gap:5px}.month-bar-label{font-size:10px}.date-filters button{width:100%}.profile-dialog{padding:15px}}
+
 </style>
 </head>
 <body>
@@ -172,6 +199,19 @@ input[type=file]{padding:10px;background:#f8fafc}
   <div id="branchReport" class="branch-bars"><p class="muted">سيظهر التقرير بعد تحميل البيانات.</p></div>
 </section>
 
+<section class="panel monthly-report">
+  <div class="report-heading">
+    <div><h2>التقرير الشهري</h2><p class="muted">مقارنة عدد الزيارات بالشهور السابقة</p></div>
+    <input id="reportMonth" type="month" aria-label="اختيار شهر التقرير">
+  </div>
+  <div class="monthly-kpis">
+    <div><span>عملاء الشهر المحدد</span><strong id="monthTotal">0</strong></div>
+    <div><span>الشهر السابق</span><strong id="previousMonthTotal">0</strong></div>
+    <div><span>التغير عن الشهر السابق</span><strong id="monthChange">—</strong></div>
+  </div>
+  <div id="monthlyChart" class="monthly-chart"></div>
+</section>
+
 <section id="formPanel" class="panel hidden">
 <h2 id="formTitle">إضافة سجل عميل</h2>
 <div id="formMsg" class="msg hidden"></div>
@@ -203,6 +243,13 @@ input[type=file]{padding:10px;background:#f8fafc}
 
 <section class="panel">
 <h2>سجلات العملاء</h2>
+
+<div class="row date-filters">
+  <div><label for="dateFrom">من تاريخ</label><input id="dateFrom" type="date"></div>
+  <div><label for="dateTo">إلى تاريخ</label><input id="dateTo" type="date"></div>
+  <button type="button" id="clearFilters" class="light">مسح الفلاتر</button>
+</div>
+
 <div class="export-row">
   <button type="button" class="export-btn" onclick="exportCustomersToExcel()">⬇️ تصدير النتائج إلى Excel</button>
   <span class="muted">يتم تصدير السجلات المعروضة حسب البحث والفرع المحدد</span>
@@ -218,6 +265,14 @@ input[type=file]{padding:10px;background:#f8fafc}
 <div id="records"></div>
 </section>
 </section>
+
+<div id="customerProfileModal" class="profile-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="profileTitle">
+  <section class="profile-dialog">
+    <div class="report-heading"><h2 id="profileTitle">ملف العميل</h2><button type="button" id="closeProfile" class="light close-profile">إغلاق</button></div>
+    <div id="customerProfileContent"></div>
+  </section>
+</div>
+
 </main>
 
 <script>
@@ -333,7 +388,56 @@ async function logout() {
 }
 
 
+
+function selectedReportMonth() {
+  return $('reportMonth').value || today().slice(0,7);
+}
+
 function renderBranchReport() {
+  const month = selectedReportMonth();
+  const counts = branches.map(name => ({
+    name,
+    count: allRecords.filter(record => record.branch === name && String(record.visit_date || '').startsWith(month)).length
+  })).sort((a,b) => b.count-a.count || a.name.localeCompare(b.name,'ar'));
+  const maxCount = Math.max(1, ...counts.map(item => item.count));
+  const total = counts.reduce((sum,item) => sum+item.count,0);
+  $('branchReportTotal').textContent = total.toLocaleString('ar-EG') + ' زيارة';
+  $('branchReport').innerHTML = counts.map((item,index) => {
+    const width = item.count ? Math.max(3, item.count / maxCount * 100) : 0;
+    return `<div class="branch-line ${item.count ? '' : 'zero'}">
+      <div class="branch-line-top"><strong>${item.count ? (index+1)+'. ' : ''}${escapeHTML(item.name)}</strong><span>${item.count.toLocaleString('ar-EG')} عميل</span></div>
+      <div class="branch-track"><div class="branch-fill" style="width:${width}%"></div></div>
+    </div>`;
+  }).join('');
+}
+
+function renderMonthlyReport() {
+  const chosen = selectedReportMonth();
+  const [year,month] = chosen.split('-').map(Number);
+  const currentCount = allRecords.filter(r => String(r.visit_date || '').startsWith(chosen)).length;
+  const prevDate = new Date(year,month-2,1);
+  const prevKey = prevDate.getFullYear()+'-'+String(prevDate.getMonth()+1).padStart(2,'0');
+  const prevCount = allRecords.filter(r => String(r.visit_date || '').startsWith(prevKey)).length;
+  $('monthTotal').textContent = currentCount.toLocaleString('ar-EG');
+  $('previousMonthTotal').textContent = prevCount.toLocaleString('ar-EG');
+  const change = prevCount === 0 ? (currentCount ? 'جديد' : '0%') : ((currentCount-prevCount)/prevCount*100).toFixed(1)+'%';
+  $('monthChange').textContent = change;
+  const months = [];
+  for(let i=5;i>=0;i--){
+    const d = new Date(year,month-1-i,1);
+    const key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    months.push({key,label:d.toLocaleDateString('ar-EG',{month:'short'}),count:allRecords.filter(r=>String(r.visit_date||'').startsWith(key)).length});
+  }
+  const max = Math.max(1,...months.map(x=>x.count));
+  $('monthlyChart').innerHTML = months.map(x=>`<div class="month-bar">
+    <span class="month-bar-value">${x.count.toLocaleString('ar-EG')}</span>
+    <div class="month-bar-track"><div class="month-bar-fill" style="height:${Math.max(x.count ? 3 : 0,x.count/max*100)}%"></div></div>
+    <span class="month-bar-label">${escapeHTML(x.label)}</span>
+  </div>`).join('');
+  renderMonthlyReport();
+}
+
+
   const counts = branches.map(name => ({
     name,
     count: allRecords.filter(record => record.branch === name).length
@@ -381,15 +485,48 @@ async function loadRecords() {
 }
 
 
-function exportCustomersToExcel() {
+
+function getFilteredRecords() {
   const query = $('searchInput').value.trim().toLowerCase();
   const branch = $('branchFilter').value;
-  const rows = allRecords.filter(r =>
+  const from = $('dateFrom').value;
+  const to = $('dateTo').value;
+  return allRecords.filter(r =>
     (!branch || r.branch === branch) &&
+    (!from || String(r.visit_date || '') >= from) &&
+    (!to || String(r.visit_date || '') <= to) &&
     (!query ||
       String(r.customer_name || '').toLowerCase().includes(query) ||
       String(r.phone || '').toLowerCase().includes(query))
   );
+}
+
+function openCustomerProfile(phone) {
+  const history = allRecords.filter(r => String(r.phone || '') === String(phone || ''))
+    .sort((a,b) => String(b.visit_date || '').localeCompare(String(a.visit_date || '')));
+  if (!history.length) return;
+  const first = history[0];
+  $('customerProfileContent').innerHTML = `
+    <div class="profile-summary">
+      <h3>${escapeHTML(first.customer_name || 'عميل')}</h3>
+      <p>الهاتف: ${escapeHTML(first.phone)}</p>
+      <p>عدد الزيارات المسجلة: <strong>${history.length.toLocaleString('ar-EG')}</strong></p>
+    </div>
+    <h3>سجل الزيارات</h3>
+    ${history.map((r,i)=>`<div class="profile-visit">
+      <strong>زيارة ${(i+1).toLocaleString('ar-EG')} — ${escapeHTML(r.visit_date || 'بدون تاريخ')}</strong>
+      <p>الفرع: ${escapeHTML(r.branch || '—')}</p>
+      <p>التعليقات: ${escapeHTML(r.comments || 'لا توجد تعليقات')}</p>
+    </div>`).join('')}
+  `;
+  $('customerProfileModal').classList.remove('hidden');
+}
+function closeCustomerProfile() {
+  $('customerProfileModal').classList.add('hidden');
+}
+
+function exportCustomersToExcel() {
+  const rows = getFilteredRecords();
 
   if (!rows.length) {
     alert('لا توجد سجلات لتصديرها.');
@@ -416,17 +553,9 @@ function exportCustomersToExcel() {
   $('recordsHint').textContent = 'تم تجهيز تصدير ' + rows.length.toLocaleString('ar-EG') + ' سجل';
 }
 
+
 async function renderRecords() {
-  const query = $('searchInput').value.trim().toLowerCase();
-  const branch = $('branchFilter').value;
-
-  const list = allRecords.filter(r =>
-    (!branch || r.branch === branch) &&
-    (!query ||
-      String(r.customer_name || '').toLowerCase().includes(query) ||
-      String(r.phone || '').toLowerCase().includes(query))
-  );
-
+  const list = getFilteredRecords();
   $('recordsHint').textContent =
     'عرض ' + list.length + ' من ' + allRecords.length + ' سجل';
 
@@ -436,20 +565,12 @@ async function renderRecords() {
   }
 
   let html = '';
-
   for (const r of list) {
     let audio = '';
-
     if (r.audio_path) {
-      const {data} = await db.storage
-        .from('customer-audio')
-        .createSignedUrl(r.audio_path,3600);
-
-      if (data?.signedUrl) {
-        audio = `<p><a href="${data.signedUrl}" target="_blank">تشغيل التسجيل الصوتي</a></p>`;
-      }
+      const {data} = await db.storage.from('customer-audio').createSignedUrl(r.audio_path,3600);
+      if (data?.signedUrl) audio = `<p><a href="${data.signedUrl}" target="_blank" rel="noopener">تشغيل التسجيل الصوتي</a></p>`;
     }
-
     html += `
       <article class="record">
         <h3>${escapeHTML(r.customer_name)}</h3>
@@ -458,14 +579,17 @@ async function renderRecords() {
         <p>تاريخ الزيارة: ${escapeHTML(r.visit_date)}</p>
         <p>التعليقات: ${escapeHTML(r.comments || 'لا توجد تعليقات')}</p>
         ${audio}
+        <button type="button" class="light profile-btn" data-customer-phone="${escapeHTML(r.phone)}">ملف العميل وسجل زياراته</button>
         ${isAdmin ? `
           <button class="light" onclick="editRecord('${escapeHTML(r.id)}')">تعديل</button>
           <button class="danger" onclick="deleteRecord('${escapeHTML(r.id)}')">حذف</button>
         ` : ''}
       </article>`;
   }
-
   $('records').innerHTML = html;
+  $('records').querySelectorAll('.profile-btn').forEach(btn => {
+    btn.addEventListener('click', () => openCustomerProfile(btn.dataset.customerPhone));
+  });
 }
 
 function resetForm() {
@@ -581,6 +705,22 @@ $('branchFilter').addEventListener('change',renderRecords);
 
 fillBranches();
 $('visitDate').value = today();
+
+$('reportMonth').value = today().slice(0,7);
+$('reportMonth').addEventListener('change',renderMonthlyReport);
+['dateFrom','dateTo'].forEach(id => $(id).addEventListener('change',renderRecords));
+$('clearFilters').addEventListener('click',() => {
+  $('searchInput').value = '';
+  $('branchFilter').value = '';
+  $('dateFrom').value = '';
+  $('dateTo').value = '';
+  renderRecords();
+});
+$('closeProfile').addEventListener('click',closeCustomerProfile);
+$('customerProfileModal').addEventListener('click',event => {
+  if(event.target === $('customerProfileModal')) closeCustomerProfile();
+});
+
 </script>
 </body>
   </html>
