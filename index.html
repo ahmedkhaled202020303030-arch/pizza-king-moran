@@ -263,7 +263,7 @@ input[type=file]{padding:10px;background:#f8fafc}
 <h2 id="formTitle">إضافة سجل عميل</h2>
 <div id="formMsg" class="msg hidden"></div>
 <input id="editId" type="hidden">
-<div class="ocr-box"><strong>📷 ماسح بيانات الكارت</strong><p class="muted">ارفع صورة الكارت لقراءة الفرع والتاريخ ورقم الهاتف والتقييمات. راجع النتائج وعدّلها قبل الحفظ.</p><label for="cardImage">صورة الكارت</label><input id="cardImage" type="file" accept="image/*"><div class="ocr-actions"><button type="button" id="scanCardBtn" class="secondary">قراءة بيانات الكارت</button><button type="button" id="clearCardBtn" class="light">مسح الصورة</button></div><div id="ocrProgress" class="ocr-progress hidden"><span id="ocrProgressBar"></span></div><p id="ocrStatus" class="muted" aria-live="polite">يمكنك أيضًا إدخال البيانات يدويًا.</p></div>
+<div class="ocr-box"><strong>📷 ماسح بيانات الكارت</strong><p class="muted">ارفع صورة الكارت لقراءة الفرع والتاريخ ورقم الهاتف والتقييمات. راجع النتائج وعدّلها قبل الحفظ.</p><label for="cardImage">اختيار صورة من الجهاز</label><input id="cardImage" type="file" accept="image/*"><label for="cameraCard">أو تصوير الكارت بالكاميرا مباشرة</label><input id="cameraCard" type="file" accept="image/*" capture="environment"><p class="muted">على الموبايل سيظهر خيار فتح الكاميرا الخلفية لالتقاط صورة جديدة.</p><div class="ocr-actions"><button type="button" id="scanCardBtn" class="secondary">قراءة بيانات الكارت</button><button type="button" id="clearCardBtn" class="light">مسح الصورة</button></div><div id="ocrProgress" class="ocr-progress hidden"><span id="ocrProgressBar"></span></div><p id="ocrStatus" class="muted" aria-live="polite">يمكنك أيضًا إدخال البيانات يدويًا.</p></div>
 <label>اسم العميل</label>
 <input id="customerName">
 
@@ -764,7 +764,7 @@ function extractCardRatings(text) {
   for(const [id,keys] of fields){for(let i=0;i<lines.length;i++){if(!keys.some(k=>lines[i].includes(normalizeOCRText(k))))continue;const near=lines.slice(i,Math.min(lines.length,i+3)).join(' ');const ar=ratings.find(v=>near.includes(normalizeOCRText(v)));const eng=en.find(([k])=>near.includes(k));if(ar||eng){$(id).value=ar||eng[1];break;}}}
 }
 async function scanCustomerCard() {
-  if(!isAdmin)return; const file=$('cardImage').files[0]; if(!file){showMessage('formMsg','اختار صورة الكارت أولًا.',true);return;}
+  if(!isAdmin)return; const file=$('cameraCard').files[0] || $('cardImage').files[0]; if(!file){showMessage('formMsg','اختار صورة الكارت أولًا.',true);return;}
   if(!window.Tesseract){$('ocrStatus').textContent='تعذر تحميل أداة قراءة الصور. حدّث الصفحة وحاول مرة أخرى.';return;}
   $('scanCardBtn').disabled=true;$('ocrProgress').classList.remove('hidden');$('ocrProgressBar').style.width='4%';$('ocrStatus').textContent='جاري قراءة الكارت...';
   try{const result=await Tesseract.recognize(file,'ara+eng',{logger:m=>{if(m.status==='recognizing text'&&Number.isFinite(m.progress)){$('ocrProgressBar').style.width=Math.max(4,Math.round(m.progress*100))+'%';$('ocrStatus').textContent='جاري قراءة الصورة: '+Math.round(m.progress*100)+'٪';}}});
@@ -781,6 +781,7 @@ function resetForm() {
   $('customerName').value = '';
   ['foodRating','atmosphereRating','valueRating','serviceRating','cleanlinessRating'].forEach(id => $(id).value = '');
   $('cardImage').value = '';
+  $('cameraCard').value = '';
   $('ocrStatus').textContent = 'يمكنك أيضًا إدخال البيانات يدويًا.';
   $('ocrProgress').classList.add('hidden');
   $('phone').value = '';
@@ -897,7 +898,7 @@ $('guestLogin').addEventListener('click',loginGuest);
 $('logoutBtn').addEventListener('click',logout);
 $('refreshBtn').addEventListener('click',loadRecords);
 $('scanCardBtn').addEventListener('click',scanCustomerCard);
-$('clearCardBtn').addEventListener('click',()=>{$('cardImage').value='';$('ocrStatus').textContent='تم مسح الصورة. يمكنك اختيار صورة أخرى.';$('ocrProgress').classList.add('hidden');});
+$('clearCardBtn').addEventListener('click',()=>{$('cardImage').value='';$('cameraCard').value='';$('ocrStatus').textContent='تم مسح الصورة. يمكنك اختيار صورة أخرى.';$('ocrProgress').classList.add('hidden');});
 $('saveBtn').addEventListener('click',saveRecord);
 $('cancelEdit').addEventListener('click',resetForm);
 $('searchInput').addEventListener('input',renderRecords);
