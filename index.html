@@ -25,6 +25,12 @@ header:before{width:230px;height:230px;top:-145px;right:-45px}
 header:after{width:180px;height:180px;bottom:-135px;left:7%}
 header h1{position:relative;margin:0;font-size:clamp(25px,5vw,36px);font-weight:800;letter-spacing:.2px}
 header p{position:relative;margin:7px 0 0;color:#dce6f1;font-size:14px}
+.header-branding{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:clamp(14px,4vw,34px);max-width:900px;margin:0 auto}
+.header-copy{min-width:0}
+.brand-logo{width:clamp(70px,11vw,104px);height:clamp(70px,11vw,104px);flex:0 0 auto;display:grid;place-items:center;padding:8px;background:#fff;border:1px solid rgba(255,255,255,.45);border-radius:20px;box-shadow:0 9px 24px rgba(0,0,0,.2)}
+.brand-logo img{display:block;width:100%;height:100%;object-fit:contain}
+header .creator-credit{margin:11px 0 0;color:#fff;font-size:13px;font-weight:700;letter-spacing:.1px}
+@media(max-width:480px){header .header-branding{gap:9px}.brand-logo{width:64px;height:64px;padding:5px;border-radius:14px}header h1{font-size:clamp(19px,5.6vw,25px)}header p{font-size:12px}header .creator-credit{font-size:12px;margin-top:8px}}
 main{width:min(1080px,100%);margin:28px auto;padding:0 18px 40px}
 .panel{background:var(--surface);padding:24px;margin:0 0 18px;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
 #loginPanel{max-width:560px;margin:38px auto;padding:30px}
@@ -167,8 +173,15 @@ input[type=file]{padding:10px;background:#f8fafc}
 <body>
 
 <header>
-<h1>Pizza King & Morin</h1>
-<p>نظام مركزي لإدارة ومتابعة خدمة العملاء</p>
+<div class="header-branding">
+  <div class="brand-logo"><img src="https://pizzaking-pro.hel1.your-objectstorage.com/logo/pizza-king.png" alt="شعار Pizza King" loading="eager"></div>
+  <div class="header-copy">
+    <h1>Pizza King & Morin</h1>
+    <p>نظام مركزي لإدارة ومتابعة خدمة العملاء</p>
+    <p class="creator-credit">القائم بعمل الصفحة: أحمد خالد</p>
+  </div>
+  <div class="brand-logo"><img src="https://morein-pro.fsn1.your-objectstorage.com/logo/morein-placholder.jpg" alt="شعار More In" loading="eager"></div>
+</div>
 </header>
 
 <main>
