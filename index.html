@@ -91,6 +91,22 @@ input[type=file]{padding:10px;background:#f8fafc}
 .stat-card strong{display:block;color:var(--navy);font-size:25px;line-height:1.2;font-weight:900}
 @media(max-width:680px){.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.stat-card{padding:13px 11px;gap:9px}.stat-icon{flex-basis:38px;width:38px;height:38px;font-size:18px}.stat-card strong{font-size:21px}.stat-card p{font-size:11px}}
 
+
+.branch-report{margin-top:0}
+.report-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
+.report-heading h2{margin-bottom:3px}
+.report-heading p{margin:0}
+.report-total{flex:none;padding:6px 11px;border-radius:30px;background:#fff0df;color:#a6530b;font-size:12px;font-weight:800}
+.branch-bars{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px 22px}
+.branch-line{min-width:0}
+.branch-line-top{display:flex;justify-content:space-between;gap:10px;margin-bottom:6px;font-size:13px}
+.branch-line-top strong{color:var(--navy);font-weight:800}
+.branch-line-top span{color:var(--muted);font-weight:700;white-space:nowrap}
+.branch-track{height:9px;background:#edf1f5;border-radius:20px;overflow:hidden}
+.branch-fill{height:100%;min-width:0;background:linear-gradient(90deg,var(--orange),#f7b45f);border-radius:20px;transition:width .3s ease}
+.branch-line.zero .branch-fill{background:#dfe5ec}
+@media(max-width:680px){.branch-bars{grid-template-columns:1fr;gap:11px}.report-heading{align-items:flex-start}}
+
 </style>
 </head>
 <body>
@@ -138,6 +154,15 @@ input[type=file]{padding:10px;background:#f8fafc}
   <div class="stat-card"><span class="stat-icon">🏬</span><div><p>الفروع النشطة</p><strong id="statBranches">0</strong></div></div>
   <div class="stat-card"><span class="stat-icon">📅</span><div><p>زيارات اليوم</p><strong id="statToday">0</strong></div></div>
   <div class="stat-card"><span class="stat-icon">🎙️</span><div><p>تسجيلات صوتية</p><strong id="statAudio">0</strong></div></div>
+</section>
+
+
+<section class="panel branch-report">
+  <div class="report-heading">
+    <div><h2>تقرير أداء الفروع</h2><p class="muted">مقارنة عدد سجلات العملاء في كل فرع</p></div>
+    <span class="report-total" id="branchReportTotal">0 سجل</span>
+  </div>
+  <div id="branchReport" class="branch-bars"><p class="muted">سيظهر التقرير بعد تحميل البيانات.</p></div>
 </section>
 
 <section id="formPanel" class="panel hidden">
@@ -295,6 +320,23 @@ async function logout() {
   $('loginPanel').classList.remove('hidden');
 }
 
+
+function renderBranchReport() {
+  const counts = branches.map(name => ({
+    name,
+    count: allRecords.filter(record => record.branch === name).length
+  }));
+  const maxCount = Math.max(1, ...counts.map(item => item.count));
+  $('branchReportTotal').textContent = allRecords.length.toLocaleString('ar-EG') + ' سجل';
+  $('branchReport').innerHTML = counts.map(item => {
+    const width = item.count ? Math.max(3, item.count / maxCount * 100) : 0;
+    return `<div class="branch-line ${item.count ? '' : 'zero'}">
+      <div class="branch-line-top"><strong>${escapeHTML(item.name)}</strong><span>${item.count.toLocaleString('ar-EG')} عميل</span></div>
+      <div class="branch-track"><div class="branch-fill" style="width:${width}%"></div></div>
+    </div>`;
+  }).join('');
+}
+
 function updateStats() {
   const total = allRecords.length;
   const activeBranches = new Set(allRecords.map(r => r.branch).filter(Boolean)).size;
@@ -304,6 +346,7 @@ function updateStats() {
   $('statBranches').textContent = activeBranches.toLocaleString('ar-EG');
   $('statToday').textContent = todayVisits.toLocaleString('ar-EG');
   $('statAudio').textContent = audioCount.toLocaleString('ar-EG');
+  renderBranchReport();
 }
 
 async function loadRecords() {
