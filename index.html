@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pizza King & Morin - خدمة العملاء</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
 :root{
   --navy:#14263d;--navy-2:#203b5b;--orange:#f28c28;--orange-dark:#d96d12;
@@ -86,6 +87,7 @@ button:active{transform:translateY(0)}
 .record button{width:auto;min-width:92px;padding:9px 15px;margin:8px 6px 0 0;font-size:13px}
 #searchInput,#branchFilter{align-self:end}
 input[type=file]{padding:10px;background:#f8fafc}
+.ocr-box{padding:15px;margin:12px 0 18px;border:1px dashed #e0a45f;border-radius:14px;background:#fffaf3}.ocr-box p{margin:5px 0 10px}.ocr-actions{display:flex;gap:9px;flex-wrap:wrap}.ocr-actions button{flex:1;min-width:150px}.ocr-progress{height:8px;border-radius:20px;background:#edf1f5;overflow:hidden;margin:10px 0}.ocr-progress span{display:block;height:100%;width:0;background:var(--orange);transition:width .2s}.rating-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.rating-field{min-width:0}.rating-field label{margin-top:8px}.rating-field select{width:100%}.rating-summary{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}.rating-chip{padding:4px 9px;border-radius:20px;background:#edf2f7;color:#34465c;font-size:12px;font-weight:700}@media(max-width:600px){.rating-grid{grid-template-columns:1fr}}
 @media(max-width:680px){
   header{padding:27px 14px 24px}
   main{margin:16px auto;padding:0 12px 28px}
@@ -261,7 +263,7 @@ input[type=file]{padding:10px;background:#f8fafc}
 <h2 id="formTitle">إضافة سجل عميل</h2>
 <div id="formMsg" class="msg hidden"></div>
 <input id="editId" type="hidden">
-
+<div class="ocr-box"><strong>📷 ماسح بيانات الكارت</strong><p class="muted">ارفع صورة الكارت لقراءة الفرع والتاريخ ورقم الهاتف والتقييمات. راجع النتائج وعدّلها قبل الحفظ.</p><label for="cardImage">صورة الكارت</label><input id="cardImage" type="file" accept="image/*"><div class="ocr-actions"><button type="button" id="scanCardBtn" class="secondary">قراءة بيانات الكارت</button><button type="button" id="clearCardBtn" class="light">مسح الصورة</button></div><div id="ocrProgress" class="ocr-progress hidden"><span id="ocrProgressBar"></span></div><p id="ocrStatus" class="muted" aria-live="polite">يمكنك أيضًا إدخال البيانات يدويًا.</p></div>
 <label>اسم العميل</label>
 <input id="customerName">
 
@@ -276,6 +278,7 @@ input[type=file]{padding:10px;background:#f8fafc}
 <label>تاريخ الزيارة</label>
 <input id="visitDate" type="date">
 
+<h3 style="margin-top:20px">تقييمات الكارت</h3><div class="rating-grid"><div class="rating-field"><label for="foodRating">تقييم الطعام</label><select id="foodRating"><option value="">لم يتم التقييم</option><option>سيئ</option><option>متوسط</option><option>جيد</option><option>ممتاز</option></select></div><div class="rating-field"><label for="atmosphereRating">تقييم الجو العام</label><select id="atmosphereRating"><option value="">لم يتم التقييم</option><option>سيئ</option><option>متوسط</option><option>جيد</option><option>ممتاز</option></select></div><div class="rating-field"><label for="valueRating">القيمة مقابل الطعام</label><select id="valueRating"><option value="">لم يتم التقييم</option><option>سيئ</option><option>متوسط</option><option>جيد</option><option>ممتاز</option></select></div><div class="rating-field"><label for="serviceRating">تقييم الخدمة</label><select id="serviceRating"><option value="">لم يتم التقييم</option><option>سيئ</option><option>متوسط</option><option>جيد</option><option>ممتاز</option></select></div><div class="rating-field"><label for="cleanlinessRating">تقييم النظافة</label><select id="cleanlinessRating"><option value="">لم يتم التقييم</option><option>سيئ</option><option>متوسط</option><option>جيد</option><option>ممتاز</option></select></div></div>
 <label>تعليقات وملاحظات</label>
 <textarea id="comments"></textarea>
 
@@ -666,6 +669,7 @@ function openCustomerProfile(phone) {
       <strong>زيارة ${(i+1).toLocaleString('ar-EG')} — ${escapeHTML(r.visit_date || 'بدون تاريخ')}</strong>
       <p>الفرع: ${escapeHTML(r.branch || '—')}</p>
       <p>التعليقات: ${escapeHTML(r.comments || 'لا توجد تعليقات')}</p>
+      ${renderRatings(r)}
     </div>`).join('')}
   `;
   $('customerProfileModal').classList.remove('hidden');
@@ -682,8 +686,8 @@ function exportCustomersToExcel() {
     return;
   }
 
-  const headers = ['اسم العميل','رقم الهاتف','الفرع','تاريخ الزيارة','التعليقات','مسار التسجيل الصوتي','تاريخ إضافة السجل'];
-  const fields = ['customer_name','phone','branch','visit_date','comments','audio_path','created_at'];
+  const headers = ['اسم العميل','رقم الهاتف','الفرع','تاريخ الزيارة','تقييم الطعام','تقييم الجو العام','القيمة مقابل الطعام','تقييم الخدمة','تقييم النظافة','التعليقات','مسار التسجيل الصوتي','تاريخ إضافة السجل'];
+  const fields = ['customer_name','phone','branch','visit_date','food_rating','atmosphere_rating','value_rating','service_rating','cleanliness_rating','comments','audio_path','created_at'];
   const csvCell = value => '"' + String(value ?? '').replace(/"/g,'""') + '"';
   const csv = [
     headers.map(csvCell).join(','),
@@ -727,6 +731,7 @@ async function renderRecords() {
         <p>الهاتف: ${escapeHTML(r.phone)}</p>
         <p>تاريخ الزيارة: ${escapeHTML(r.visit_date)}</p>
         <p>التعليقات: ${escapeHTML(r.comments || 'لا توجد تعليقات')}</p>
+        ${renderRatings(r)}
         ${audio}
         <button type="button" class="light profile-btn" data-customer-phone="${escapeHTML(r.phone)}">ملف العميل وسجل زياراته</button>
         ${isAdmin ? `
@@ -741,9 +746,43 @@ async function renderRecords() {
   });
 }
 
+function renderRatings(record) {
+  const items = [['الطعام',record.food_rating],['الجو العام',record.atmosphere_rating],['القيمة مقابل الطعام',record.value_rating],['الخدمة',record.service_rating],['النظافة',record.cleanliness_rating]].filter(item => item[1]);
+  return items.length ? '<div class="rating-summary">' + items.map(([label,value]) => '<span class="rating-chip">' + escapeHTML(label) + ': ' + escapeHTML(value) + '</span>').join('') + '</div>' : '';
+}
+function normalizeArabicDigits(value) { return String(value || '').replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)); }
+function normalizeOCRText(value) { return normalizeArabicDigits(value).replace(/[\u064B-\u065F\u0670]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/ـ/g,'').toLowerCase(); }
+function scanDateFromText(text) {
+  const value=normalizeArabicDigits(text); let m=value.match(/\b(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})\b/);
+  if(m){const d=+m[1],mo=+m[2],y=+m[3];if(d>=1&&d<=31&&mo>=1&&mo<=12)return y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0');}
+  m=value.match(/\b(\d{4})[\/.-](\d{1,2})[\/.-](\d{1,2})\b/); if(m)return m[1]+'-'+String(+m[2]).padStart(2,'0')+'-'+String(+m[3]).padStart(2,'0'); return '';
+}
+function extractCardRatings(text) {
+  const lines=normalizeOCRText(text).split(/\n+/).map(x=>x.trim()).filter(Boolean);
+  const fields=[['foodRating',['الطعام','food','meal']],['atmosphereRating',['الجو العام','الاجواء','الجو','atmosphere','ambience']],['valueRating',['القيمه مقابل الطعام','القيمه','value for money','value']],['serviceRating',['الخدمه','service']],['cleanlinessRating',['النظافه','cleanliness','clean']]];
+  const ratings=['ممتاز','جيد','متوسط','سيئ']; const en=[['excellent','ممتاز'],['very good','ممتاز'],['good','جيد'],['average','متوسط'],['medium','متوسط'],['poor','سيئ'],['bad','سيئ']];
+  for(const [id,keys] of fields){for(let i=0;i<lines.length;i++){if(!keys.some(k=>lines[i].includes(normalizeOCRText(k))))continue;const near=lines.slice(i,Math.min(lines.length,i+3)).join(' ');const ar=ratings.find(v=>near.includes(normalizeOCRText(v)));const eng=en.find(([k])=>near.includes(k));if(ar||eng){$(id).value=ar||eng[1];break;}}}
+}
+async function scanCustomerCard() {
+  if(!isAdmin)return; const file=$('cardImage').files[0]; if(!file){showMessage('formMsg','اختار صورة الكارت أولًا.',true);return;}
+  if(!window.Tesseract){$('ocrStatus').textContent='تعذر تحميل أداة قراءة الصور. حدّث الصفحة وحاول مرة أخرى.';return;}
+  $('scanCardBtn').disabled=true;$('ocrProgress').classList.remove('hidden');$('ocrProgressBar').style.width='4%';$('ocrStatus').textContent='جاري قراءة الكارت...';
+  try{const result=await Tesseract.recognize(file,'ara+eng',{logger:m=>{if(m.status==='recognizing text'&&Number.isFinite(m.progress)){$('ocrProgressBar').style.width=Math.max(4,Math.round(m.progress*100))+'%';$('ocrStatus').textContent='جاري قراءة الصورة: '+Math.round(m.progress*100)+'٪';}}});
+    const text=result.data.text||'';const normalized=normalizeOCRText(text);const branch=branches.find(b=>normalized.includes(normalizeOCRText(b)));if(branch)$('branch').value=branch;
+    const date=scanDateFromText(text);if(date)$('visitDate').value=date;
+    const groups=normalizeArabicDigits(text).match(/(?:\+?\d[\d\s()-]{7,}\d)/g)||[];const phone=groups.map(v=>v.replace(/\D/g,'')).filter(v=>v.length>=8&&v.length<=15).sort((a,b)=>b.length-a.length)[0];if(phone)$('phone').value=phone;
+    extractCardRatings(text);$('ocrProgressBar').style.width='100%';$('ocrStatus').textContent='انتهت القراءة. راجع الفرع والتاريخ ورقم الهاتف والتقييمات قبل الحفظ.';
+    if(!branch&&!date&&!phone)$('ocrStatus').textContent='تمت قراءة الصورة لكن لم أتعرف بوضوح على البيانات. أدخلها يدويًا أو جرّب صورة أوضح.';
+  }catch(e){$('ocrStatus').textContent='حدثت مشكلة أثناء قراءة الصورة. جرّب صورة أوضح. '+(e.message||'');}finally{$('scanCardBtn').disabled=false;}
+}
+
 function resetForm() {
   $('editId').value = '';
   $('customerName').value = '';
+  ['foodRating','atmosphereRating','valueRating','serviceRating','cleanlinessRating'].forEach(id => $(id).value = '');
+  $('cardImage').value = '';
+  $('ocrStatus').textContent = 'يمكنك أيضًا إدخال البيانات يدويًا.';
+  $('ocrProgress').classList.add('hidden');
   $('phone').value = '';
   $('branch').value = '';
   $('visitDate').value = today();
@@ -792,7 +831,12 @@ async function saveRecord() {
     phone:phone,
     branch:branch,
     visit_date:date,
-    comments:$('comments').value.trim() || null
+    comments:$('comments').value.trim() || null,
+    food_rating:$('foodRating').value || null,
+    atmosphere_rating:$('atmosphereRating').value || null,
+    value_rating:$('valueRating').value || null,
+    service_rating:$('serviceRating').value || null,
+    cleanliness_rating:$('cleanlinessRating').value || null
   };
 
   if (audioPath) payload.audio_path = audioPath;
@@ -824,6 +868,11 @@ function editRecord(id) {
   $('branch').value = r.branch || '';
   $('visitDate').value = r.visit_date || today();
   $('comments').value = r.comments || '';
+  $('foodRating').value = r.food_rating || '';
+  $('atmosphereRating').value = r.atmosphere_rating || '';
+  $('valueRating').value = r.value_rating || '';
+  $('serviceRating').value = r.service_rating || '';
+  $('cleanlinessRating').value = r.cleanliness_rating || '';
   $('formTitle').textContent = 'تعديل سجل عميل';
   $('saveBtn').textContent = 'حفظ التعديلات';
   $('formPanel').scrollIntoView({behavior:'smooth'});
@@ -847,6 +896,8 @@ $('adminLogin').addEventListener('click',loginAdmin);
 $('guestLogin').addEventListener('click',loginGuest);
 $('logoutBtn').addEventListener('click',logout);
 $('refreshBtn').addEventListener('click',loadRecords);
+$('scanCardBtn').addEventListener('click',scanCustomerCard);
+$('clearCardBtn').addEventListener('click',()=>{$('cardImage').value='';$('ocrStatus').textContent='تم مسح الصورة. يمكنك اختيار صورة أخرى.';$('ocrProgress').classList.add('hidden');});
 $('saveBtn').addEventListener('click',saveRecord);
 $('cancelEdit').addEventListener('click',resetForm);
 $('searchInput').addEventListener('input',renderRecords);
