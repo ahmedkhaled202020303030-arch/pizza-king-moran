@@ -141,6 +141,27 @@ input[type=file]{padding:10px;background:#f8fafc}
 .profile-btn{width:auto!important;margin:8px 5px 0 0!important}
 @media(max-width:600px){.monthly-kpis{grid-template-columns:1fr}.monthly-kpis>div{padding:10px 13px}.monthly-chart{gap:5px}.month-bar-label{font-size:10px}.date-filters button{width:100%}.profile-dialog{padding:15px}}
 
+
+.complaint-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0 18px}
+.complaint-form>div{min-width:0}
+.complaint-form label{margin-top:0}
+.complaint-wide{grid-column:1/-1}
+.complaint-form button{grid-column:1/-1}
+.complaint-card{border:1px solid var(--line);border-radius:13px;padding:13px;margin:10px 0;background:#fff}
+.complaint-card h3{margin:0 0 7px;color:var(--navy)}
+.complaint-meta{font-size:12px;color:var(--muted);display:flex;gap:9px;flex-wrap:wrap}
+.complaint-card textarea{margin-top:9px;min-height:64px}
+.complaint-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:8px}
+.complaint-actions select{max-width:190px;margin:0}
+.status-pill{display:inline-block;border-radius:20px;padding:4px 9px;font-size:11px;font-weight:800;background:#fff0df;color:#9a520d}
+.status-pill.resolved{background:#e5f6ed;color:#167348}
+.status-pill.in_progress{background:#e8f0ff;color:#285da8}
+.activity-item{padding:11px 0;border-bottom:1px solid var(--line)}
+.activity-item:last-child{border-bottom:0}
+.activity-item strong{color:var(--navy)}
+.activity-item p{margin:4px 0;color:var(--muted);font-size:12px}
+@media(max-width:600px){.complaint-form{grid-template-columns:1fr}.complaint-wide{grid-column:auto}.complaint-actions select{max-width:none;width:100%}}
+
 </style>
 </head>
 <body>
@@ -239,6 +260,26 @@ input[type=file]{padding:10px;background:#f8fafc}
 
 <button id="saveBtn">حفظ السجل</button>
 <button id="cancelEdit" class="light">إلغاء</button>
+</section>
+
+
+<section id="complaintsPanel" class="panel hidden">
+  <div class="report-heading"><div><h2>متابعة شكاوى العملاء</h2><p class="muted">تسجيل الشكوى ومتابعة حالتها حتى الحل</p></div><span class="report-total" id="complaintCount">0 شكوى</span></div>
+  <div id="complaintMsg" class="msg hidden"></div>
+  <div class="complaint-form">
+    <div><label for="complaintName">اسم العميل</label><input id="complaintName" placeholder="اسم العميل"></div>
+    <div><label for="complaintPhone">رقم الهاتف</label><input id="complaintPhone" inputmode="tel" placeholder="رقم الهاتف"></div>
+    <div><label for="complaintBranch">الفرع</label><select id="complaintBranch"><option value="">اختر الفرع</option></select></div>
+    <div class="complaint-wide"><label for="complaintDescription">تفاصيل الشكوى</label><textarea id="complaintDescription" rows="3" placeholder="اكتب تفاصيل الشكوى..."></textarea></div>
+    <div class="complaint-wide"><label for="complaintResolution">ملاحظات الحل (اختياري)</label><textarea id="complaintResolution" rows="2" placeholder="الإجراء الذي تم اتخاذه"></textarea></div>
+    <button type="button" id="addComplaintBtn">تسجيل الشكوى</button>
+  </div>
+  <div id="complaintsList" class="complaints-list"><p class="muted">جاري تحميل الشكاوى...</p></div>
+</section>
+
+<section id="activityPanel" class="panel hidden">
+  <div class="report-heading"><div><h2>سجل نشاط المدير</h2><p class="muted">تسجيل تلقائي لعمليات الإضافة والتعديل والحذف</p></div></div>
+  <div id="activityList"><p class="muted">جاري تحميل سجل النشاط...</p></div>
 </section>
 
 <section class="panel">
@@ -376,6 +417,8 @@ async function showApp(user,admin) {
   $('appPanel').classList.remove('hidden');
   $('roleText').textContent = admin ? 'صلاحية مدير' : 'زائر - عرض فقط';
   $('formPanel').classList.toggle('hidden',!admin);
+  $('complaintsPanel').classList.toggle('hidden',!admin);
+  $('activityPanel').classList.toggle('hidden',!admin);
   await loadRecords();
 }
 
@@ -449,6 +492,103 @@ function updateStats() {
   renderMonthlyReport();
 }
 
+
+function complaintStatusLabel(status) {
+  return status === 'resolved' ? 'تم الحل' : status === 'in_progress' ? 'قيد المتابعة' : 'جديدة';
+}
+
+async function loadComplaints() {
+  if (!isAdmin) return;
+  const {data,error} = await db.from('customer_complaints').select('*').order('created_at',{ascending:false});
+  if (error) {
+    $('complaintsList').textContent = 'تعذر تحميل الشكاوى. تأكد من تنفيذ ملف إعداد قاعدة البيانات في Supabase. التفاصيل: '+error.message;
+    return;
+  }
+  $('complaintCount').textContent = (data || []).length.toLocaleString('ar-EG')+' شكوى';
+  if (!data?.length) {
+    $('complaintsList').innerHTML = '<p class="muted">لا توجد شكاوى مسجلة حتى الآن.</p>';
+    return;
+  }
+  $('complaintsList').innerHTML = data.map(item => `
+    <article class="complaint-card">
+      <div class="report-heading">
+        <h3>${escapeHTML(item.customer_name)}</h3>
+        <span class="status-pill ${escapeHTML(item.status)}">${complaintStatusLabel(item.status)}</span>
+      </div>
+      <div class="complaint-meta"><span>${escapeHTML(item.branch)}</span><span>${escapeHTML(item.phone || 'بدون هاتف')}</span><span>${new Date(item.created_at).toLocaleString('ar-EG')}</span></div>
+      <p>${escapeHTML(item.description)}</p>
+      <label>ملاحظات الحل</label>
+      <textarea data-resolution="${item.id}" rows="2">${escapeHTML(item.resolution_notes || '')}</textarea>
+      <div class="complaint-actions">
+        <select data-status="${item.id}">
+          <option value="new" ${item.status==='new'?'selected':''}>جديدة</option>
+          <option value="in_progress" ${item.status==='in_progress'?'selected':''}>قيد المتابعة</option>
+          <option value="resolved" ${item.status==='resolved'?'selected':''}>تم الحل</option>
+        </select>
+        <button type="button" class="light" data-save-complaint="${item.id}">حفظ التحديث</button>
+      </div>
+    </article>`).join('');
+  $('complaintsList').querySelectorAll('[data-save-complaint]').forEach(btn => btn.addEventListener('click',() => updateComplaint(btn.dataset.saveComplaint)));
+}
+
+async function addComplaint() {
+  if (!isAdmin) return;
+  const customer_name = $('complaintName').value.trim();
+  const phone = $('complaintPhone').value.trim() || null;
+  const branch = $('complaintBranch').value;
+  const description = $('complaintDescription').value.trim();
+  if (!customer_name || !branch || !description) {
+    showMessage('complaintMsg','اكتب اسم العميل والفرع وتفاصيل الشكوى.',true);
+    return;
+  }
+  const {error} = await db.from('customer_complaints').insert({
+    customer_name,phone,branch,description,
+    resolution_notes:$('complaintResolution').value.trim() || null,
+    created_by:currentUser.id
+  });
+  if (error) {
+    showMessage('complaintMsg','تعذر تسجيل الشكوى. تأكد من تشغيل ملف إعداد Supabase. '+error.message,true);
+    return;
+  }
+  ['complaintName','complaintPhone','complaintDescription','complaintResolution'].forEach(id => $(id).value='');
+  $('complaintBranch').value='';
+  showMessage('complaintMsg','تم تسجيل الشكوى بنجاح.');
+  await Promise.all([loadComplaints(),loadActivity()]);
+}
+
+async function updateComplaint(id) {
+  if (!isAdmin) return;
+  const status = $('complaintsList').querySelector('[data-status="'+id+'"]').value;
+  const resolution_notes = $('complaintsList').querySelector('[data-resolution="'+id+'"]').value.trim() || null;
+  const {error} = await db.from('customer_complaints').update({status,resolution_notes}).eq('id',id);
+  if (error) {
+    alert('تعذر تحديث الشكوى: '+error.message);
+    return;
+  }
+  await Promise.all([loadComplaints(),loadActivity()]);
+}
+
+async function loadActivity() {
+  if (!isAdmin) return;
+  const {data,error} = await db.from('admin_activity_logs').select('*').order('created_at',{ascending:false}).limit(60);
+  if (error) {
+    $('activityList').textContent = 'تعذر تحميل سجل النشاط. تأكد من تنفيذ ملف إعداد Supabase. '+error.message;
+    return;
+  }
+  if (!data?.length) {
+    $('activityList').innerHTML = '<p class="muted">لا توجد عمليات مسجلة بعد. ستظهر هنا عمليات الإضافة والتعديل والحذف.</p>';
+    return;
+  }
+  const labels = {INSERT:'إضافة',UPDATE:'تعديل',DELETE:'حذف'};
+  const tables = {customers:'سجلات العملاء',customer_complaints:'شكاوى العملاء'};
+  $('activityList').innerHTML = data.map(item => `
+    <div class="activity-item">
+      <strong>${labels[item.action] || escapeHTML(item.action)} — ${tables[item.table_name] || escapeHTML(item.table_name)}</strong>
+      <p>${escapeHTML(item.summary?.customer_name || 'سجل')} ${item.summary?.branch ? ' • '+escapeHTML(item.summary.branch) : ''} ${item.summary?.status ? ' • '+escapeHTML(complaintStatusLabel(item.summary.status)) : ''}</p>
+      <p>${new Date(item.created_at).toLocaleString('ar-EG')} — رقم السجل: ${escapeHTML(item.record_id || '—')}</p>
+    </div>`).join('');
+}
+
 async function loadRecords() {
   $('recordsHint').textContent = 'جاري تحميل البيانات...';
 
@@ -466,6 +606,7 @@ async function loadRecords() {
   allRecords = data || [];
   updateStats();
   renderRecords();
+  if (isAdmin) await Promise.all([loadComplaints(),loadActivity()]);
 }
 
 
@@ -688,6 +829,8 @@ $('searchInput').addEventListener('input',renderRecords);
 $('branchFilter').addEventListener('change',renderRecords);
 
 fillBranches();
+branches.forEach(branch => $('complaintBranch').add(new Option(branch,branch)));
+$('addComplaintBtn').addEventListener('click',addComplaint);
 $('visitDate').value = today();
 
 $('reportMonth').value = today().slice(0,7);
