@@ -107,6 +107,13 @@ input[type=file]{padding:10px;background:#f8fafc}
 .branch-line.zero .branch-fill{background:#dfe5ec}
 @media(max-width:680px){.branch-bars{grid-template-columns:1fr;gap:11px}.report-heading{align-items:flex-start}}
 
+
+.export-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 14px}
+.export-btn{width:auto;min-width:210px;background:#16845b;color:#fff;padding:11px 16px}
+.export-btn:hover{background:#116b49}
+.export-row .muted{font-size:12px}
+@media(max-width:560px){.export-btn{width:100%}}
+
 </style>
 </head>
 <body>
@@ -196,6 +203,11 @@ input[type=file]{padding:10px;background:#f8fafc}
 
 <section class="panel">
 <h2>سجلات العملاء</h2>
+<div class="export-row">
+  <button type="button" class="export-btn" onclick="exportCustomersToExcel()">⬇️ تصدير النتائج إلى Excel</button>
+  <span class="muted">يتم تصدير السجلات المعروضة حسب البحث والفرع المحدد</span>
+</div>
+
 <div class="row">
 <input id="searchInput" placeholder="بحث بالاسم أو الهاتف">
 <select id="branchFilter">
@@ -366,6 +378,42 @@ async function loadRecords() {
   allRecords = data || [];
   updateStats();
   renderRecords();
+}
+
+
+function exportCustomersToExcel() {
+  const query = $('searchInput').value.trim().toLowerCase();
+  const branch = $('branchFilter').value;
+  const rows = allRecords.filter(r =>
+    (!branch || r.branch === branch) &&
+    (!query ||
+      String(r.customer_name || '').toLowerCase().includes(query) ||
+      String(r.phone || '').toLowerCase().includes(query))
+  );
+
+  if (!rows.length) {
+    alert('لا توجد سجلات لتصديرها.');
+    return;
+  }
+
+  const headers = ['اسم العميل','رقم الهاتف','الفرع','تاريخ الزيارة','التعليقات','مسار التسجيل الصوتي','تاريخ إضافة السجل'];
+  const fields = ['customer_name','phone','branch','visit_date','comments','audio_path','created_at'];
+  const csvCell = value => '"' + String(value ?? '').replace(/"/g,'""') + '"';
+  const csv = [
+    headers.map(csvCell).join(','),
+    ...rows.map(record => fields.map(field => csvCell(record[field])).join(','))
+  ].join('\r\n');
+
+  const blob = new Blob(['\uFEFF', csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'Pizza-King-Morin-Customers-' + today() + '.csv';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  $('recordsHint').textContent = 'تم تجهيز تصدير ' + rows.length.toLocaleString('ar-EG') + ' سجل';
 }
 
 async function renderRecords() {
