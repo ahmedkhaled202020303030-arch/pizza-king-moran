@@ -389,6 +389,7 @@ async function logout() {
 
 
 
+
 function selectedReportMonth() {
   return $('reportMonth').value || today().slice(0,7);
 }
@@ -420,8 +421,7 @@ function renderMonthlyReport() {
   const prevCount = allRecords.filter(r => String(r.visit_date || '').startsWith(prevKey)).length;
   $('monthTotal').textContent = currentCount.toLocaleString('ar-EG');
   $('previousMonthTotal').textContent = prevCount.toLocaleString('ar-EG');
-  const change = prevCount === 0 ? (currentCount ? 'جديد' : '0%') : ((currentCount-prevCount)/prevCount*100).toFixed(1)+'%';
-  $('monthChange').textContent = change;
+  $('monthChange').textContent = prevCount === 0 ? (currentCount ? 'جديد' : '0%') : ((currentCount-prevCount)/prevCount*100).toFixed(1)+'%';
   const months = [];
   for(let i=5;i>=0;i--){
     const d = new Date(year,month-1-i,1);
@@ -434,23 +434,7 @@ function renderMonthlyReport() {
     <div class="month-bar-track"><div class="month-bar-fill" style="height:${Math.max(x.count ? 3 : 0,x.count/max*100)}%"></div></div>
     <span class="month-bar-label">${escapeHTML(x.label)}</span>
   </div>`).join('');
-  renderMonthlyReport();
-}
-
-
-  const counts = branches.map(name => ({
-    name,
-    count: allRecords.filter(record => record.branch === name).length
-  }));
-  const maxCount = Math.max(1, ...counts.map(item => item.count));
-  $('branchReportTotal').textContent = allRecords.length.toLocaleString('ar-EG') + ' سجل';
-  $('branchReport').innerHTML = counts.map(item => {
-    const width = item.count ? Math.max(3, item.count / maxCount * 100) : 0;
-    return `<div class="branch-line ${item.count ? '' : 'zero'}">
-      <div class="branch-line-top"><strong>${escapeHTML(item.name)}</strong><span>${item.count.toLocaleString('ar-EG')} عميل</span></div>
-      <div class="branch-track"><div class="branch-fill" style="width:${width}%"></div></div>
-    </div>`;
-  }).join('');
+  renderBranchReport();
 }
 
 function updateStats() {
@@ -462,7 +446,7 @@ function updateStats() {
   $('statBranches').textContent = activeBranches.toLocaleString('ar-EG');
   $('statToday').textContent = todayVisits.toLocaleString('ar-EG');
   $('statAudio').textContent = audioCount.toLocaleString('ar-EG');
-  renderBranchReport();
+  renderMonthlyReport();
 }
 
 async function loadRecords() {
