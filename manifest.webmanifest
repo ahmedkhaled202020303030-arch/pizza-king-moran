@@ -1,0 +1,26 @@
+{
+  "id": "/",
+  "name": "Pizza King & Morin",
+  "short_name": "PKM Customers",
+  "description": "نظام إدارة ومتابعة خدمة العملاء",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "orientation": "any",
+  "background_color": "#091321",
+  "theme_color": "#091321",
+  "icons": [
+    {
+      "src": "/icons/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
