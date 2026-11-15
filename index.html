@@ -380,66 +380,59 @@ a{color:#e3bd78}
 }
 
 
-/* HORIZONTAL CUSTOMER STRIPS */
-#records{
+/* COMPACT BUTTON: HORIZONTAL CUSTOMER STRIPS */
+#records.compact-view{
   display:grid;
   grid-template-columns:minmax(0,1fr);
-  gap:10px;
+  gap:8px;
 }
-#records .record{
+#records.compact-view .record{
   display:flex;
   flex-direction:row;
   align-items:center;
   flex-wrap:wrap;
-  gap:8px 18px;
-  padding:13px 17px;
+  gap:7px 16px;
+  padding:11px 15px;
   border:1px solid #46536a;
   border-right:4px solid #c9a15b;
   border-top:1px solid #46536a;
-  border-radius:12px;
-  box-shadow:0 7px 18px rgba(0,0,0,.16);
+  border-radius:11px;
+  box-shadow:0 6px 16px rgba(0,0,0,.15);
 }
-#records .record h3{
-  flex:1 1 155px;
-  min-width:140px;
+#records.compact-view .record h3{
+  flex:1 1 150px;
+  min-width:135px;
   margin:0;
-  font-size:15px;
+  font-size:14px;
 }
-#records .record p{
-  flex:1 1 130px;
+#records.compact-view .record p{
+  flex:1 1 125px;
   min-width:0;
   margin:0;
   font-size:12px;
-  line-height:1.55;
+  line-height:1.5;
 }
-#records .record p:has(.tag){flex:0 1 auto}
-#records .record p:has(a){flex:1 1 150px}
-#records .record .rating-summary{
+#records.compact-view .record p:has(.tag){flex:0 1 auto}
+#records.compact-view .record p:has(a){flex:1 1 145px}
+#records.compact-view .record .rating-summary{
   flex:1 1 100%;
   margin:2px 0;
 }
-#records .record button{
+#records.compact-view .record button{
   flex:0 0 auto;
   margin:2px 0;
-  padding:8px 12px;
+  padding:7px 11px;
+  font-size:12px;
 }
-#records.compact-view .record{
-  gap:5px 12px;
-  padding:9px 13px;
-  border-radius:9px;
-}
-#records.compact-view .record h3{font-size:13px}
-#records.compact-view .record p{font-size:11px}
-#records.compact-view .record button{padding:6px 10px;font-size:11px}
 @media(max-width:680px){
-  #records .record{gap:7px 10px;padding:12px}
-  #records .record h3{flex:1 1 100%;min-width:100%;font-size:14px}
-  #records .record p{flex:1 1 calc(50% - 10px);font-size:12px}
-  #records .record p:has(.tag){flex:1 1 100%}
-  #records .record .rating-summary{flex:1 1 100%}
-  #records .record button{flex:1 1 auto}
+  #records.compact-view{grid-template-columns:minmax(0,1fr);gap:7px}
+  #records.compact-view .record{gap:6px 9px;padding:10px}
+  #records.compact-view .record h3{flex:1 1 100%;min-width:100%;font-size:13px}
+  #records.compact-view .record p{flex:1 1 calc(50% - 9px);font-size:11px}
+  #records.compact-view .record p:has(.tag){flex:1 1 100%}
+  #records.compact-view .record .rating-summary{flex:1 1 100%}
+  #records.compact-view .record button{flex:1 1 auto;padding:7px 9px;font-size:11px}
 }
-
 </style>
 </head>
 <body>
