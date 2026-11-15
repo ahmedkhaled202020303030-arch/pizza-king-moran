@@ -858,7 +858,7 @@ function renderBranchReport() {
 }
 
 function normalizeCustomerPhone(value) {
-  let digits=normalizeArabicDigits(String(value||'')).replace(/\\D/g,'');
+  let digits=normalizeArabicDigits(String(value||'')).replace(/\D/g,'');
   if(digits.startsWith('00')) digits=digits.slice(2);
   if(digits.startsWith('0') && digits.length===11 && digits.startsWith('01')) return '20'+digits.slice(1);
   if(digits.startsWith('20') && digits.length===12) return digits;
@@ -1106,7 +1106,8 @@ function getFilteredRecords() {
 }
 
 function openCustomerProfile(phone) {
-  const history = allRecords.filter(r => String(r.phone || '') === String(phone || ''))
+  const normalizedPhone = normalizeCustomerPhone(phone);
+  const history = allRecords.filter(r => normalizeCustomerPhone(r.phone) === normalizedPhone)
     .sort((a,b) => String(b.visit_date || '').localeCompare(String(a.visit_date || '')));
   if (!history.length) return;
   const first = history[0];
