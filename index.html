@@ -33,7 +33,7 @@ header h1{font-size:clamp(28px,5.8vw,43px);line-height:1.25;text-shadow:0 3px 12
 .brand-logo img{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%}
 .brand-logo.pizza img{transform:scale(1.06)}
 .brand-logo.morein img{transform:scale(1.9)}
-header .creator-credit{margin:12px 0 0;color:#fff;font-size:15px;font-weight:800;letter-spacing:.1px;text-shadow:0 2px 8px rgba(0,0,0,.25)}
+.site-footer .creator-credit{margin:0;padding:18px 12px;text-align:center;color:var(--muted);font-size:13px;font-weight:700;letter-spacing:.1px}
 @media(max-width:560px){
   header .header-branding{gap:10px}
   .brand-logo{width:clamp(66px,19vw,86px);height:clamp(66px,19vw,86px);border-width:1.5px;box-shadow:0 8px 18px rgba(0,0,0,.3),0 0 0 3px rgba(255,255,255,.08)}
@@ -191,7 +191,7 @@ input[type=file]{padding:10px;background:#f8fafc}
   <div class="header-copy">
     <h1>Pizza King & Morin</h1>
     <p>نظام مركزي لإدارة ومتابعة خدمة العملاء</p>
-    <p class="creator-credit">Website Developed by Ahmed Khaled</p>
+    
   </div>
   <div class="brand-logo morein"><img src="https://morein-eg.com/_next/image?q=75&url=https%3A%2F%2Fmorein-pro.fsn1.your-objectstorage.com%2Flogo%2Fmorein-placholder.jpg&w=828" alt="شعار More In" loading="eager"></div>
 </div>
@@ -342,6 +342,8 @@ input[type=file]{padding:10px;background:#f8fafc}
 </div>
 
 </main>
+<footer class="site-footer"><p class="creator-credit">Website Developed by Ahmed Khaled</p></footer>
+
 
 <script>
 const SUPABASE_URL = 'https://mrbdigdeawtoetqdpoye.supabase.co';
