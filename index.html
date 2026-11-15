@@ -188,6 +188,16 @@ input[type=file]{padding:10px;background:#f8fafc}
 
 
 
+.repeat-customers-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.repeat-customer-item{padding:13px;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.025);min-width:0}
+.repeat-customer-item strong{display:block;color:#f0d49b;font-size:14px}
+.repeat-customer-item p{margin:5px 0;color:var(--muted);font-size:12px;overflow-wrap:anywhere}
+.repeat-customer-item button{width:auto;margin-top:5px;padding:7px 12px;font-size:12px}
+.performance-score{font-weight:900;color:#f0d49b}
+.performance-status{display:inline-block;padding:3px 9px;border-radius:18px;font-size:11px;font-weight:800;background:#244b3d;color:#8de0b8}
+.performance-status.mid{background:#574729;color:#f5d18c}
+.performance-status.low{background:#552d35;color:#ffabb2}
+@media(max-width:680px){.repeat-customers-list{grid-template-columns:1fr}}
 /* DARK PREMIUM THEME */
 :root{
   color-scheme:dark;
@@ -532,6 +542,11 @@ a{color:#e3bd78}
 </nav>
 <div id="customersView">
 
+<section class="panel repeat-customers-panel">
+  <div class="report-heading"><div><h2>كشف العملاء المتكررين</h2><p class="muted">تجميع تلقائي حسب رقم الهاتف مع توحيد صيغ الأرقام المصرية</p></div><span class="report-total" id="repeatCustomersTotal">0 عميل متكرر</span></div>
+  <div id="repeatCustomersList" class="repeat-customers-list"><p class="muted">سيظهر الكشف بعد تحميل البيانات.</p></div>
+</section>
+
 <section class="stats-grid" aria-label="إحصائيات العملاء">
   <div class="stat-card"><span class="stat-icon">👥</span><div><p>إجمالي العملاء</p><strong id="statTotal">0</strong></div></div>
   <div class="stat-card"><span class="stat-icon">🏬</span><div><p>الفروع النشطة</p><strong id="statBranches">0</strong></div></div>
@@ -546,6 +561,11 @@ a{color:#e3bd78}
     <span class="report-total" id="branchReportTotal">0 سجل</span>
   </div>
   <div id="branchReport" class="branch-bars"><p class="muted">سيظهر التقرير بعد تحميل البيانات.</p></div>
+</section>
+
+<section class="panel branch-performance-panel">
+  <div class="report-heading"><div><h2>التقييم التلقائي لأداء الفروع</h2><p class="muted">متوسط تقييمات العملاء المسجلة من 4 درجات، مع ترتيب الفروع وعدد التقييمات المتاحة</p></div><span class="report-total">تقييم شامل</span></div>
+  <div id="branchRatingsReport" class="branch-bars"><p class="muted">سيظهر التقييم بعد تحميل البيانات.</p></div>
 </section>
 
 <section class="panel monthly-report">
@@ -837,6 +857,80 @@ function renderBranchReport() {
   }).join('');
 }
 
+function normalizeCustomerPhone(value) {
+  let digits=normalizeArabicDigits(String(value||'')).replace(/\\D/g,'');
+  if(digits.startsWith('00')) digits=digits.slice(2);
+  if(digits.startsWith('0') && digits.length===11 && digits.startsWith('01')) return '20'+digits.slice(1);
+  if(digits.startsWith('20') && digits.length===12) return digits;
+  if(digits.length===10 && digits.startsWith('1')) return '20'+digits;
+  return digits;
+}
+
+function getRepeatCustomerGroups() {
+  const groups=new Map();
+  allRecords.forEach(record=>{
+    const key=normalizeCustomerPhone(record.phone);
+    if(!key) return;
+    if(!groups.has(key)) groups.set(key,[]);
+    groups.get(key).push(record);
+  });
+  return [...groups.entries()].filter(([,items])=>items.length>1)
+    .map(([phone,items])=>({phone,items:items.sort((a,b)=>String(b.visit_date||'').localeCompare(String(a.visit_date||'')))}))
+    .sort((a,b)=>b.items.length-a.items.length);
+}
+
+function renderRepeatCustomers() {
+  const groups=getRepeatCustomerGroups();
+  $('repeatCustomersTotal').textContent=groups.length.toLocaleString('ar-EG')+' عميل متكرر';
+  if(!groups.length) {
+    $('repeatCustomersList').innerHTML='<p class="muted">لا توجد أرقام مكررة حتى الآن.</p>';
+    return;
+  }
+  $('repeatCustomersList').innerHTML=groups.slice(0,12).map(group=>{
+    const latest=group.items[0];
+    const branchesUsed=[...new Set(group.items.map(item=>item.branch).filter(Boolean))].join('، ');
+    return `<article class="repeat-customer-item">
+      <strong>${escapeHTML(latest.customer_name||'عميل بدون اسم')}</strong>
+      <p dir="ltr" style="text-align:right">${escapeHTML(latest.phone||group.phone)}</p>
+      <p>عدد الزيارات: <b>${group.items.length.toLocaleString('ar-EG')}</b> • آخر زيارة: ${escapeHTML(latest.visit_date||'—')}</p>
+      <p>الفروع: ${escapeHTML(branchesUsed||'—')}</p>
+      <button type="button" class="light" data-repeat-phone="${escapeHTML(latest.phone||'')}">فتح سجل العميل</button>
+    </article>`;
+  }).join('');
+  $('repeatCustomersList').querySelectorAll('[data-repeat-phone]').forEach(button=>{
+    button.addEventListener('click',()=>openCustomerProfile(button.dataset.repeatPhone));
+  });
+}
+
+function renderBranchRatings() {
+  const scoreMap={'سيئ':1,'متوسط':2,'جيد':3,'ممتاز':4};
+  const fields=['food_rating','atmosphere_rating','value_rating','service_rating','cleanliness_rating'];
+  const results=branches.map(name=>{
+    const scores=[];
+    allRecords.filter(record=>record.branch===name).forEach(record=>{
+      fields.forEach(field=>{const score=scoreMap[String(record[field]||'').trim()];if(score)scores.push(score);});
+    });
+    const average=scores.length?scores.reduce((sum,value)=>sum+value,0)/scores.length:0;
+    return {name,average,count:scores.length};
+  }).sort((a,b)=>b.average-a.average||b.count-a.count||a.name.localeCompare(b.name,'ar'));
+  const rated=results.filter(item=>item.count);
+  if(!rated.length) {
+    $('branchRatingsReport').innerHTML='<p class="muted">لا توجد تقييمات مسجلة كافية لحساب أداء الفروع.</p>';
+    return;
+  }
+  $('branchRatingsReport').innerHTML=results.map((item,index)=>{
+    if(!item.count) return '';
+    const percent=item.average/4*100;
+    const status=percent>=85?'ممتاز':percent>=65?'جيد':'يحتاج إلى تحسين';
+    const statusClass=percent>=85?'':percent>=65?'mid':'low';
+    return `<div class="branch-line">
+      <div class="branch-line-top"><strong>${index+1}. ${escapeHTML(item.name)}</strong><span><b class="performance-score">${item.average.toFixed(2)} / 4</b> • ${item.count.toLocaleString('ar-EG')} تقييم</span></div>
+      <div class="branch-track"><div class="branch-fill" style="width:${percent.toFixed(1)}%"></div></div>
+      <div style="margin-top:6px"><span class="performance-status ${statusClass}">${status}</span><span class="muted"> ${percent.toFixed(0)}٪</span></div>
+    </div>`;
+  }).join('');
+}
+
 function renderMonthlyReport() {
   const chosen = selectedReportMonth();
   const [year,month] = chosen.split('-').map(Number);
@@ -860,6 +954,7 @@ function renderMonthlyReport() {
     <span class="month-bar-label">${escapeHTML(x.label)}</span>
   </div>`).join('');
   renderBranchReport();
+  renderBranchRatings();
 }
 
 function updateStats() {
@@ -871,6 +966,7 @@ function updateStats() {
   $('statBranches').textContent = activeBranches.toLocaleString('ar-EG');
   $('statToday').textContent = todayVisits.toLocaleString('ar-EG');
   $('statAudio').textContent = audioCount.toLocaleString('ar-EG');
+  renderRepeatCustomers();
   renderMonthlyReport();
 }
 
@@ -1246,6 +1342,16 @@ async function saveRecord() {
   if (!name || !phone || !branch || !date) {
     showMessage('formMsg','أكمل الاسم والهاتف والفرع والتاريخ.',true);
     return;
+  }
+
+  if (!id) {
+    const normalized=normalizeCustomerPhone(phone);
+    const matches=allRecords.filter(record=>normalizeCustomerPhone(record.phone)===normalized);
+    if(matches.length) {
+      const uniqueVisits=matches.length;
+      const confirmed=confirm('تنبيه: رقم الهاتف مسجل من قبل باسم '+(matches[0].customer_name||'عميل')+'، وله '+uniqueVisits+' سجل سابق. هل تريد إضافة زيارة جديدة لهذا العميل؟');
+      if(!confirmed) return;
+    }
   }
 
   let audioPath = null;
