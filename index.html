@@ -542,7 +542,7 @@ a{color:#e3bd78}
 </nav>
 <div id="customersView">
 
-<section class="panel repeat-customers-panel">
+<section id="repeatCustomersPanel" class="panel repeat-customers-panel hidden">
   <div class="report-heading"><div><h2>كشف العملاء المتكررين</h2><p class="muted">تجميع تلقائي حسب رقم الهاتف مع توحيد صيغ الأرقام المصرية</p></div><span class="report-total" id="repeatCustomersTotal">0 عميل متكرر</span></div>
   <div id="repeatCustomersList" class="repeat-customers-list"><p class="muted">سيظهر الكشف بعد تحميل البيانات.</p></div>
 </section>
@@ -818,6 +818,7 @@ async function showApp(user,admin) {
   $('formPanel').classList.toggle('hidden',!admin);
   $('complaintsPanel').classList.toggle('hidden',!admin);
   $('activityPanel').classList.toggle('hidden',!admin);
+  $('repeatCustomersPanel').classList.toggle('hidden',!admin);
   $('staffAdminTools').classList.toggle('hidden',!admin);
   await loadRecords();
   await loadBranchStaff();
