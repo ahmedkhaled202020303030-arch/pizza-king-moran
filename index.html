@@ -1362,8 +1362,12 @@ async function loadBranchStaff() {
 function renderBranchStaff() {
   const query = $('staffSearch').value.trim().toLowerCase();
   const branch = $('staffBranchFilter').value;
+  if (!branch) {
+    $('staffList').innerHTML = '<p class="muted">من فضلك اختر الفرع أولًا لعرض أسماء الموظفين وبيانات التواصل.</p>';
+    return;
+  }
   const list = allBranchStaff.filter(person =>
-    (!branch || person.branch === branch) &&
+    person.branch === branch &&
     (!query || String(person.staff_name || '').toLowerCase().includes(query) || String(person.phone || '').toLowerCase().includes(query))
   );
   if (!list.length) {
