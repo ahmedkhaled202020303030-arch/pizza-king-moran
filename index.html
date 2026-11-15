@@ -264,6 +264,90 @@ a{color:#83c1ff}
   .panel{box-shadow:0 9px 24px rgba(0,0,0,.24)}
 }
 
+
+
+/* ENTERPRISE NAVY & GOLD THEME */
+:root{
+  color-scheme:dark;
+  --navy:#f0d49b;--navy-2:#243957;--orange:#d7ad62;--orange-dark:#b8893f;
+  --ink:#e9edf4;--muted:#a4b0c2;--line:#34445a;--surface:#142238;--bg:#091321;
+  --green:#42c995;--red:#ef737b;--shadow:0 16px 38px rgba(0,0,0,.3)
+}
+body{
+  background:radial-gradient(ellipse at 88% 0%,rgba(215,173,98,.09),transparent 34%),
+             radial-gradient(ellipse at 0% 35%,rgba(44,79,119,.16),transparent 38%),var(--bg);
+  color:var(--ink)
+}
+header{
+  background:linear-gradient(120deg,#081321 0%,#142741 58%,#203958 100%);
+  border-bottom:2px solid #b8893f;
+  box-shadow:0 14px 38px rgba(0,0,0,.3)
+}
+header:before,header:after{border-color:rgba(215,173,98,.16)}
+header p{color:#d1d9e5}
+.brand-logo{border-color:rgba(215,173,98,.85);box-shadow:0 12px 28px rgba(0,0,0,.38),0 0 0 4px rgba(215,173,98,.1)}
+.panel,.stat-card,.record,.upload-card,.complaint-card{
+  background:linear-gradient(145deg,#172840,#111e30);
+  border-color:#34445a;
+  box-shadow:var(--shadow)
+}
+.panel{border-radius:17px}
+h2,h3,.stat-card strong,.branch-line-top strong,.month-bar-value,
+.monthly-kpis strong,.activity-item strong,.upload-copy strong{color:#f0d49b}
+label{color:#d4dce7}
+input,select,textarea{
+  color:#edf2f8;background:#0c1929;border-color:#3a4a60;color-scheme:dark
+}
+input:focus,select:focus,textarea:focus{
+  background:#13243a;border-color:#d7ad62;
+  box-shadow:0 0 0 3px rgba(215,173,98,.16)
+}
+button{
+  background:linear-gradient(135deg,#e0bd7b,#b8893f);
+  color:#182235;box-shadow:0 6px 18px rgba(184,137,63,.2)
+}
+button:hover{filter:brightness(1.08);box-shadow:0 9px 22px rgba(184,137,63,.25)}
+.secondary{background:linear-gradient(135deg,#314967,#213650);color:#f3e5c7}
+.light{background:#2a3a50;color:#e8edf4}
+.danger{background:#a93645;color:#fff}
+.record{border-top:3px solid #c9a15b}
+.record a{color:#e3bd78}
+.tag,.report-total{
+  background:rgba(215,173,98,.14);color:#f0d49b;border:1px solid rgba(215,173,98,.27)
+}
+.msg{background:#382f20;border-color:#705b36;color:#f4dfb6}
+.ocr-box{background:linear-gradient(145deg,#1c2b3d,#142238);border-color:#665333}
+.ocr-progress,.branch-track,.month-bar-track{background:#29394d}
+.ocr-progress span,.branch-fill{background:linear-gradient(90deg,#a77b36,#e3c17f)}
+.branch-line.zero .branch-fill{background:#3a4a5e}
+.upload-card{border-color:#3a4a60}
+.upload-card:hover{border-color:#d7ad62;box-shadow:0 7px 20px rgba(0,0,0,.28)}
+.upload-icon{background:rgba(215,173,98,.15);color:#e5c17d}
+.rating-chip{background:#2a3b51;color:#e9edf4}
+.monthly-kpis>div,.profile-summary{background:#0d1a2b;border-color:#34445a}
+.month-bar-fill{background:linear-gradient(180deg,#f0d49b,#a77b36)}
+.profile-overlay{background:rgba(1,7,15,.8)}
+.profile-dialog{background:#142238;border:1px solid #665333;color:var(--ink)}
+.profile-visit{border-color:#34445a}
+.complaint-card h3{color:#f0d49b}
+.status-pill{background:rgba(215,173,98,.16);color:#f0d49b}
+.status-pill.resolved{background:rgba(66,201,149,.15);color:#75e0b5}
+.status-pill.in_progress{background:rgba(103,157,221,.16);color:#a9d0ff}
+.activity-item{border-color:#34445a}
+.site-footer .creator-credit{color:#a4b0c2}
+table{color:var(--ink)}
+th,td{border-color:#34445a}
+a{color:#e3bd78}
+::placeholder{color:#8292a9;opacity:1}
+:focus-visible{outline-color:#e2bf7e}
+.stat-icon{background:rgba(215,173,98,.15);color:#f0d49b}
+.monthly-kpis>div{border-radius:13px}
+@media(max-width:680px){
+  header{padding:25px 13px 22px}
+  main{padding-left:12px;padding-right:12px}
+  .panel{box-shadow:0 9px 24px rgba(0,0,0,.26)}
+}
+
 </style>
 </head>
 <body>
