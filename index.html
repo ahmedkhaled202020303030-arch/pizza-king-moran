@@ -581,7 +581,7 @@ a{color:#e3bd78}
 <option value="">كل الفروع</option>
 </select>
 </div>
-<div class="records-toolbar"><p id="recordsHint" class="muted">جاهز لتحميل البيانات</p><button type="button" id="toggleCompactRecords" class="light compact-toggle" aria-pressed="false">عرض مضغوط</button></div>
+<div class="records-toolbar"><p id="recordsHint" class="muted">جاهز لتحميل البيانات</p><button type="button" id="toggleCompactRecords" class="light compact-toggle" aria-pressed="true">عرض موسع</button></div>
 <div id="records"></div>
 </section>
 </section>
@@ -614,7 +614,7 @@ const $ = id => document.getElementById(id);
 let currentUser = null;
 let isAdmin = false;
 let allRecords = [];
-let compactRecordsView = false;
+let compactRecordsView = true;
 
 function showMessage(id, text, error=false) {
   const el = $(id);
@@ -966,6 +966,7 @@ async function renderRecords() {
   const list = getFilteredRecords();
   $('recordsHint').textContent =
     'عرض ' + list.length + ' من ' + allRecords.length + ' سجل';
+  $('records').classList.toggle('compact-view', compactRecordsView);
 
   if (!list.length) {
     $('records').textContent = 'لا توجد سجلات مطابقة.';
@@ -995,7 +996,6 @@ async function renderRecords() {
         ` : ''}
       </article>`;
   }
-  $('records').classList.toggle('compact-view', compactRecordsView);
   $('records').innerHTML = html;
   $('records').querySelectorAll('.profile-btn').forEach(btn => {
     btn.addEventListener('click', () => openCustomerProfile(btn.dataset.customerPhone));
