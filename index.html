@@ -181,6 +181,89 @@ input[type=file]{padding:10px;background:#f8fafc}
 .activity-item p{margin:4px 0;color:var(--muted);font-size:12px}
 @media(max-width:600px){.complaint-form{grid-template-columns:1fr}.complaint-wide{grid-column:auto}.complaint-actions select{max-width:none;width:100%}}
 
+
+
+/* DARK PREMIUM THEME */
+:root{
+  color-scheme:dark;
+  --navy:#dce9ff;--navy-2:#233b60;--orange:#4da3ff;--orange-dark:#277bd0;
+  --ink:#e5edf9;--muted:#9aabc3;--line:#263750;--surface:#111d2d;--bg:#08111f;
+  --green:#35c98a;--red:#ff6b75;--shadow:0 14px 36px rgba(0,0,0,.28)
+}
+body{
+  background:radial-gradient(ellipse at 12% 0%,rgba(35,91,155,.16),transparent 36%),var(--bg);
+  color:var(--ink)
+}
+header{
+  background:linear-gradient(125deg,#0b1627 0%,#122642 68%,#17375b 100%);
+  border-bottom:1px solid rgba(77,163,255,.65);
+  box-shadow:0 12px 35px rgba(0,0,0,.24)
+}
+header:before,header:after{border-color:rgba(105,174,255,.13)}
+header p{color:#b9cbe4}
+main{max-width:1160px}
+.panel,.stat-card,.record,.upload-card,.complaint-card{
+  background:linear-gradient(145deg,#142238,#101b2b);
+  border-color:var(--line);
+  box-shadow:var(--shadow)
+}
+.panel{border-radius:18px}
+h2,h3,.stat-card strong,.branch-line-top strong,.month-bar-value,
+.monthly-kpis strong,.activity-item strong,.upload-copy strong{color:#e5efff}
+label{color:#c1cee0}
+input,select,textarea{
+  color:var(--ink);background:#0b1727;border-color:#30435e;
+  color-scheme:dark
+}
+input:focus,select:focus,textarea:focus{
+  background:#101f33;border-color:#55aaff;
+  box-shadow:0 0 0 3px rgba(77,163,255,.16)
+}
+input[type=file]{background:#0b1727}
+button{
+  background:linear-gradient(135deg,#3997f2,#2677ce);
+  color:#fff;box-shadow:0 6px 18px rgba(39,123,208,.2)
+}
+button:hover{filter:brightness(1.1);box-shadow:0 9px 22px rgba(39,123,208,.28)}
+.secondary{background:#263e60;color:#eaf3ff}
+.light{background:#263449;color:#dce8f8}
+.danger{background:#a93645}
+.record{border-top-color:#4da3ff}
+.record a{color:#73baff}
+.tag,.report-total{
+  background:rgba(77,163,255,.14);color:#8fc7ff;border:1px solid rgba(77,163,255,.2)
+}
+.msg{background:#392d18;border-color:#70552b;color:#ffe0a1}
+.ocr-box{background:linear-gradient(145deg,#1c2b3d,#142236);border-color:#354c68}
+.ocr-progress,.branch-track,.month-bar-track{background:#26364c}
+.ocr-progress span,.branch-fill{background:linear-gradient(90deg,#267bd0,#68b8ff)}
+.branch-line.zero .branch-fill{background:#33445b}
+.upload-card{border-color:#30435e}
+.upload-card:hover{border-color:#55aaff;box-shadow:0 7px 20px rgba(0,0,0,.25)}
+.upload-icon{background:rgba(77,163,255,.14);color:#82c2ff}
+.rating-chip{background:#26364c;color:#dce8f8}
+.monthly-kpis>div,.profile-summary{background:#0c192a;border-color:#2a3d57}
+.month-bar-fill{background:linear-gradient(180deg,#75bdff,#267bd0)}
+.profile-overlay{background:rgba(1,7,15,.78)}
+.profile-dialog{background:#111d2d;border:1px solid #30435e;color:var(--ink)}
+.profile-visit{border-color:#293b53}
+.complaint-card h3{color:#e5efff}
+.status-pill{background:rgba(242,166,70,.15);color:#ffd08a}
+.status-pill.resolved{background:rgba(53,201,138,.15);color:#72e2b1}
+.status-pill.in_progress{background:rgba(77,163,255,.15);color:#91c8ff}
+.activity-item{border-color:#293b53}
+.site-footer .creator-credit{color:#8295af}
+table{color:var(--ink)}
+th,td{border-color:var(--line)}
+a{color:#83c1ff}
+::placeholder{color:#71839d;opacity:1}
+:focus-visible{outline-color:#65b5ff}
+@media(max-width:680px){
+  header{padding:25px 13px 22px}
+  main{padding-left:12px;padding-right:12px}
+  .panel{box-shadow:0 9px 24px rgba(0,0,0,.24)}
+}
+
 </style>
 </head>
 <body>
