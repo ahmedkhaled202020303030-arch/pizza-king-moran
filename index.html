@@ -449,6 +449,27 @@ a{color:#e3bd78}
 #pwaInstallBtn svg{width:19px;height:19px;flex:none}
 @media(min-width:900px){#pwaInstallBtn{left:24px;bottom:24px}}
 
+
+/* BRANCH STAFF DIRECTORY */
+.app-nav{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 18px}
+.app-nav button{width:auto;flex:1;min-width:170px;margin:0;padding:13px 18px}
+.app-nav button.active{background:linear-gradient(135deg,#e0bd7b,#b8893f);color:#182235;box-shadow:0 7px 18px rgba(184,137,63,.2)}
+.staff-toolbar{display:grid;grid-template-columns:minmax(0,2fr) minmax(180px,1fr);gap:12px;margin:16px 0}
+.staff-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.staff-card{min-width:0;padding:17px;border:1px solid #3a4a60;border-top:3px solid #c9a15b;border-radius:15px;background:linear-gradient(145deg,#172840,#111e30);box-shadow:var(--shadow)}
+.staff-card h3{margin:0 0 8px;color:#f0d49b;overflow-wrap:anywhere}
+.staff-phone{direction:ltr;display:inline-block;font-weight:800;letter-spacing:.3px;color:#e9edf4}
+.staff-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.staff-actions a,.staff-actions button{width:auto;min-width:112px;flex:1;text-align:center;margin:0;padding:9px 12px;border-radius:10px;text-decoration:none;font-size:13px;font-weight:800}
+.staff-whatsapp{background:#168b57;color:#fff;border:1px solid rgba(37,211,102,.35)}
+.staff-form{margin:16px 0 20px;padding:17px;border:1px solid #665333;border-radius:15px;background:#0d1a2b}
+.staff-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.staff-form-grid>div{min-width:0}
+.staff-form-grid label{margin-top:0}
+.staff-form-actions{display:flex;gap:9px;margin-top:10px}
+.staff-form-actions button{flex:1}
+@media(max-width:680px){.app-nav{gap:8px}.app-nav button{min-width:0;padding:11px 8px;font-size:13px}.staff-list{grid-template-columns:1fr}.staff-toolbar{grid-template-columns:1fr}.staff-form-grid{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
@@ -497,6 +518,11 @@ a{color:#e3bd78}
 </div>
 </div>
 
+<nav class="app-nav" aria-label="أقسام النظام">
+  <button type="button" id="customersNavBtn" class="active">إدارة العملاء</button>
+  <button type="button" id="staffNavBtn" class="secondary">دليل عمالة الفروع</button>
+</nav>
+<div id="customersView">
 
 <section class="stats-grid" aria-label="إحصائيات العملاء">
   <div class="stat-card"><span class="stat-icon">👥</span><div><p>إجمالي العملاء</p><strong id="statTotal">0</strong></div></div>
@@ -600,6 +626,40 @@ a{color:#e3bd78}
 <div class="records-toolbar"><p id="recordsHint" class="muted">جاهز لتحميل البيانات</p><button type="button" id="toggleCompactRecords" class="light compact-toggle" aria-pressed="true">عرض موسع</button></div>
 <div id="records"></div>
 </section>
+</div>
+
+<section id="staffDirectoryView" class="hidden">
+  <section class="panel">
+    <div class="report-heading">
+      <div><h2>دليل عمالة الفروع</h2><p class="muted">أسماء وأرقام التواصل مع فريق العمل في كل فرع</p></div>
+      <span class="report-total" id="staffCount">0 موظف</span>
+    </div>
+    <div id="staffLoadMsg" class="msg hidden"></div>
+    <div id="staffAdminTools" class="hidden">
+      <button type="button" id="addStaffBtn" class="compact-toggle">إضافة موظف جديد</button>
+      <div id="staffForm" class="staff-form hidden">
+        <h3 id="staffFormTitle">إضافة موظف</h3>
+        <input type="hidden" id="staffEditId">
+        <div class="staff-form-grid">
+          <div><label for="staffName">اسم الموظف</label><input id="staffName" maxlength="120" placeholder="اكتب اسم الموظف"></div>
+          <div><label for="staffPhone">رقم الهاتف</label><input id="staffPhone" inputmode="tel" maxlength="25" placeholder="01xxxxxxxxx"></div>
+          <div><label for="staffBranch">الفرع</label><select id="staffBranch"><option value="">اختر الفرع</option></select></div>
+        </div>
+        <div id="staffFormMsg" class="msg hidden"></div>
+        <div class="staff-form-actions">
+          <button type="button" id="saveStaffBtn">حفظ الموظف</button>
+          <button type="button" id="cancelStaffBtn" class="light">إلغاء</button>
+        </div>
+      </div>
+    </div>
+    <div class="staff-toolbar">
+      <input id="staffSearch" placeholder="بحث باسم الموظف أو رقم الهاتف">
+      <select id="staffBranchFilter"><option value="">كل الفروع</option></select>
+    </div>
+    <div id="staffList" class="staff-list"><p class="muted">جاري تحميل دليل العمالة...</p></div>
+  </section>
+</section>
+
 </section>
 
 <div id="customerProfileModal" class="profile-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="profileTitle">
@@ -723,7 +783,10 @@ async function showApp(user,admin) {
   $('formPanel').classList.toggle('hidden',!admin);
   $('complaintsPanel').classList.toggle('hidden',!admin);
   $('activityPanel').classList.toggle('hidden',!admin);
+  $('staffAdminTools').classList.toggle('hidden',!admin);
   await loadRecords();
+  await loadBranchStaff();
+  showDirectoryView('customers');
 }
 
 async function logout() {
@@ -1244,10 +1307,136 @@ async function deleteRecord(id) {
   await loadRecords();
 }
 
+
+let allBranchStaff = [];
+
+function showDirectoryView(view) {
+  const staff = view === 'staff';
+  $('customersView').classList.toggle('hidden',staff);
+  $('staffDirectoryView').classList.toggle('hidden',!staff);
+  $('customersNavBtn').classList.toggle('active',!staff);
+  $('staffNavBtn').classList.toggle('active',staff);
+  $('customersNavBtn').classList.toggle('secondary',staff);
+  $('staffNavBtn').classList.toggle('secondary',!staff);
+  if (staff && currentUser) loadBranchStaff();
+}
+
+function normalizeStaffPhone(value) {
+  let digits = normalizeArabicDigits(String(value || '')).replace(/[^0-9]/g,'');
+  if (digits.startsWith('00')) digits = digits.slice(2);
+  if (digits.startsWith('0') && digits.length === 11 && digits.startsWith('01')) digits = '2' + digits;
+  else if (digits.startsWith('20') && digits.length >= 12 && digits.length <= 13) {}
+  else if (digits.length === 10 && digits.startsWith('1')) digits = '20' + digits;
+  return /^\d{8,15}$/.test(digits) ? digits : '';
+}
+
+async function loadBranchStaff() {
+  if (!currentUser) return;
+  $('staffList').innerHTML = '<p class="muted">جاري تحميل دليل العمالة...</p>';
+  const {data,error} = await db.from('branch_staff').select('*').order('branch',{ascending:true}).order('staff_name',{ascending:true});
+  if (error) {
+    $('staffCount').textContent = '—';
+    $('staffList').innerHTML = '<p class="muted">تعذر تحميل دليل العمالة. تأكد من تنفيذ ملف branch_staff_migration.sql في Supabase. التفاصيل: '+escapeHTML(error.message)+'</p>';
+    return;
+  }
+  allBranchStaff = data || [];
+  $('staffCount').textContent = allBranchStaff.length.toLocaleString('ar-EG')+' موظف';
+  renderBranchStaff();
+}
+
+function renderBranchStaff() {
+  const query = $('staffSearch').value.trim().toLowerCase();
+  const branch = $('staffBranchFilter').value;
+  const list = allBranchStaff.filter(person =>
+    (!branch || person.branch === branch) &&
+    (!query || String(person.staff_name || '').toLowerCase().includes(query) || String(person.phone || '').toLowerCase().includes(query))
+  );
+  if (!list.length) {
+    $('staffList').innerHTML = '<p class="muted">لا توجد أسماء مطابقة. '+(isAdmin?'يمكنك إضافة موظف جديد من الزر أعلاه.':'')+'</p>';
+    return;
+  }
+  $('staffList').innerHTML = list.map(person => {
+    const wa = normalizeStaffPhone(person.phone);
+    const whatsapp = wa
+      ? '<a class="staff-whatsapp" href="https://wa.me/'+wa+'" target="_blank" rel="noopener noreferrer">واتساب</a>'
+      : '<span class="muted">رقم غير صالح لواتساب</span>';
+    return `<article class="staff-card">
+      <h3>${escapeHTML(person.staff_name)}</h3>
+      <p><span class="tag">${escapeHTML(person.branch)}</span></p>
+      <p>الهاتف: <span class="staff-phone" dir="ltr">${escapeHTML(person.phone)}</span></p>
+      <div class="staff-actions">${whatsapp}
+      ${isAdmin ? '<button type="button" class="light" data-staff-edit="'+escapeHTML(person.id)+'">تعديل</button><button type="button" class="danger" data-staff-delete="'+escapeHTML(person.id)+'">حذف</button>' : ''}</div>
+    </article>`;
+  }).join('');
+  $('staffList').querySelectorAll('[data-staff-edit]').forEach(btn => btn.addEventListener('click',()=>editBranchStaff(btn.dataset.staffEdit)));
+  $('staffList').querySelectorAll('[data-staff-delete]').forEach(btn => btn.addEventListener('click',()=>deleteBranchStaff(btn.dataset.staffDelete)));
+}
+
+function resetBranchStaffForm() {
+  $('staffEditId').value='';
+  $('staffName').value='';
+  $('staffPhone').value='';
+  $('staffBranch').value='';
+  $('staffFormTitle').textContent='إضافة موظف';
+  $('saveStaffBtn').textContent='حفظ الموظف';
+  $('staffForm').classList.add('hidden');
+  $('staffFormMsg').classList.add('hidden');
+}
+
+function editBranchStaff(id) {
+  if (!isAdmin) return;
+  const person=allBranchStaff.find(item=>String(item.id)===String(id));
+  if (!person) return;
+  $('staffEditId').value=person.id;
+  $('staffName').value=person.staff_name || '';
+  $('staffPhone').value=person.phone || '';
+  $('staffBranch').value=person.branch || '';
+  $('staffFormTitle').textContent='تعديل بيانات الموظف';
+  $('saveStaffBtn').textContent='حفظ التعديلات';
+  $('staffForm').classList.remove('hidden');
+  $('staffForm').scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+async function saveBranchStaff() {
+  if (!isAdmin) return;
+  const staff_name=$('staffName').value.trim();
+  const phone=$('staffPhone').value.trim();
+  const branch=$('staffBranch').value;
+  const id=$('staffEditId').value;
+  if (!staff_name || !phone || !branch) {
+    showMessage('staffFormMsg','أكمل اسم الموظف ورقم الهاتف والفرع.',true);
+    return;
+  }
+  if (!normalizeStaffPhone(phone)) {
+    showMessage('staffFormMsg','رقم الهاتف غير صالح. اكتب رقمًا صحيحًا مع كود الدولة عند الحاجة.',true);
+    return;
+  }
+  const payload={staff_name,phone,branch};
+  const result=id
+    ? await db.from('branch_staff').update(payload).eq('id',id)
+    : await db.from('branch_staff').insert(payload);
+  if (result.error) {
+    showMessage('staffFormMsg','تعذر حفظ البيانات: '+result.error.message,true);
+    return;
+  }
+  resetBranchStaffForm();
+  await loadBranchStaff();
+  showMessage('staffLoadMsg',id?'تم تحديث بيانات الموظف.':'تمت إضافة الموظف بنجاح.');
+}
+
+async function deleteBranchStaff(id) {
+  if (!isAdmin) return;
+  const person=allBranchStaff.find(item=>String(item.id)===String(id));
+  if (!person || !confirm('هل تريد حذف بيانات '+person.staff_name+'؟')) return;
+  const {error}=await db.from('branch_staff').delete().eq('id',id);
+  if (error) { alert('تعذر الحذف: '+error.message); return; }
+  await loadBranchStaff();
+}
+
 $('adminLogin').addEventListener('click',loginAdmin);
 $('guestLogin').addEventListener('click',loginGuest);
 $('logoutBtn').addEventListener('click',logout);
-$('refreshBtn').addEventListener('click',loadRecords);
+$('refreshBtn').addEventListener('click',async()=>{await loadRecords();await loadBranchStaff();});
 $('scanCardBtn').addEventListener('click',scanCustomerCard);
 $('clearCardBtn').addEventListener('click',()=>{$('cardImage').value='';$('cameraCard').value='';$('ocrStatus').textContent='تم مسح الصورة. يمكنك اختيار صورة أخرى.';$('ocrProgress').classList.add('hidden');});
 $('saveBtn').addEventListener('click',saveRecord);
@@ -1256,7 +1445,11 @@ $('searchInput').addEventListener('input',renderRecords);
 $('branchFilter').addEventListener('change',renderRecords);
 
 fillBranches();
-branches.forEach(branch => $('complaintBranch').add(new Option(branch,branch)));
+branches.forEach(branch => {
+  $('complaintBranch').add(new Option(branch,branch));
+  $('staffBranch').add(new Option(branch,branch));
+  $('staffBranchFilter').add(new Option(branch,branch));
+});
 $('addComplaintBtn').addEventListener('click',addComplaint);
 $('visitDate').value = today();
 
@@ -1270,6 +1463,19 @@ $('clearFilters').addEventListener('click',() => {
   $('dateTo').value = '';
   renderRecords();
 });
+$('customersNavBtn').addEventListener('click',()=>showDirectoryView('customers'));
+$('staffNavBtn').addEventListener('click',()=>showDirectoryView('staff'));
+$('staffSearch').addEventListener('input',renderBranchStaff);
+$('staffBranchFilter').addEventListener('change',renderBranchStaff);
+$('addStaffBtn').addEventListener('click',()=>{
+  if(!isAdmin)return;
+  resetBranchStaffForm();
+  $('staffForm').classList.remove('hidden');
+  $('staffForm').scrollIntoView({behavior:'smooth',block:'center'});
+});
+$('saveStaffBtn').addEventListener('click',saveBranchStaff);
+$('cancelStaffBtn').addEventListener('click',resetBranchStaffForm);
+
 $('toggleCompactRecords').addEventListener('click', () => {
   compactRecordsView = !compactRecordsView;
   $('records').classList.toggle('compact-view', compactRecordsView);
