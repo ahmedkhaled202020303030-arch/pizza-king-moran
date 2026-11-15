@@ -628,7 +628,7 @@ a{color:#e3bd78}
 <div class="row">
 <input id="searchInput" placeholder="بحث بالاسم أو الهاتف">
 <select id="branchFilter">
-<option value="">كل الفروع</option>
+<option value="">اختر الفرع</option>
 </select>
 </div>
 <div class="records-toolbar"><p id="recordsHint" class="muted">جاهز لتحميل البيانات</p><button type="button" id="toggleCompactRecords" class="light compact-toggle" aria-pressed="true">عرض موسع</button></div>
@@ -998,8 +998,9 @@ function getFilteredRecords() {
   const branch = $('branchFilter').value;
   const from = $('dateFrom').value;
   const to = $('dateTo').value;
+  if (!branch) return [];
   return allRecords.filter(r =>
-    (!branch || r.branch === branch) &&
+    r.branch === branch &&
     (!from || String(r.visit_date || '') >= from) &&
     (!to || String(r.visit_date || '') <= to) &&
     (!query ||
@@ -1063,13 +1064,21 @@ function exportCustomersToExcel() {
 
 
 async function renderRecords() {
+  const branch = $('branchFilter').value;
   const list = getFilteredRecords();
-  $('recordsHint').textContent =
-    'عرض ' + list.length + ' من ' + allRecords.length + ' سجل';
   $('records').classList.toggle('compact-view', compactRecordsView);
 
+  if (!branch) {
+    $('recordsHint').textContent = 'اختر الفرع لعرض العملاء';
+    $('records').innerHTML = '<p class="muted">من فضلك اختر الفرع أولًا لعرض أسماء العملاء وسجلاتهم.</p>';
+    return;
+  }
+
+  $('recordsHint').textContent =
+    'عرض ' + list.length + ' من ' + allRecords.filter(r => r.branch === branch).length + ' سجل في الفرع المحدد';
+
   if (!list.length) {
-    $('records').textContent = 'لا توجد سجلات مطابقة.';
+    $('records').textContent = 'لا توجد سجلات مطابقة في هذا الفرع.';
     return;
   }
 
