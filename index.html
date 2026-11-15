@@ -3,7 +3,12 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#091321">
+<meta name="description" content="نظام إدارة ومتابعة خدمة العملاء Pizza King & Morin">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="/icons/app-icon.svg">
+<link rel="apple-touch-icon" href="/icons/app-icon.svg">
 <title>Pizza King & Morin - خدمة العملاء</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
@@ -437,6 +442,13 @@ a{color:#e3bd78}
   #records.compact-view .record .rating-summary{flex:1 1 100%}
   #records.compact-view .record button{flex:1 1 auto;padding:7px 9px;font-size:11px}
 }
+
+/* PWA INSTALL CONTROL */
+#pwaInstallBtn{position:fixed;z-index:1200;left:16px;bottom:calc(16px + env(safe-area-inset-bottom));width:auto;min-width:0;margin:0;padding:11px 16px;border:1px solid rgba(240,212,155,.45);border-radius:999px;background:linear-gradient(135deg,#e0bd7b,#b8893f);color:#182235;font-weight:900;box-shadow:0 8px 24px rgba(0,0,0,.35);display:none}
+#pwaInstallBtn.visible{display:flex;align-items:center;gap:8px}
+#pwaInstallBtn svg{width:19px;height:19px;flex:none}
+@media(min-width:900px){#pwaInstallBtn{left:24px;bottom:24px}}
+
 </style>
 </head>
 <body>
@@ -1270,6 +1282,51 @@ $('customerProfileModal').addEventListener('click',event => {
 });
 
 </script>
+
+<button id="pwaInstallBtn" type="button" aria-label="تثبيت التطبيق">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5"/><path d="M5 17v3h14v-3"/></svg>
+  تثبيت التطبيق
+</button>
+<script>
+(() => {
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/service-worker.js').catch(error => {
+        console.warn('تعذر تفعيل وضع التطبيق:', error);
+      });
+    });
+  }
+  const installButton = document.getElementById('pwaInstallBtn');
+  if (!installButton) return;
+  let installPrompt = null;
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  if (isStandalone) return;
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  if (isIOS || /android/i.test(navigator.userAgent)) installButton.classList.add('visible');
+  window.addEventListener('beforeinstallprompt', event => {
+    event.preventDefault();
+    installPrompt = event;
+    installButton.classList.add('visible');
+  });
+  installButton.addEventListener('click', async () => {
+    if (!installPrompt) {
+      alert(isIOS
+        ? 'لتثبيت التطبيق: اضغط مشاركة في Safari ثم اختر «إضافة إلى الشاشة الرئيسية».'
+        : 'لتثبيت التطبيق: افتح قائمة المتصفح ⋮ ثم اختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية».');
+      return;
+    }
+    installPrompt.prompt();
+    await installPrompt.userChoice;
+    installPrompt = null;
+    installButton.classList.remove('visible');
+  });
+  window.addEventListener('appinstalled', () => {
+    installPrompt = null;
+    installButton.classList.remove('visible');
+  });
+})();
+</script>
+
 </body>
   </html>
   
