@@ -348,6 +348,37 @@ a{color:#e3bd78}
   .panel{box-shadow:0 9px 24px rgba(0,0,0,.26)}
 }
 
+
+/* CUSTOMER RECORDS COMPACT VIEW */
+.records-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 4px}
+.records-toolbar #recordsHint{margin:8px 0}
+.compact-toggle{width:auto;flex:0 0 auto;margin:0;padding:9px 15px;font-size:12px}
+#records.compact-view{grid-template-columns:1fr;gap:7px}
+#records.compact-view .record{
+  display:grid;grid-template-columns:minmax(130px,1.2fr) minmax(110px,.8fr) minmax(120px,1fr) auto;
+  align-items:center;column-gap:14px;row-gap:4px;padding:10px 14px;border-top-width:1px;border-right:3px solid #c9a15b
+}
+#records.compact-view .record h3{grid-column:1;grid-row:1;margin:0;font-size:14px}
+#records.compact-view .record p{margin:1px 0;font-size:12px;line-height:1.45}
+#records.compact-view .record p:nth-of-type(1){grid-column:2;grid-row:1}
+#records.compact-view .record p:nth-of-type(2){grid-column:3;grid-row:1}
+#records.compact-view .record p:nth-of-type(3){grid-column:1/3;grid-row:2}
+#records.compact-view .record .rating-summary{grid-column:1/4;margin:2px 0}
+#records.compact-view .record>a,#records.compact-view .record p:has(a){grid-column:1/4}
+#records.compact-view .record button{margin:2px 3px;padding:6px 10px;min-width:0;font-size:11px}
+#records.compact-view .record .profile-btn{grid-column:4;grid-row:1/3}
+@media(max-width:680px){
+  .records-toolbar{align-items:center}
+  .compact-toggle{padding:8px 10px;white-space:nowrap}
+  #records.compact-view .record{grid-template-columns:1fr auto;column-gap:8px;padding:10px}
+  #records.compact-view .record h3{grid-column:1;grid-row:1}
+  #records.compact-view .record p:nth-of-type(1){grid-column:1;grid-row:2}
+  #records.compact-view .record p:nth-of-type(2){grid-column:1;grid-row:3}
+  #records.compact-view .record p:nth-of-type(3){grid-column:1/-1;grid-row:4}
+  #records.compact-view .record .rating-summary{grid-column:1/-1}
+  #records.compact-view .record .profile-btn{grid-column:2;grid-row:1/4}
+}
+
 </style>
 </head>
 <body>
@@ -496,7 +527,7 @@ a{color:#e3bd78}
 <option value="">كل الفروع</option>
 </select>
 </div>
-<p id="recordsHint" class="muted">جاهز لتحميل البيانات</p>
+<div class="records-toolbar"><p id="recordsHint" class="muted">جاهز لتحميل البيانات</p><button type="button" id="toggleCompactRecords" class="light compact-toggle" aria-pressed="false">عرض مضغوط</button></div>
 <div id="records"></div>
 </section>
 </section>
@@ -529,6 +560,7 @@ const $ = id => document.getElementById(id);
 let currentUser = null;
 let isAdmin = false;
 let allRecords = [];
+let compactRecordsView = false;
 
 function showMessage(id, text, error=false) {
   const el = $(id);
@@ -909,6 +941,7 @@ async function renderRecords() {
         ` : ''}
       </article>`;
   }
+  $('records').classList.toggle('compact-view', compactRecordsView);
   $('records').innerHTML = html;
   $('records').querySelectorAll('.profile-btn').forEach(btn => {
     btn.addEventListener('click', () => openCustomerProfile(btn.dataset.customerPhone));
@@ -1160,6 +1193,12 @@ $('clearFilters').addEventListener('click',() => {
   $('dateFrom').value = '';
   $('dateTo').value = '';
   renderRecords();
+});
+$('toggleCompactRecords').addEventListener('click', () => {
+  compactRecordsView = !compactRecordsView;
+  $('records').classList.toggle('compact-view', compactRecordsView);
+  $('toggleCompactRecords').textContent = compactRecordsView ? 'عرض موسع' : 'عرض مضغوط';
+  $('toggleCompactRecords').setAttribute('aria-pressed', String(compactRecordsView));
 });
 $('closeProfile').addEventListener('click',closeCustomerProfile);
 $('customerProfileModal').addEventListener('click',event => {
