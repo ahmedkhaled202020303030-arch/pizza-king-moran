@@ -1496,6 +1496,8 @@ let allBranchStaff = [];
 
 function showDirectoryView(view) {
   const staff = view === 'staff';
+  $('attendanceView').classList.add('hidden');
+  $('attendanceNavBtn').classList.remove('active');
   $('customersView').classList.toggle('hidden',staff);
   $('staffDirectoryView').classList.toggle('hidden',!staff);
   $('customersNavBtn').classList.toggle('active',!staff);
