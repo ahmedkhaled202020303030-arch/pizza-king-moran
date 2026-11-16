@@ -488,6 +488,7 @@ a{color:#e3bd78}
 .staff-form-actions button{flex:1}
 @media(max-width:680px){.app-nav{gap:8px}.app-nav button{min-width:0;padding:11px 8px;font-size:13px}.staff-list{grid-template-columns:1fr}.staff-toolbar{grid-template-columns:1fr}.staff-form-grid{grid-template-columns:1fr}}
 
+.attendance-controls{display:grid;gap:14px;margin:18px 0}.attendance-clock{padding:18px;border-radius:14px;background:#f3f6fa;font-weight:800;text-align:center;font-size:18px}.attendance-records{display:grid;gap:12px;margin-top:16px}.attendance-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:15px;box-shadow:var(--shadow)}.attendance-card p{margin:7px 0}.attendance-card a{color:var(--navy-2);font-weight:700}.attendance-controls button:disabled{opacity:.5;cursor:not-allowed}
 </style>
 </head>
 <body>
@@ -510,16 +511,17 @@ a{color:#e3bd78}
 <p class="muted">اختر الدخول كمدير أو المتابعة كزائر للعرض فقط.</p>
 <div id="loginMsg" class="msg hidden"></div>
 
-<label>البريد الإلكتروني للمدير</label>
+<label>البريد الإلكتروني للمدير الرئيسي</label>
 <input id="email" type="email" placeholder="البريد الإلكتروني المسجل في Supabase">
 
 <label>كلمة المرور</label>
 <input id="password" type="password" placeholder="كلمة المرور">
 
 <div class="row">
-<button id="adminLogin">دخول المدير</button>
+<button id="adminLogin">دخول المدير الرئيسي</button>
 <button id="guestLogin" class="secondary">الدخول كزائر</button>
 </div>
+<hr style="border:0;border-top:1px solid var(--line);margin:22px 0"><h3>دخول مدير الفرع</h3><label>اسم المستخدم</label><input id="managerUsername" type="text" autocomplete="username" placeholder="اسم المستخدم المخصص لك"><label>كلمة المرور</label><input id="managerPassword" type="password" autocomplete="current-password" placeholder="كلمة المرور"><button id="managerLogin" class="light">دخول مدير الفرع</button><p class="muted">حسابات مديري الفروع يتم إنشاؤها وتفعيلها بواسطة المدير الرئيسي.</p>
 </section>
 
 <section id="appPanel" class="hidden">
@@ -538,8 +540,9 @@ a{color:#e3bd78}
 
 <nav class="app-nav" aria-label="أقسام النظام">
   <button type="button" id="customersNavBtn" class="active">إدارة العملاء</button>
-  <button type="button" id="staffNavBtn" class="secondary">دليل عمالة الفروع</button>
+  <button type="button" id="staffNavBtn" class="secondary">دليل عمالة الفروع</button><button type="button" id="attendanceNavBtn" class="secondary hidden">الحضور والانصراف</button>
 </nav>
+<section id="attendanceView" class="panel hidden"><div class="report-heading"><div><h2>الحضور والانصراف</h2><p id="attendanceBranchLabel" class="muted">سجل الدوام اليومي</p></div><button id="attendanceRefreshBtn" class="light">تحديث</button></div><div id="attendanceMessage" class="msg hidden"></div><div id="managerAttendanceControls" class="attendance-controls hidden"><div class="attendance-clock" id="attendanceTodayStatus">لم يتم تسجيل الحضور اليوم</div><div class="row"><button id="checkInBtn">تسجيل الحضور بالموقع</button><button id="checkOutBtn" class="secondary" disabled>تسجيل الانصراف بالموقع</button></div><div id="attendanceDuration" class="muted"></div></div><div id="adminAttendanceControls" class="hidden"><div class="staff-toolbar"><select id="attendanceBranchFilter"><option value="">كل الفروع</option></select><input id="attendanceDateFilter" type="date"></div><div class="report-total" id="attendanceRecordsCount">0 سجل</div></div><div id="attendanceRecords" class="attendance-records"><p class="muted">لا توجد سجلات للعرض.</p></div></section>
 <div id="customersView">
 
 <section id="repeatCustomersPanel" class="panel repeat-customers-panel hidden">
@@ -730,6 +733,8 @@ const branches = [
 const $ = id => document.getElementById(id);
 let currentUser = null;
 let isAdmin = false;
+let isBranchManager = false;
+let currentManagerProfile = null;
 let allRecords = [];
 let compactRecordsView = true;
 
@@ -797,6 +802,52 @@ async function loginAdmin() {
   await showApp(data.user,true);
 }
 
+
+async function loginBranchManager(){
+ hideMessage('loginMsg');
+ const username=$('managerUsername').value.trim().toLowerCase(),password=$('managerPassword').value;
+ if(!/^[a-z0-9._-]{3,40}$/.test(username)||!password){showMessage('loginMsg','اكتب اسم مستخدم صحيحاً وكلمة المرور.',true);return;}
+ const {data,error}=await db.auth.signInWithPassword({email:username+'@branch-login.internal',password});
+ if(error){showMessage('loginMsg','تعذر تسجيل الدخول. راجع اسم المستخدم وكلمة المرور مع المدير الرئيسي.',true);return;}
+ const {data:profile,error:profileError}=await db.from('profiles').select('role,branch,username').eq('user_id',data.user.id).maybeSingle();
+ if(profileError||!profile||profile.role!=='branch_manager'||!profile.branch||String(profile.username||'').toLowerCase()!==username){await db.auth.signOut();showMessage('loginMsg','هذا الحساب غير مفعّل كمدير فرع أو بيانات الفرع غير مكتملة.',true);return;}
+ await showApp(data.user,false,profile);
+}
+function showAttendanceMessage(message,error=false){$('attendanceMessage').textContent=message;$('attendanceMessage').style.background=error?'#fde8e8':'#e7f6ed';$('attendanceMessage').classList.remove('hidden');}
+function formatAttendanceTime(value){return value?new Date(value).toLocaleString('ar-EG',{dateStyle:'medium',timeStyle:'short'}):'—';}
+function durationText(start,end){if(!start)return'—';const m=Math.max(0,Math.floor((new Date(end||Date.now())-new Date(start))/60000));return Math.floor(m/60)+' ساعة و '+m%60+' دقيقة';}
+function getDeviceLocation(){return new Promise((resolve,reject)=>{if(!navigator.geolocation){reject(new Error('المتصفح لا يدعم تحديد الموقع.'));return;}navigator.geolocation.getCurrentPosition(p=>resolve({lat:p.coords.latitude,lng:p.coords.longitude,accuracy:p.coords.accuracy}),e=>reject(new Error(e.code===1?'يجب السماح للموقع من إعدادات المتصفح.':e.code===2?'تعذر تحديد موقعك حالياً.':'انتهت مهلة تحديد الموقع.')),{enableHighAccuracy:true,timeout:20000,maximumAge:0});});}
+function attendanceRowHTML(row,username=''){
+ const map=(lat,lng)=>lat==null?'—':'<a href="https://www.google.com/maps?q='+encodeURIComponent(lat+','+lng)+'" target="_blank" rel="noopener">عرض الموقع</a>';
+ return '<article class="attendance-card"><strong>'+escapeHTML(row.branch)+(username?' — '+escapeHTML(username):'')+'</strong><p>التاريخ: '+escapeHTML(row.work_date)+'</p><p>الحضور: '+formatAttendanceTime(row.check_in_at)+' · '+map(row.check_in_lat,row.check_in_lng)+'</p><p>الانصراف: '+formatAttendanceTime(row.check_out_at)+' · '+map(row.check_out_lat,row.check_out_lng)+'</p><p>إجمالي ساعات العمل: '+(row.check_out_at?durationText(row.check_in_at,row.check_out_at):'لم يتم تسجيل الانصراف')+'</p></article>';
+}
+async function loadMyAttendance(){
+ if(!currentUser||!isBranchManager)return;
+ $('attendanceBranchLabel').textContent='الفرع: '+currentManagerProfile.branch;
+ const day=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo'}).format(new Date());
+ const {data:row,error}=await db.from('branch_attendance').select('*').eq('work_date',day).maybeSingle();
+ if(error){showAttendanceMessage('تعذر تحميل سجل اليوم: '+error.message,true);return;}
+ $('attendanceTodayStatus').textContent=!row?'لم يتم تسجيل الحضور اليوم':row.check_out_at?'تم تسجيل الحضور والانصراف':'تم تسجيل الحضور — بانتظار الانصراف';
+ $('checkInBtn').disabled=!!row;$('checkOutBtn').disabled=!row||!!row.check_out_at;
+ $('attendanceDuration').textContent=row?'الحضور: '+formatAttendanceTime(row.check_in_at)+' | الانصراف: '+formatAttendanceTime(row.check_out_at)+' | المدة: '+durationText(row.check_in_at,row.check_out_at):'';
+ $('attendanceRecords').innerHTML=row?attendanceRowHTML(row):'<p class="muted">لا يوجد سجل حضور لهذا اليوم حتى الآن.</p>';
+}
+async function submitAttendance(kind){
+ const btn=$(''+(kind==='in'?'checkInBtn':'checkOutBtn'));btn.disabled=true;
+ try{showAttendanceMessage('جارٍ تحديد الموقع وتسجيل الوقت...');const loc=await getDeviceLocation();const {error}=await db.rpc(kind==='in'?'record_branch_check_in':'record_branch_check_out',{p_lat:loc.lat,p_lng:loc.lng,p_accuracy_m:loc.accuracy});if(error)throw error;showAttendanceMessage(kind==='in'?'تم تسجيل الحضور بنجاح.':'تم تسجيل الانصراف بنجاح.');await loadMyAttendance();}
+ catch(e){showAttendanceMessage(e.message||'تعذر تسجيل الحركة.',true);btn.disabled=false;}
+}
+async function loadAdminAttendance(){
+ if(!isAdmin)return;
+ let q=db.from('branch_attendance').select('*').order('work_date',{ascending:false}).order('check_in_at',{ascending:false}).limit(500);
+ const branch=$('attendanceBranchFilter').value,date=$('attendanceDateFilter').value;if(branch)q=q.eq('branch',branch);if(date)q=q.eq('work_date',date);
+ const {data,error}=await q;if(error){$('attendanceRecords').innerHTML='<p class="muted">تعذر تحميل السجلات: '+escapeHTML(error.message)+'</p>';return;}
+ const rows=data||[],ids=[...new Set(rows.map(x=>x.user_id))];let profiles=[];
+ if(ids.length){const p=await db.from('profiles').select('user_id,username').in('user_id',ids);profiles=p.data||[];}
+ const names=new Map(profiles.map(p=>[p.user_id,p.username]));$('attendanceRecordsCount').textContent=rows.length.toLocaleString('ar-EG')+' سجل';
+ $('attendanceRecords').innerHTML=rows.length?rows.map(row=>attendanceRowHTML(row,names.get(row.user_id)||'مدير فرع')).join(''):'<p class="muted">لا توجد سجلات مطابقة.</p>';
+}
+
 async function loginGuest() {
   hideMessage('loginMsg');
   const {data,error} = await db.auth.signInAnonymously();
@@ -809,26 +860,27 @@ async function loginGuest() {
   await showApp(data.user,false);
 }
 
-async function showApp(user,admin) {
-  currentUser = user;
-  isAdmin = admin;
-  $('loginPanel').classList.add('hidden');
-  $('appPanel').classList.remove('hidden');
-  $('roleText').textContent = admin ? 'صلاحية مدير' : 'زائر - عرض فقط';
-  $('formPanel').classList.toggle('hidden',!admin);
-  $('complaintsPanel').classList.toggle('hidden',!admin);
-  $('activityPanel').classList.toggle('hidden',!admin);
-  $('repeatCustomersPanel').classList.toggle('hidden',!admin);
-  $('staffAdminTools').classList.toggle('hidden',!admin);
-  await loadRecords();
-  await loadBranchStaff();
-  showDirectoryView('customers');
+async function showApp(user,admin,managerProfile=null) {
+  currentUser=user; isAdmin=admin; isBranchManager=!!managerProfile; currentManagerProfile=managerProfile;
+  $('loginPanel').classList.add('hidden'); $('appPanel').classList.remove('hidden');
+  $('roleText').textContent=admin?'المدير الرئيسي - صلاحية كاملة':managerProfile?'مدير فرع: '+managerProfile.branch:'زائر - عرض فقط';
+  $('formPanel').classList.toggle('hidden',!admin); $('complaintsPanel').classList.toggle('hidden',!admin);
+  $('activityPanel').classList.toggle('hidden',!admin); $('repeatCustomersPanel').classList.toggle('hidden',!admin); $('staffAdminTools').classList.toggle('hidden',!admin);
+  $('customersNavBtn').classList.toggle('hidden',isBranchManager); $('staffNavBtn').classList.toggle('hidden',isBranchManager);
+  $('attendanceNavBtn').classList.toggle('hidden',!admin&&!isBranchManager);
+  $('customersView').classList.toggle('hidden',isBranchManager); $('staffDirectoryView').classList.toggle('hidden',isBranchManager);
+  $('attendanceView').classList.toggle('hidden',!isBranchManager); $('managerAttendanceControls').classList.toggle('hidden',!isBranchManager);
+  $('adminAttendanceControls').classList.toggle('hidden',!admin);
+  $('attendanceBranchLabel').textContent=managerProfile?'الفرع: '+managerProfile.branch:'متابعة سجلات حضور وانصراف جميع الفروع';
+  if(isBranchManager){$('attendanceNavBtn').classList.add('active');await loadMyAttendance();return;}
+  $('attendanceNavBtn').classList.remove('active'); await loadRecords(); await loadBranchStaff(); showDirectoryView('customers');
 }
 
 async function logout() {
   await db.auth.signOut();
   currentUser = null;
   isAdmin = false;
+  isBranchManager = false; currentManagerProfile = null; $('managerUsername').value=''; $('managerPassword').value='';
   $('appPanel').classList.add('hidden');
   $('loginPanel').classList.remove('hidden');
 }
@@ -1590,6 +1642,13 @@ async function deleteBranchStaff(id) {
 
 $('adminLogin').addEventListener('click',loginAdmin);
 $('guestLogin').addEventListener('click',loginGuest);
+$('managerLogin').addEventListener('click',loginBranchManager);
+$('managerPassword').addEventListener('keydown',e=>{if(e.key==='Enter')loginBranchManager();});
+$('checkInBtn').addEventListener('click',()=>submitAttendance('in'));
+$('checkOutBtn').addEventListener('click',()=>submitAttendance('out'));
+$('attendanceRefreshBtn').addEventListener('click',()=>isBranchManager?loadMyAttendance():loadAdminAttendance());
+$('attendanceNavBtn').addEventListener('click',()=>{$('customersView').classList.add('hidden');$('staffDirectoryView').classList.add('hidden');$('attendanceView').classList.remove('hidden');$('customersNavBtn').classList.remove('active');$('staffNavBtn').classList.remove('active');$('attendanceNavBtn').classList.add('active');if(isAdmin)loadAdminAttendance();else loadMyAttendance();});
+$('attendanceBranchFilter').addEventListener('change',loadAdminAttendance);$('attendanceDateFilter').addEventListener('change',loadAdminAttendance);
 $('logoutBtn').addEventListener('click',logout);
 $('refreshBtn').addEventListener('click',async()=>{await loadRecords();await loadBranchStaff();});
 $('scanCardBtn').addEventListener('click',scanCustomerCard);
@@ -1601,6 +1660,7 @@ $('branchFilter').addEventListener('change',renderRecords);
 
 fillBranches();
 branches.forEach(branch => {
+  $('attendanceBranchFilter').add(new Option(branch,branch));
   $('complaintBranch').add(new Option(branch,branch));
   $('staffBranch').add(new Option(branch,branch));
   $('staffBranchFilter').add(new Option(branch,branch));
