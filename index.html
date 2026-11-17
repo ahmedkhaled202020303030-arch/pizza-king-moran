@@ -631,7 +631,7 @@ a{color:#e3bd78}
 <button id="adminLogin">دخول المدير الرئيسي</button>
 <button id="guestLogin" class="secondary">الدخول كزائر</button>
 </div>
-<hr style="border:0;border-top:1px solid var(--line);margin:22px 0"><h3>دخول مدير التشغيل</h3><label for="operationsCode">الكود الموحد (6 أرقام)</label><input id="operationsCode" type="password" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="••••••" aria-label="كود مدير التشغيل"><button id="operationsLogin" class="secondary">دخول مدير التشغيل — مشاهدة فقط</button><p class="muted">صلاحية مشاهدة جميع بيانات النظام دون إضافة أو تعديل أو حذف.</p><hr style="border:0;border-top:1px solid var(--line);margin:22px 0"><h3>دخول مدير الفرع</h3><label>اسم المستخدم</label><input id="managerUsername" type="text" autocomplete="username" placeholder="اسم المستخدم المخصص لك"><label>كلمة المرور</label><input id="managerPassword" type="password" autocomplete="current-password" placeholder="كلمة المرور"><button id="managerLogin" class="light">دخول مدير الفرع</button><p class="muted">حسابات مديري الفروع يتم إنشاؤها وتفعيلها بواسطة المدير الرئيسي.</p>
+<hr style="border:0;border-top:1px solid var(--line);margin:22px 0"><h3>دخول مدير التشغيل</h3><label for="operationsCode">الكود الموحد (6 أرقام)</label><input id="operationsCode" type="password" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="••••••" aria-label="كود مدير التشغيل"><button id="operationsLogin" class="secondary">دخول مدير التشغيل</button><hr style="border:0;border-top:1px solid var(--line);margin:22px 0"><h3>دخول مدير الفرع</h3><label>اسم المستخدم</label><input id="managerUsername" type="text" autocomplete="username" placeholder="اسم المستخدم المخصص لك"><label>كلمة المرور</label><input id="managerPassword" type="password" autocomplete="current-password" placeholder="كلمة المرور"><button id="managerLogin" class="light">دخول مدير الفرع</button><p class="muted">حسابات مديري الفروع يتم إنشاؤها وتفعيلها بواسطة المدير الرئيسي.</p>
 </section>
 
 <section id="appPanel" class="hidden">
@@ -959,7 +959,7 @@ async function loginOperationsManager(){
   }catch(_){}
   showMessage('loginMsg',message,true);
  }
- finally{$('operationsLogin').disabled=false;$('operationsLogin').textContent='دخول مدير التشغيل — مشاهدة فقط';}
+ finally{$('operationsLogin').disabled=false;$('operationsLogin').textContent='دخول مدير التشغيل';}
 }
 
 async function loginBranchManager(){
