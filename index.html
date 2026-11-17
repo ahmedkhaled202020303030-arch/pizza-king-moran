@@ -810,9 +810,15 @@ a{color:#e3bd78}
 </dialog>
 
 <section id="activityPanel" class="panel hidden">
-  <div class="report-heading"><div><h2>سجل نشاط المدير</h2><p class="muted">تسجيل تلقائي لعمليات الإضافة والتعديل والحذف</p></div></div>
-  <div id="activityList"><p class="muted">جاري تحميل سجل النشاط...</p></div>
+  <div class="report-heading"><div><h2>سجل نشاط المدير</h2><p class="muted">اضغط لعرض سجل عمليات الإضافة والتعديل والحذف</p></div><button type="button" id="openActivityLog" class="primary-btn">عرض سجل النشاط</button></div>
 </section>
+<dialog id="activityDialog" class="report-dialog">
+  <div class="report-dialog-card">
+    <div class="report-heading"><div><h2>سجل نشاط المدير</h2><p class="muted">تسجيل تلقائي لعمليات الإضافة والتعديل والحذف</p></div></div>
+    <div id="activityList"><p class="muted">جاري تحميل سجل النشاط...</p></div>
+    <div class="report-dialog-actions"><button type="button" id="closeActivityLog" class="secondary-btn">إغلاق</button></div>
+  </div>
+</dialog>
 
 <section class="panel">
 <h2>سجلات العملاء</h2>
@@ -1999,6 +2005,11 @@ $('branchReportDialog').addEventListener('click',event=>{
   if(event.target === $('branchReportDialog')) $('branchReportDialog').close();
 });
 
+$('openActivityLog').addEventListener('click',()=> $('activityDialog').showModal());
+$('closeActivityLog').addEventListener('click',()=> $('activityDialog').close());
+$('activityDialog').addEventListener('click',event=>{
+  if(event.target === $('activityDialog')) $('activityDialog').close();
+});
 $('openComplaints').addEventListener('click',()=> $('complaintsDialog').showModal());
 $('closeComplaints').addEventListener('click',()=> $('complaintsDialog').close());
 $('complaintsDialog').addEventListener('click',event=>{
