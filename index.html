@@ -1106,6 +1106,7 @@ async function showApp(user,admin,managerProfile=null,operationsManager=false) {
   currentUser=user; isAdmin=admin; isOperationsManager=operationsManager; isBranchManager=!!managerProfile; currentManagerProfile=managerProfile;
   $('loginPanel').classList.add('hidden'); $('appPanel').classList.remove('hidden');
   $('welcomeText').textContent=operationsManager?'مرحباً بك M.Tamer':admin?'مرحباً بك M.Ahmed':(isBranchManager&&String(currentManagerProfile?.username||'').toLowerCase()==='islam')?'مرحباً بك M.Eslam':'مرحباً بك';
+  $('welcomeText').style.color=operationsManager?'#D4AF37':'';
   $('roleText').textContent=admin?'المدير الرئيسي - صلاحية كاملة':operationsManager?'':managerProfile?'مدير فرع: '+managerProfile.branch:'زائر - عرض فقط';
   $('formPanel').classList.toggle('hidden',!admin); $('complaintsPanel').classList.toggle('hidden',!admin&&!operationsManager);
   $('complaintMsg').classList.toggle('hidden',!admin); $('complaintsPanel').querySelector('.complaint-form').classList.toggle('hidden',!admin);
