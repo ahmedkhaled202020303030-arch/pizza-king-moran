@@ -881,9 +881,10 @@ function showAttendanceMessage(message,error=false){$('attendanceMessage').textC
 function formatAttendanceTime(value){return value?new Date(value).toLocaleString('ar-EG',{dateStyle:'medium',timeStyle:'short'}):'—';}
 function durationText(start,end){if(!start)return'—';const m=Math.max(0,Math.floor((new Date(end||Date.now())-new Date(start))/60000));return Math.floor(m/60)+' ساعة و '+m%60+' دقيقة';}
 function getDeviceLocation(){return new Promise((resolve,reject)=>{if(!navigator.geolocation){reject(new Error('المتصفح لا يدعم تحديد الموقع.'));return;}navigator.geolocation.getCurrentPosition(p=>resolve({lat:p.coords.latitude,lng:p.coords.longitude,accuracy:p.coords.accuracy}),e=>reject(new Error(e.code===1?'يجب السماح للموقع من إعدادات المتصفح.':e.code===2?'تعذر تحديد موقعك حالياً.':'انتهت مهلة تحديد الموقع.')),{enableHighAccuracy:true,timeout:20000,maximumAge:0});});}
-function attendanceRowHTML(row,username=''){
+function attendanceRowHTML(row,username='',allowDelete=false){
  const map=(lat,lng)=>lat==null?'—':'<a href="https://www.google.com/maps?q='+encodeURIComponent(lat+','+lng)+'" target="_blank" rel="noopener">عرض الموقع</a>';
- return '<article class="attendance-card"><strong>'+escapeHTML(row.branch)+(username?' — '+escapeHTML(username):'')+'</strong><p>التاريخ: '+escapeHTML(row.work_date)+'</p><p>الحضور: '+formatAttendanceTime(row.check_in_at)+' · '+map(row.check_in_lat,row.check_in_lng)+'</p><p>الانصراف: '+formatAttendanceTime(row.check_out_at)+' · '+map(row.check_out_lat,row.check_out_lng)+'</p><p>إجمالي ساعات العمل: '+(row.check_out_at?durationText(row.check_in_at,row.check_out_at):'لم يتم تسجيل الانصراف')+'</p></article>';
+ const deleteButton=allowDelete?'<button type="button" class="danger attendance-delete-btn" data-attendance-id="'+escapeHTML(row.id)+'">حذف السجل</button>':'';
+ return '<article class="attendance-card"><strong>'+escapeHTML(row.branch)+(username?' — '+escapeHTML(username):'')+'</strong><p>التاريخ: '+escapeHTML(row.work_date)+'</p><p>الحضور: '+formatAttendanceTime(row.check_in_at)+' · '+map(row.check_in_lat,row.check_in_lng)+'</p><p>الانصراف: '+formatAttendanceTime(row.check_out_at)+' · '+map(row.check_out_lat,row.check_out_lng)+'</p><p>إجمالي ساعات العمل: '+(row.check_out_at?durationText(row.check_in_at,row.check_out_at):'لم يتم تسجيل الانصراف')+'</p>'+deleteButton+'</article>';
 }
 async function loadMyAttendance(){
  if(!currentUser||!isBranchManager)return;
@@ -912,7 +913,7 @@ async function loadAdminAttendance(){
  const rows=data||[],ids=[...new Set(rows.map(x=>x.user_id))];let profiles=[];
  if(ids.length){const p=await db.from('profiles').select('user_id,username').in('user_id',ids);profiles=p.data||[];}
  const names=new Map(profiles.map(p=>[p.user_id,p.username]));$('attendanceRecordsCount').textContent=rows.length.toLocaleString('ar-EG')+' سجل';
- $('attendanceRecords').innerHTML=rows.length?rows.map(row=>attendanceRowHTML(row,names.get(row.user_id)||'مدير فرع')).join(''):'<p class="muted">لا توجد سجلات مطابقة.</p>';
+ $('attendanceRecords').innerHTML=rows.length?rows.map(row=>attendanceRowHTML(row,names.get(row.user_id)||'مدير فرع',true)).join(''):'<p class="muted">لا توجد سجلات مطابقة.</p>';
 }
 
 async function loginGuest() {
@@ -1718,6 +1719,16 @@ $('checkOutBtn').addEventListener('click',()=>submitAttendance('out'));
 $('attendanceRefreshBtn').addEventListener('click',()=>isBranchManager?loadMyAttendance():loadAdminAttendance());
 $('attendanceNavBtn').addEventListener('click',()=>{$('customersView').classList.add('hidden');$('staffDirectoryView').classList.add('hidden');$('attendanceView').classList.remove('hidden');$('customersNavBtn').classList.remove('active');$('staffNavBtn').classList.remove('active');$('attendanceNavBtn').classList.add('active');if(isAdmin)loadAdminAttendance();else loadMyAttendance();});
 $('attendanceBranchFilter').addEventListener('change',loadAdminAttendance);$('attendanceDateFilter').addEventListener('change',loadAdminAttendance);
+$('attendanceRecords').addEventListener('click',async e=>{
+ const btn=e.target.closest('.attendance-delete-btn');
+ if(!btn||!isAdmin)return;
+ const id=btn.dataset.attendanceId;
+ if(!id||!confirm('هل أنت متأكد من حذف سجل الحضور والانصراف نهائياً؟'))return;
+ btn.disabled=true;btn.textContent='جارٍ الحذف...';
+ const {error}=await db.from('branch_attendance').delete().eq('id',id);
+ if(error){alert('تعذر حذف السجل: '+error.message);btn.disabled=false;btn.textContent='حذف السجل';return;}
+ await loadAdminAttendance();
+});
 $('logoutBtn').addEventListener('click',logout);
 $('refreshBtn').addEventListener('click',async()=>{await loadRecords();await loadBranchStaff();});
 $('scanCardBtn').addEventListener('click',scanCustomerCard);
