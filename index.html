@@ -1972,7 +1972,6 @@ document.querySelectorAll('[data-login-choice]').forEach(button=>button.addEvent
 document.querySelectorAll('.login-back').forEach(button=>button.addEventListener('click',returnToLoginChoices));
 
 $('adminLogin').addEventListener('click',loginAdmin);
-$('guestLogin').addEventListener('click',loginGuest);
 $('managerLogin').addEventListener('click',loginBranchManager);
 $('managerPassword').addEventListener('keydown',e=>{if(e.key==='Enter')loginBranchManager();});
 $('checkInBtn').addEventListener('click',()=>submitAttendance('in'));
