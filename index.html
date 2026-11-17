@@ -631,7 +631,7 @@ a{color:#e3bd78}
 <button id="adminLogin">دخول المدير الرئيسي</button>
 <button id="guestLogin" class="secondary">الدخول كزائر</button>
 </div>
-<hr style="border:0;border-top:1px solid var(--line);margin:22px 0"><h3>دخول مدير الفرع</h3><label>اسم المستخدم</label><input id="managerUsername" type="text" autocomplete="username" placeholder="اسم المستخدم المخصص لك"><label>كلمة المرور</label><input id="managerPassword" type="password" autocomplete="current-password" placeholder="كلمة المرور"><button id="managerLogin" class="light">دخول مدير الفرع</button><p class="muted">حسابات مديري الفروع يتم إنشاؤها وتفعيلها بواسطة المدير الرئيسي.</p>
+<hr style="border:0;border-top:1px solid var(--line);margin:22px 0"><h3>دخول مدير التشغيل</h3><label for="operationsCode">الكود الموحد (6 أرقام)</label><input id="operationsCode" type="password" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="••••••" aria-label="كود مدير التشغيل"><button id="operationsLogin" class="secondary">دخول مدير التشغيل — مشاهدة فقط</button><p class="muted">صلاحية مشاهدة جميع بيانات النظام دون إضافة أو تعديل أو حذف.</p><hr style="border:0;border-top:1px solid var(--line);margin:22px 0"><h3>دخول مدير الفرع</h3><label>اسم المستخدم</label><input id="managerUsername" type="text" autocomplete="username" placeholder="اسم المستخدم المخصص لك"><label>كلمة المرور</label><input id="managerPassword" type="password" autocomplete="current-password" placeholder="كلمة المرور"><button id="managerLogin" class="light">دخول مدير الفرع</button><p class="muted">حسابات مديري الفروع يتم إنشاؤها وتفعيلها بواسطة المدير الرئيسي.</p>
 </section>
 
 <section id="appPanel" class="hidden">
@@ -843,6 +843,7 @@ const branches = [
 const $ = id => document.getElementById(id);
 let currentUser = null;
 let isAdmin = false;
+let isOperationsManager = false;
 let isBranchManager = false;
 let currentManagerProfile = null;
 let allRecords = [];
@@ -913,6 +914,24 @@ async function loginAdmin() {
 }
 
 
+async function loginOperationsManager(){
+ hideMessage('loginMsg');
+ const code=$('operationsCode').value.trim();
+ if(!/^\\d{6}$/.test(code)){showMessage('loginMsg','اكتب كود مدير التشغيل المكوّن من 6 أرقام.',true);return;}
+ $('operationsLogin').disabled=true;$('operationsLogin').textContent='جارٍ التحقق...';
+ try{
+  const {data,error}=await db.functions.invoke('operator-login',{body:{code}});
+  if(error||!data?.token_hash)throw new Error(data?.error||error?.message||'تعذر التحقق من الكود.');
+  const {data:authData,error:authError}=await db.auth.verifyOtp({token_hash:data.token_hash,type:'magiclink'});
+  if(authError||!authData?.user)throw new Error(authError?.message||'تعذر إنشاء جلسة مدير التشغيل.');
+  const {data:profile,error:profileError}=await db.from('profiles').select('role').eq('user_id',authData.user.id).maybeSingle();
+  if(profileError||profile?.role!=='operations_manager'){await db.auth.signOut();throw new Error('حساب مدير التشغيل غير مفعّل. نفّذ تحديث قاعدة البيانات أولاً.');}
+  $('operationsCode').value='';
+  await showApp(authData.user,false,null,true);
+ }catch(error){showMessage('loginMsg',error.message||'تعذر تسجيل الدخول.',true);}
+ finally{$('operationsLogin').disabled=false;$('operationsLogin').textContent='دخول مدير التشغيل — مشاهدة فقط';}
+}
+
 async function loginBranchManager(){
  hideMessage('loginMsg');
  const username=$('managerUsername').value.trim().toLowerCase(),password=$('managerPassword').value;
@@ -952,7 +971,7 @@ async function submitAttendance(kind){
  catch(e){showAttendanceMessage(e.message||'تعذر تسجيل الحركة.',true);btn.disabled=false;}
 }
 async function exportAttendanceToExcel(){
- if(!isAdmin)return;
+ if(!isAdmin&&!isOperationsManager)return;
  if(typeof XLSX==='undefined'){alert('تعذر تحميل مكتبة Excel. حدّث الصفحة وحاول مرة أخرى.');return;}
  const btn=$('exportAttendanceBtn');btn.disabled=true;btn.textContent='جارٍ تجهيز ملف Excel...';
  try{
@@ -989,10 +1008,11 @@ function attendanceAdminRowHTML(row,username=''){
  const fmt=t=>t?new Date(t).toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit',timeZone:'Africa/Cairo'}):'—';
  const map=(lat,lng)=>lat==null?'—':'<a href="https://www.google.com/maps?q='+encodeURIComponent(lat+','+lng)+'" target="_blank" rel="noopener">عرض الموقع</a>';
  const status=row.check_out_at?'<span class="attendance-status-pill complete">منصرف</span>':row.check_in_at?'<span class="attendance-status-pill open">حاضر</span>':'<span class="attendance-status-pill missing">غير مكتمل</span>';
- return '<tr><td class="employee-name">'+escapeHTML(username)+'</td><td>'+escapeHTML(row.branch)+'</td><td>'+escapeHTML(row.work_date)+'</td><td>'+fmt(row.check_in_at)+'<br>'+map(row.check_in_lat,row.check_in_lng)+'</td><td>'+fmt(row.check_out_at)+'<br>'+map(row.check_out_lat,row.check_out_lng)+'</td><td>'+status+'</td><td>'+(row.check_out_at?durationText(row.check_in_at,row.check_out_at):'—')+'</td><td><button type="button" class="attendance-delete-btn" data-attendance-id="'+escapeHTML(row.id)+'">حذف السجل</button></td></tr>';
+ const actions=isAdmin?'<td><button type="button" class="attendance-delete-btn" data-attendance-id="'+escapeHTML(row.id)+'">حذف السجل</button></td>':'<td>—</td>';
+ return '<tr><td class="employee-name">'+escapeHTML(username)+'</td><td>'+escapeHTML(row.branch)+'</td><td>'+escapeHTML(row.work_date)+'</td><td>'+fmt(row.check_in_at)+'<br>'+map(row.check_in_lat,row.check_in_lng)+'</td><td>'+fmt(row.check_out_at)+'<br>'+map(row.check_out_lat,row.check_out_lng)+'</td><td>'+status+'</td><td>'+(row.check_out_at?durationText(row.check_in_at,row.check_out_at):'—')+'</td>'+actions+'</tr>';
 }
 async function loadAdminAttendance(){
- if(!isAdmin)return;
+ if(!isAdmin&&!isOperationsManager)return;
  let q=db.from('branch_attendance').select('*').order('work_date',{ascending:false}).order('check_in_at',{ascending:false}).limit(500);
  const branch=$('attendanceBranchFilter').value,date=$('attendanceDateFilter').value;if(branch)q=q.eq('branch',branch);if(date)q=q.eq('work_date',date);
  const {data,error}=await q;if(error){$('attendanceRecords').innerHTML='<p class="muted">تعذر تحميل السجلات: '+escapeHTML(error.message)+'</p>';return;}
@@ -1016,17 +1036,18 @@ async function loginGuest() {
   await showApp(data.user,false);
 }
 
-async function showApp(user,admin,managerProfile=null) {
-  currentUser=user; isAdmin=admin; isBranchManager=!!managerProfile; currentManagerProfile=managerProfile;
+async function showApp(user,admin,managerProfile=null,operationsManager=false) {
+  currentUser=user; isAdmin=admin; isOperationsManager=operationsManager; isBranchManager=!!managerProfile; currentManagerProfile=managerProfile;
   $('loginPanel').classList.add('hidden'); $('appPanel').classList.remove('hidden');
-  $('roleText').textContent=admin?'المدير الرئيسي - صلاحية كاملة':managerProfile?'مدير فرع: '+managerProfile.branch:'زائر - عرض فقط';
-  $('formPanel').classList.toggle('hidden',!admin); $('complaintsPanel').classList.toggle('hidden',!admin);
-  $('activityPanel').classList.toggle('hidden',!admin); $('repeatCustomersPanel').classList.toggle('hidden',!admin); $('staffAdminTools').classList.toggle('hidden',!admin);
+  $('roleText').textContent=admin?'المدير الرئيسي - صلاحية كاملة':operationsManager?'مدير التشغيل - مشاهدة فقط':managerProfile?'مدير فرع: '+managerProfile.branch:'زائر - عرض فقط';
+  $('formPanel').classList.toggle('hidden',!admin); $('complaintsPanel').classList.toggle('hidden',!admin&&!operationsManager);
+  $('complaintMsg').classList.toggle('hidden',!admin); $('complaintsPanel').querySelector('.complaint-form').classList.toggle('hidden',!admin);
+  $('activityPanel').classList.toggle('hidden',!admin&&!operationsManager); $('repeatCustomersPanel').classList.toggle('hidden',!admin&&!operationsManager); $('staffAdminTools').classList.toggle('hidden',!admin);
   $('customersNavBtn').classList.toggle('hidden',isBranchManager); $('staffNavBtn').classList.toggle('hidden',isBranchManager);
-  $('attendanceNavBtn').classList.toggle('hidden',!admin&&!isBranchManager);
+  $('attendanceNavBtn').classList.toggle('hidden',!admin&&!operationsManager&&!isBranchManager);
   $('customersView').classList.toggle('hidden',isBranchManager); $('staffDirectoryView').classList.toggle('hidden',isBranchManager);
   $('attendanceView').classList.toggle('hidden',!isBranchManager); $('managerAttendanceControls').classList.toggle('hidden',!isBranchManager);
-  $('adminAttendanceControls').classList.toggle('hidden',!admin);
+  $('adminAttendanceControls').classList.toggle('hidden',!admin&&!operationsManager);
   $('attendanceBranchLabel').textContent=managerProfile?'الفرع: '+managerProfile.branch:'متابعة سجلات حضور وانصراف جميع الفروع';
   if(isBranchManager){$('attendanceNavBtn').classList.add('active');await loadMyAttendance();return;}
   $('attendanceNavBtn').classList.remove('active'); await loadRecords(); await loadBranchStaff(); showDirectoryView('customers');
@@ -1036,7 +1057,8 @@ async function logout() {
   await db.auth.signOut();
   currentUser = null;
   isAdmin = false;
-  isBranchManager = false; currentManagerProfile = null; $('managerUsername').value=''; $('managerPassword').value='';
+  isOperationsManager = false;
+  isBranchManager = false; currentManagerProfile = null; $('managerUsername').value=''; $('managerPassword').value=''; $('operationsCode').value='';
   $('appPanel').classList.add('hidden');
   $('loginPanel').classList.remove('hidden');
 }
@@ -1185,7 +1207,7 @@ function complaintStatusLabel(status) {
 }
 
 async function loadComplaints() {
-  if (!isAdmin) return;
+  if (!isAdmin && !isOperationsManager) return;
   const {data,error} = await db.from('customer_complaints').select('*').order('created_at',{ascending:false});
   if (error) {
     $('complaintsList').textContent = 'تعذر تحميل الشكاوى. تأكد من تنفيذ ملف إعداد قاعدة البيانات في Supabase. التفاصيل: '+error.message;
@@ -1204,16 +1226,7 @@ async function loadComplaints() {
       </div>
       <div class="complaint-meta"><span>${escapeHTML(item.branch)}</span><span>${escapeHTML(item.phone || 'بدون هاتف')}</span><span>${new Date(item.created_at).toLocaleString('ar-EG')}</span></div>
       <p>${escapeHTML(item.description)}</p>
-      <label>ملاحظات الحل</label>
-      <textarea data-resolution="${item.id}" rows="2">${escapeHTML(item.resolution_notes || '')}</textarea>
-      <div class="complaint-actions">
-        <select data-status="${item.id}">
-          <option value="new" ${item.status==='new'?'selected':''}>جديدة</option>
-          <option value="in_progress" ${item.status==='in_progress'?'selected':''}>قيد المتابعة</option>
-          <option value="resolved" ${item.status==='resolved'?'selected':''}>تم الحل</option>
-        </select>
-        <button type="button" class="light" data-save-complaint="${item.id}">حفظ التحديث</button>
-      </div>
+      ${isAdmin ? '<label>ملاحظات الحل</label><textarea data-resolution="'+item.id+'" rows="2">'+escapeHTML(item.resolution_notes || '')+'</textarea><div class="complaint-actions"><select data-status="'+item.id+'"><option value="new" '+(item.status==='new'?'selected':'')+'>جديدة</option><option value="in_progress" '+(item.status==='in_progress'?'selected':'')+'>قيد المتابعة</option><option value="resolved" '+(item.status==='resolved'?'selected':'')+'>تم الحل</option></select><button type="button" class="light" data-save-complaint="'+item.id+'">حفظ التحديث</button></div>' : '<p class="muted">ملاحظات الحل: '+escapeHTML(item.resolution_notes || 'لا توجد ملاحظات بعد')+'</p>'}
     </article>`).join('');
   $('complaintsList').querySelectorAll('[data-save-complaint]').forEach(btn => btn.addEventListener('click',() => updateComplaint(btn.dataset.saveComplaint)));
 }
@@ -1256,7 +1269,7 @@ async function updateComplaint(id) {
 }
 
 async function loadActivity() {
-  if (!isAdmin) return;
+  if (!isAdmin && !isOperationsManager) return;
   const {data,error} = await db.from('admin_activity_logs').select('*').order('created_at',{ascending:false}).limit(60);
   if (error) {
     $('activityList').textContent = 'تعذر تحميل سجل النشاط. تأكد من تنفيذ ملف إعداد Supabase. '+error.message;
@@ -1293,7 +1306,7 @@ async function loadRecords() {
   allRecords = data || [];
   updateStats();
   renderRecords();
-  if (isAdmin) await Promise.all([loadComplaints(),loadActivity()]);
+  if (isAdmin || isOperationsManager) await Promise.all([loadComplaints(),loadActivity()]);
 }
 
 
@@ -1805,9 +1818,12 @@ $('managerPassword').addEventListener('keydown',e=>{if(e.key==='Enter')loginBran
 $('checkInBtn').addEventListener('click',()=>submitAttendance('in'));
 $('checkOutBtn').addEventListener('click',()=>submitAttendance('out'));
 $('attendanceRefreshBtn').addEventListener('click',()=>isBranchManager?loadMyAttendance():loadAdminAttendance());
-$('attendanceNavBtn').addEventListener('click',()=>{$('customersView').classList.add('hidden');$('staffDirectoryView').classList.add('hidden');$('attendanceView').classList.remove('hidden');$('customersNavBtn').classList.remove('active');$('staffNavBtn').classList.remove('active');$('attendanceNavBtn').classList.add('active');if(isAdmin)loadAdminAttendance();else loadMyAttendance();});
+$('attendanceNavBtn').addEventListener('click',()=>{$('customersView').classList.add('hidden');$('staffDirectoryView').classList.add('hidden');$('attendanceView').classList.remove('hidden');$('customersNavBtn').classList.remove('active');$('staffNavBtn').classList.remove('active');$('attendanceNavBtn').classList.add('active');if(isAdmin||isOperationsManager)loadAdminAttendance();else loadMyAttendance();});
 $('attendanceBranchFilter').addEventListener('change',loadAdminAttendance);$('attendanceDateFilter').addEventListener('change',loadAdminAttendance);
 $('exportAttendanceBtn').addEventListener('click',exportAttendanceToExcel);
+$('operationsLogin').addEventListener('click',loginOperationsManager);
+$('operationsCode').addEventListener('keydown',e=>{if(e.key==='Enter')loginOperationsManager();});
+$('operationsCode').addEventListener('input',e=>{e.target.value=e.target.value.replace(/[^0-9]/g,'').slice(0,6);});
 $('attendanceRecords').addEventListener('click',async e=>{
  const btn=e.target.closest('.attendance-delete-btn');
  if(!btn||!isAdmin)return;
