@@ -12,6 +12,7 @@
 <title>Pizza King & Morin - خدمة العملاء</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 :root{
   --navy:#14263d;--navy-2:#203b5b;--orange:#f28c28;--orange-dark:#d96d12;
@@ -488,7 +489,17 @@ a{color:#e3bd78}
 .staff-form-actions button{flex:1}
 @media(max-width:680px){.app-nav{gap:8px}.app-nav button{min-width:0;padding:11px 8px;font-size:13px}.staff-list{grid-template-columns:1fr}.staff-toolbar{grid-template-columns:1fr}.staff-form-grid{grid-template-columns:1fr}}
 
-.attendance-controls{display:grid;gap:14px;margin:18px 0}.attendance-clock{padding:18px;border-radius:14px;background:#f3f6fa;font-weight:800;text-align:center;font-size:18px}.attendance-records{display:grid;gap:12px;margin-top:16px}.attendance-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:15px;box-shadow:var(--shadow)}.attendance-card p{margin:7px 0}.attendance-card a{color:var(--navy-2);font-weight:700}.attendance-controls button:disabled{opacity:.5;cursor:not-allowed}
+.attendance-controls{display:grid;gap:14px;margin:18px 0}
+.attendance-clock{padding:18px;border-radius:14px;background:#14263d;color:#fff;font-weight:800;text-align:center;font-size:18px;border:1px solid #304966;box-shadow:0 8px 22px rgba(20,38,61,.16)}
+.attendance-records{display:grid;gap:12px;margin-top:16px}
+.attendance-card{background:linear-gradient(145deg,#17263a,#101b2b);color:#f4f7fb;border:1px solid #34465d;border-radius:14px;padding:16px;box-shadow:0 10px 26px rgba(10,22,38,.18)}
+.attendance-card strong{color:#fff;font-size:16px}.attendance-card p{margin:8px 0;color:#dce6f1}.attendance-card a{color:#78c8ff;font-weight:700}
+.attendance-card .attendance-delete-btn{margin-top:8px;background:#c0393b;color:#fff;border:0;padding:9px 14px;border-radius:9px}
+.attendance-export-btn{background:#16845b!important;color:#fff!important;width:auto!important;min-width:190px}
+#adminAttendanceControls .staff-toolbar{align-items:center}
+#adminAttendanceControls .attendance-admin-actions{display:flex;justify-content:flex-start;margin:10px 0;gap:10px;flex-wrap:wrap}
+.attendance-controls button:disabled{opacity:.5;cursor:not-allowed}
+@media(max-width:560px){.attendance-export-btn{width:100%!important}}
 
 /* BRANCH MANAGER LOGIN INPUT CONTRAST FIX */
 #managerUsername,#managerPassword{
@@ -606,7 +617,7 @@ a{color:#e3bd78}
   <button type="button" id="customersNavBtn" class="active">إدارة العملاء</button>
   <button type="button" id="staffNavBtn" class="secondary">دليل عمالة الفروع</button><button type="button" id="attendanceNavBtn" class="secondary hidden">الحضور والانصراف</button>
 </nav>
-<section id="attendanceView" class="panel hidden"><div class="report-heading"><div><h2>الحضور والانصراف</h2><p id="attendanceBranchLabel" class="muted">سجل الدوام اليومي</p></div><button id="attendanceRefreshBtn" class="light">تحديث</button></div><div id="attendanceMessage" class="msg hidden"></div><div id="managerAttendanceControls" class="attendance-controls hidden"><div class="attendance-clock" id="attendanceTodayStatus">لم يتم تسجيل الحضور اليوم</div><div class="row"><button id="checkInBtn">تسجيل الحضور بالموقع</button><button id="checkOutBtn" class="secondary" disabled>تسجيل الانصراف بالموقع</button></div><div id="attendanceDuration" class="muted"></div></div><div id="adminAttendanceControls" class="hidden"><div class="staff-toolbar"><select id="attendanceBranchFilter"><option value="">كل الفروع</option></select><input id="attendanceDateFilter" type="date"></div><div class="report-total" id="attendanceRecordsCount">0 سجل</div></div><div id="attendanceRecords" class="attendance-records"><p class="muted">لا توجد سجلات للعرض.</p></div></section>
+<section id="attendanceView" class="panel hidden"><div class="report-heading"><div><h2>الحضور والانصراف</h2><p id="attendanceBranchLabel" class="muted">سجل الدوام اليومي</p></div><button id="attendanceRefreshBtn" class="light">تحديث</button></div><div id="attendanceMessage" class="msg hidden"></div><div id="managerAttendanceControls" class="attendance-controls hidden"><div class="attendance-clock" id="attendanceTodayStatus">لم يتم تسجيل الحضور اليوم</div><div class="row"><button id="checkInBtn">تسجيل الحضور بالموقع</button><button id="checkOutBtn" class="secondary" disabled>تسجيل الانصراف بالموقع</button></div><div id="attendanceDuration" class="muted"></div></div><div id="adminAttendanceControls" class="hidden"><div class="staff-toolbar"><select id="attendanceBranchFilter"><option value="">كل الفروع</option></select><input id="attendanceDateFilter" type="date"></div><div class="attendance-admin-actions"><button type="button" id="exportAttendanceBtn" class="attendance-export-btn">⬇ تصدير سجلات الحضور Excel</button></div><div class="report-total" id="attendanceRecordsCount">0 سجل</div></div><div id="attendanceRecords" class="attendance-records"><p class="muted">لا توجد سجلات للعرض.</p></div></section>
 <div id="customersView">
 
 <section id="repeatCustomersPanel" class="panel repeat-customers-panel hidden">
@@ -904,6 +915,40 @@ async function submitAttendance(kind){
  const btn=$(''+(kind==='in'?'checkInBtn':'checkOutBtn'));btn.disabled=true;
  try{showAttendanceMessage('جارٍ تحديد الموقع وتسجيل الوقت...');const loc=await getDeviceLocation();const {error}=await db.rpc(kind==='in'?'record_branch_check_in':'record_branch_check_out',{p_lat:loc.lat,p_lng:loc.lng,p_accuracy_m:loc.accuracy});if(error)throw error;showAttendanceMessage(kind==='in'?'تم تسجيل الحضور بنجاح.':'تم تسجيل الانصراف بنجاح.');await loadMyAttendance();}
  catch(e){showAttendanceMessage(e.message||'تعذر تسجيل الحركة.',true);btn.disabled=false;}
+}
+async function exportAttendanceToExcel(){
+ if(!isAdmin)return;
+ if(typeof XLSX==='undefined'){alert('تعذر تحميل مكتبة Excel. حدّث الصفحة وحاول مرة أخرى.');return;}
+ const btn=$('exportAttendanceBtn');btn.disabled=true;btn.textContent='جارٍ تجهيز ملف Excel...';
+ try{
+  let q=db.from('branch_attendance').select('*').order('work_date',{ascending:false}).order('check_in_at',{ascending:false});
+  const branch=$('attendanceBranchFilter').value,date=$('attendanceDateFilter').value;
+  if(branch)q=q.eq('branch',branch);if(date)q=q.eq('work_date',date);
+  const {data,error}=await q.limit(10000);if(error)throw error;
+  const rows=data||[];if(!rows.length){alert('لا توجد سجلات مطابقة للتصدير.');return;}
+  const ids=[...new Set(rows.map(r=>r.user_id))];let profiles=[];
+  if(ids.length){const p=await db.from('profiles').select('user_id,username').in('user_id',ids);if(p.error)throw p.error;profiles=p.data||[];}
+  const names=new Map(profiles.map(p=>[p.user_id,p.username||'مدير فرع']));
+  const dataRows=rows.map(r=>({
+   'اسم المستخدم':names.get(r.user_id)||'مدير فرع','الفرع':r.branch,'التاريخ':r.work_date,
+   'وقت الحضور':r.check_in_at?new Date(r.check_in_at).toLocaleString('ar-EG',{timeZone:'Africa/Cairo'}):'',
+   'موقع الحضور':'https://www.google.com/maps?q='+r.check_in_lat+','+r.check_in_lng,
+   'دقة موقع الحضور (متر)':r.check_in_accuracy_m??'',
+   'وقت الانصراف':r.check_out_at?new Date(r.check_out_at).toLocaleString('ar-EG',{timeZone:'Africa/Cairo'}):'',
+   'موقع الانصراف':r.check_out_lat==null?'':'https://www.google.com/maps?q='+r.check_out_lat+','+r.check_out_lng,
+   'دقة موقع الانصراف (متر)':r.check_out_accuracy_m??'',
+   'إجمالي ساعات العمل':r.check_out_at?durationText(r.check_in_at,r.check_out_at):'لم يتم تسجيل الانصراف'
+  }));
+  const ws=XLSX.utils.json_to_sheet(dataRows);
+  ws['!cols']=[{wch:22},{wch:20},{wch:16},{wch:25},{wch:42},{wch:22},{wch:25},{wch:42},{wch:22},{wch:28}];
+  ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:dataRows.length,c:9}})};
+  ws['!freeze']={xSplit:0,ySplit:1};
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'سجلات الحضور');
+  const summary=[['تقرير حضور وانصراف Pizza King & Morin'],['تاريخ التصدير',new Date().toLocaleString('ar-EG')],['الفرع',branch||'كل الفروع'],['تاريخ السجل',date||'كل التواريخ'],['عدد السجلات',rows.length]];
+  const sumWs=XLSX.utils.aoa_to_sheet(summary);sumWs['!cols']=[{wch:24},{wch:36}];XLSX.utils.book_append_sheet(wb,sumWs,'ملخص التقرير');
+  XLSX.writeFile(wb,'Pizza-King-Morin-Attendance-'+(date||'All-Dates')+'.xlsx');
+ }catch(e){alert('تعذر تصدير السجلات: '+(e.message||e));}
+ finally{btn.disabled=false;btn.textContent='⬇ تصدير سجلات الحضور Excel';}
 }
 async function loadAdminAttendance(){
  if(!isAdmin)return;
@@ -1719,6 +1764,7 @@ $('checkOutBtn').addEventListener('click',()=>submitAttendance('out'));
 $('attendanceRefreshBtn').addEventListener('click',()=>isBranchManager?loadMyAttendance():loadAdminAttendance());
 $('attendanceNavBtn').addEventListener('click',()=>{$('customersView').classList.add('hidden');$('staffDirectoryView').classList.add('hidden');$('attendanceView').classList.remove('hidden');$('customersNavBtn').classList.remove('active');$('staffNavBtn').classList.remove('active');$('attendanceNavBtn').classList.add('active');if(isAdmin)loadAdminAttendance();else loadMyAttendance();});
 $('attendanceBranchFilter').addEventListener('change',loadAdminAttendance);$('attendanceDateFilter').addEventListener('change',loadAdminAttendance);
+$('exportAttendanceBtn').addEventListener('click',exportAttendanceToExcel);
 $('attendanceRecords').addEventListener('click',async e=>{
  const btn=e.target.closest('.attendance-delete-btn');
  if(!btn||!isAdmin)return;
