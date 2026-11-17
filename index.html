@@ -119,7 +119,13 @@ input[type=file]{padding:10px;background:#f8fafc}
 
 .report-dialog{width:min(760px,calc(100% - 28px));max-width:none;max-height:85vh;padding:0;border:0;border-radius:18px;background:transparent;overflow:visible}
 .report-dialog::backdrop{background:rgba(12,25,42,.62);backdrop-filter:blur(3px)}
-.report-dialog-card{max-height:85vh;overflow:auto;padding:22px;border-radius:18px;background:#fff;box-shadow:0 20px 60px rgba(0,0,0,.22)}
+.report-dialog-card{max-height:85vh;overflow:auto;padding:22px;border-radius:18px;background:#fff;color:#171717;box-shadow:0 20px 60px rgba(0,0,0,.22)}
+.report-dialog-card h1,.report-dialog-card h2,.report-dialog-card h3,.report-dialog-card h4,.report-dialog-card label,.report-dialog-card strong{color:#171717}
+.report-dialog-card .muted,.report-dialog-card p,.report-dialog-card span{color:#343434}
+.report-dialog-card .report-total{background:#fff3d6;color:#9a6b00}
+.report-dialog-card button{border-color:#c49a32}
+.report-dialog-card input,.report-dialog-card select,.report-dialog-card textarea{color:#171717;background:#fff;border-color:#c9a64b}
+.report-dialog-card .branch-line-top strong{color:#9a6b00}
 .report-dialog-actions{display:flex;justify-content:flex-end;margin-top:20px}
 @media(max-width:600px){.report-dialog-card{padding:17px}.report-dialog .branch-bars{grid-template-columns:1fr}}
 .branch-report{margin-top:0}
