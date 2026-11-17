@@ -732,16 +732,25 @@ a{color:#e3bd78}
 
 <section class="panel monthly-report">
   <div class="report-heading">
-    <div><h2>التقرير الشهري</h2><p class="muted">مقارنة عدد الزيارات بالشهور السابقة</p></div>
-    <input id="reportMonth" type="month" aria-label="اختيار شهر التقرير">
+    <div><h2>التقرير الشهري</h2><p class="muted">اضغط لعرض مقارنة الزيارات بالشهور السابقة</p></div>
+    <button type="button" id="openMonthlyReport" class="primary-btn">عرض التقرير الشهري</button>
   </div>
-  <div class="monthly-kpis">
-    <div><span>عملاء الشهر المحدد</span><strong id="monthTotal">0</strong></div>
-    <div><span>الشهر السابق</span><strong id="previousMonthTotal">0</strong></div>
-    <div><span>التغير عن الشهر السابق</span><strong id="monthChange">—</strong></div>
-  </div>
-  <div id="monthlyChart" class="monthly-chart"></div>
 </section>
+<dialog id="monthlyReportDialog" class="report-dialog">
+  <div class="report-dialog-card">
+    <div class="report-heading">
+      <div><h2>التقرير الشهري</h2><p class="muted">مقارنة عدد الزيارات بالشهور السابقة</p></div>
+      <input id="reportMonth" type="month" aria-label="اختيار شهر التقرير">
+    </div>
+    <div class="monthly-kpis">
+      <div><span>عملاء الشهر المحدد</span><strong id="monthTotal">0</strong></div>
+      <div><span>الشهر السابق</span><strong id="previousMonthTotal">0</strong></div>
+      <div><span>التغير عن الشهر السابق</span><strong id="monthChange">—</strong></div>
+    </div>
+    <div id="monthlyChart" class="monthly-chart"></div>
+    <div class="report-dialog-actions"><button type="button" id="closeMonthlyReport" class="secondary-btn">إغلاق</button></div>
+  </div>
+</dialog>
 
 <section id="formPanel" class="panel hidden">
 <h2 id="formTitle">إضافة سجل عميل</h2>
@@ -1982,6 +1991,12 @@ $('openBranchReport').addEventListener('click',()=> $('branchReportDialog').show
 $('closeBranchReport').addEventListener('click',()=> $('branchReportDialog').close());
 $('branchReportDialog').addEventListener('click',event=>{
   if(event.target === $('branchReportDialog')) $('branchReportDialog').close();
+});
+
+$('openMonthlyReport').addEventListener('click',()=> $('monthlyReportDialog').showModal());
+$('closeMonthlyReport').addEventListener('click',()=> $('monthlyReportDialog').close());
+$('monthlyReportDialog').addEventListener('click',event=>{
+  if(event.target === $('monthlyReportDialog')) $('monthlyReportDialog').close();
 });
 
 $('reportMonth').value = today().slice(0,7);
