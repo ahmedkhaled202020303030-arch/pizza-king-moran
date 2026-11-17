@@ -920,8 +920,24 @@ async function loginOperationsManager(){
  if(!/^\d{6}$/.test(code)){showMessage('loginMsg','اكتب كود مدير التشغيل المكوّن من 6 أرقام.',true);return;}
  $('operationsLogin').disabled=true;$('operationsLogin').textContent='جارٍ التحقق...';
  try{
-  const {data,error}=await db.functions.invoke('operator-login',{body:{code}});
-  if(error||!data?.token_hash)throw new Error(data?.error||error?.message||'تعذر التحقق من الكود.');
+  const controller=new AbortController();
+  const requestTimer=setTimeout(()=>controller.abort(),20000);
+  let response, data;
+  try{
+   response=await fetch(SUPABASE_URL+'/functions/v1/operator-login',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY},
+    body:JSON.stringify({code}),
+    signal:controller.signal
+   });
+   data=await response.json().catch(()=>({}));
+  }catch(requestError){
+   if(requestError?.name==='AbortError')throw new Error('الخادم لم يرد خلال 20 ثانية. راجع نشر دالة مدير التشغيل في Supabase.');
+   throw new Error('تعذر الاتصال بخادم تسجيل الدخول: '+(requestError?.message||'تحقق من اتصال الإنترنت.'));
+  }finally{
+   clearTimeout(requestTimer);
+  }
+  if(!response.ok||!data?.token_hash)throw new Error(data?.error||('فشل التحقق من الخادم (HTTP '+response.status+').'));
   const {data:authData,error:authError}=await db.auth.verifyOtp({token_hash:data.token_hash,type:'magiclink'});
   if(authError||!authData?.user)throw new Error(authError?.message||'تعذر إنشاء جلسة مدير التشغيل.');
   const {data:profile,error:profileError}=await db.from('profiles').select('role').eq('user_id',authData.user.id).maybeSingle();
