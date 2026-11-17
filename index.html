@@ -489,6 +489,32 @@ a{color:#e3bd78}
 @media(max-width:680px){.app-nav{gap:8px}.app-nav button{min-width:0;padding:11px 8px;font-size:13px}.staff-list{grid-template-columns:1fr}.staff-toolbar{grid-template-columns:1fr}.staff-form-grid{grid-template-columns:1fr}}
 
 .attendance-controls{display:grid;gap:14px;margin:18px 0}.attendance-clock{padding:18px;border-radius:14px;background:#f3f6fa;font-weight:800;text-align:center;font-size:18px}.attendance-records{display:grid;gap:12px;margin-top:16px}.attendance-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:15px;box-shadow:var(--shadow)}.attendance-card p{margin:7px 0}.attendance-card a{color:var(--navy-2);font-weight:700}.attendance-controls button:disabled{opacity:.5;cursor:not-allowed}
+
+/* BRANCH MANAGER LOGIN INPUT CONTRAST FIX */
+#managerUsername,#managerPassword{
+  background:#ffffff !important;
+  color:#17263b !important;
+  -webkit-text-fill-color:#17263b !important;
+  caret-color:#17263b;
+  color-scheme:light;
+  border:1px solid #b8c5d4;
+}
+#managerUsername::placeholder,#managerPassword::placeholder{
+  color:#64748b !important;
+  -webkit-text-fill-color:#64748b !important;
+  opacity:1;
+}
+#managerUsername:focus,#managerPassword:focus{
+  background:#ffffff !important;
+  color:#17263b !important;
+  border-color:#d7ad62;
+  box-shadow:0 0 0 3px rgba(215,173,98,.2);
+}
+#managerUsername:-webkit-autofill,#managerPassword:-webkit-autofill{
+  -webkit-text-fill-color:#17263b !important;
+  box-shadow:0 0 0 1000px #ffffff inset !important;
+}
+
 </style>
 </head>
 <body>
