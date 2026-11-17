@@ -1253,7 +1253,7 @@ async function loginGuest() {
 async function showApp(user,admin,managerProfile=null,operationsManager=false) {
   currentUser=user; isAdmin=admin; isOperationsManager=operationsManager; isBranchManager=!!managerProfile; currentManagerProfile=managerProfile;
   $('loginPanel').classList.add('hidden'); $('appPanel').classList.remove('hidden');
-  $('welcomeText').textContent=operationsManager?'مرحباً بك M.Tamer':admin?'مرحباً بك M.Ahmed':(isBranchManager&&String(currentManagerProfile?.username||'').toLowerCase()==='islam')?'مرحباً بك M.Eslam':'مرحباً بك';
+  $('welcomeText').textContent=operationsManager?'مرحباً بك M.Tamer':admin?'مرحباً بك M.Ahmed':isBranchManager?'مرحباً بك M.'+String(user?.user_metadata?.display_name||currentManagerProfile?.username||'مدير الفرع').trim():'مرحباً بك';
   $('welcomeText').style.color=operationsManager?'#D4AF37':'';
   $('managerRequestsOpen').classList.toggle('hidden',!admin);
   $('roleText').textContent=admin?'المدير الرئيسي - صلاحية كاملة':operationsManager?'':managerProfile?'مدير فرع: '+managerProfile.branch:'زائر - عرض فقط';
