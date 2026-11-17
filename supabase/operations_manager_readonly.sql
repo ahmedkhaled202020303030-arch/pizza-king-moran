@@ -38,6 +38,7 @@ on public.customer_complaints for select to authenticated
 using (public.current_profile_role() = 'operations_manager');
 grant select on public.customer_complaints to authenticated;
 
+grant select on public.admin_activity_logs to authenticated;
 drop policy if exists "Operations managers read activity logs" on public.admin_activity_logs;
 create policy "Operations managers read activity logs"
 on public.admin_activity_logs for select to authenticated
@@ -45,6 +46,7 @@ using (public.current_profile_role() = 'operations_manager');
 grant select on public.admin_activity_logs to authenticated;
 
 -- All branches' attendance, without adding any insert/update/delete policy.
+grant select on public.branch_attendance to authenticated;
 drop policy if exists "Operations managers read all attendance" on public.branch_attendance;
 create policy "Operations managers read all attendance"
 on public.branch_attendance for select to authenticated
