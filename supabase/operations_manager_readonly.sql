@@ -18,6 +18,7 @@ alter table public.operations_login_attempts enable row level security;
 revoke all on public.operations_login_attempts from anon, authenticated;
 
 -- Operations managers can read all profiles (for attendance names), but receive no write policy.
+grant select on public.profiles to authenticated;
 drop policy if exists "Operations managers read profiles" on public.profiles;
 create policy "Operations managers read profiles"
 on public.profiles for select to authenticated
