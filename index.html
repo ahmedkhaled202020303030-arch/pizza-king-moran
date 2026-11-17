@@ -974,6 +974,10 @@ function showMessage(id, text, error=false) {
   el.textContent = text;
   el.classList.remove('hidden');
   el.style.background = error ? '#fde8e8' : '#e7f6ed';
+  el.style.color = error ? '#b42318' : '#176b3a';
+  el.style.borderColor = error ? '#e05252' : '#75c995';
+  el.style.borderWidth = '1px';
+  el.style.borderStyle = 'solid';
 }
 
 function hideMessage(id) {
