@@ -691,7 +691,7 @@ a{color:#e3bd78}
   <label for="managerRequestUsername">اسم المستخدم</label>
   <input id="managerRequestUsername" type="text" maxlength="40" autocomplete="username" placeholder="3 أحرف على الأقل - إنجليزي وأرقام">
   <label for="managerRequestPassword">كلمة المرور</label>
-  <input id="managerRequestPassword" type="password" minlength="8" autocomplete="new-password" placeholder="8 أحرف أو أرقام على الأقل">
+  <input id="managerRequestPassword" type="password" minlength="6" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" autocomplete="new-password" placeholder="6 أرقام">
   <button id="submitManagerRequest">إرسال طلب التسجيل</button>
   <p class="muted">سيتم مراجعة الطلب وتفعيل الحساب بعد موافقة المدير الرئيسي وتأكيد الفرع.</p>
   <button type="button" class="light login-back">رجوع</button>
@@ -1108,8 +1108,8 @@ async function submitBranchManagerRequest(){
  const branch=$('managerRequestBranch').value;
  const username=$('managerRequestUsername').value.trim().toLowerCase();
  const password=$('managerRequestPassword').value;
- if(full_name.length<3||!phone||!branch||!/^[a-z0-9._-]{3,40}$/.test(username)||password.length<8){
-  showMessage('loginMsg','راجع البيانات: الاسم ورقم الهاتف والفرع مطلوبون، واسم المستخدم 3 أحرف على الأقل، وكلمة المرور 8 أحرف على الأقل.',true);return;
+ if(full_name.length<3||!phone||!branch||!/^[a-z0-9._-]{3,40}$/.test(username)||password.length!==6 || !/^\\d{6}$/.test(password)){
+  showMessage('loginMsg','راجع البيانات: الاسم ورقم الهاتف والفرع مطلوبون، واسم المستخدم 3 أحرف على الأقل، وكلمة المرور 6 أرقام بالضبط.',true);return;
  }
  const button=$('submitManagerRequest');button.disabled=true;button.textContent='جارٍ إرسال الطلب...';
  try{
