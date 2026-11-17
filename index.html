@@ -928,7 +928,17 @@ async function loginOperationsManager(){
   if(profileError||profile?.role!=='operations_manager'){await db.auth.signOut();throw new Error('حساب مدير التشغيل غير مفعّل. نفّذ تحديث قاعدة البيانات أولاً.');}
   $('operationsCode').value='';
   await showApp(authData.user,false,null,true);
- }catch(error){showMessage('loginMsg',error.message||'تعذر تسجيل الدخول.',true);}
+ }catch(error){
+  let message=error?.message||'تعذر تسجيل الدخول.';
+  try{
+   const response=error?.context;
+   if(response&&typeof response.clone==='function'){
+    const details=await response.clone().json();
+    if(details?.error)message=details.error;
+   }
+  }catch(_){}
+  showMessage('loginMsg',message,true);
+ }
  finally{$('operationsLogin').disabled=false;$('operationsLogin').textContent='دخول مدير التشغيل — مشاهدة فقط';}
 }
 
