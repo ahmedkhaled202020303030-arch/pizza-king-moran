@@ -917,7 +917,7 @@ async function loginAdmin() {
 async function loginOperationsManager(){
  hideMessage('loginMsg');
  const code=$('operationsCode').value.trim();
- if(!/^\\d{6}$/.test(code)){showMessage('loginMsg','اكتب كود مدير التشغيل المكوّن من 6 أرقام.',true);return;}
+ if(!/^\d{6}$/.test(code)){showMessage('loginMsg','اكتب كود مدير التشغيل المكوّن من 6 أرقام.',true);return;}
  $('operationsLogin').disabled=true;$('operationsLogin').textContent='جارٍ التحقق...';
  try{
   const {data,error}=await db.functions.invoke('operator-login',{body:{code}});
