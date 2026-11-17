@@ -720,9 +720,15 @@ a{color:#e3bd78}
 </dialog>
 
 <section class="panel branch-performance-panel">
-  <div class="report-heading"><div><h2>التقييم التلقائي لأداء الفروع</h2><p class="muted">متوسط تقييمات العملاء المسجلة من 4 درجات، مع ترتيب الفروع وعدد التقييمات المتاحة</p></div><span class="report-total">تقييم شامل</span></div>
-  <div id="branchRatingsReport" class="branch-bars"><p class="muted">سيظهر التقييم بعد تحميل البيانات.</p></div>
+  <div class="report-heading"><div><h2>التقييم التلقائي لأداء الفروع</h2><p class="muted">اضغط لعرض ترتيب الفروع ومتوسط تقييمات العملاء</p></div><button type="button" id="openBranchRatings" class="primary-btn">عرض التقييم</button></div>
 </section>
+<dialog id="branchRatingsDialog" class="report-dialog">
+  <div class="report-dialog-card">
+    <div class="report-heading"><div><h2>التقييم التلقائي لأداء الفروع</h2><p class="muted">متوسط تقييمات العملاء المسجلة من 4 درجات، مع ترتيب الفروع وعدد التقييمات المتاحة</p></div><span class="report-total">تقييم شامل</span></div>
+    <div id="branchRatingsReport" class="branch-bars"><p class="muted">سيظهر التقييم بعد تحميل البيانات.</p></div>
+    <div class="report-dialog-actions"><button type="button" id="closeBranchRatings" class="secondary-btn">إغلاق</button></div>
+  </div>
+</dialog>
 
 <section class="panel monthly-report">
   <div class="report-heading">
@@ -1967,6 +1973,11 @@ branches.forEach(branch => {
 $('addComplaintBtn').addEventListener('click',addComplaint);
 $('visitDate').value = today();
 
+$('openBranchRatings').addEventListener('click',()=> $('branchRatingsDialog').showModal());
+$('closeBranchRatings').addEventListener('click',()=> $('branchRatingsDialog').close());
+$('branchRatingsDialog').addEventListener('click',event=>{
+  if(event.target === $('branchRatingsDialog')) $('branchRatingsDialog').close();
+});
 $('openBranchReport').addEventListener('click',()=> $('branchReportDialog').showModal());
 $('closeBranchReport').addEventListener('click',()=> $('branchReportDialog').close());
 $('branchReportDialog').addEventListener('click',event=>{
