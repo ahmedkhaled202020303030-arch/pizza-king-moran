@@ -766,6 +766,10 @@ a{color:#e3bd78}
 </dialog>
 
 <section id="formPanel" class="panel hidden">
+  <div class="report-heading"><div><h2>إضافة سجل العميل</h2><p class="muted">اضغط لفتح نموذج تسجيل أو تعديل بيانات العميل</p></div><button type="button" id="openCustomerForm" class="primary-btn">إضافة سجل جديد</button></div>
+</section>
+<dialog id="customerFormDialog" class="report-dialog">
+  <div class="report-dialog-card">
 <h2 id="formTitle">إضافة سجل عميل</h2>
 <div id="formMsg" class="msg hidden"></div>
 <input id="editId" type="hidden">
@@ -799,7 +803,9 @@ a{color:#e3bd78}
   <button type="button" id="saveBtn">حفظ السجل</button>
   <button type="button" id="cancelEdit" class="light">إلغاء</button>
 </div>
-</section>
+    <div class="report-dialog-actions"><button type="button" id="closeCustomerForm" class="secondary-btn">إغلاق</button></div>
+  </div>
+</dialog>
 
 
 <section id="complaintsPanel" class="panel hidden">
@@ -1684,6 +1690,7 @@ function resetForm() {
   $('saveBtn').textContent = 'حفظ السجل';
   hideMessage('formMsg');
   closeRegistrationSections();
+  if ($('customerFormDialog').open) $('customerFormDialog').close();
 }
 
 async function saveRecord() {
@@ -1779,7 +1786,7 @@ function editRecord(id) {
   $('formTitle').textContent = 'تعديل سجل عميل';
   $('saveBtn').textContent = 'حفظ التعديلات';
   ['customerFields','ratingFields','notesFields'].forEach(section=>setRegistrationSection(section,true));
-  $('formPanel').scrollIntoView({behavior:'smooth'});
+  $('customerFormDialog').showModal();
 }
 
 async function deleteRecord(id) {
@@ -1994,6 +2001,9 @@ $('scanCardBtn').addEventListener('click',scanCustomerCard);
 $('clearCardBtn').addEventListener('click',()=>{$('cardImage').value='';$('cameraCard').value='';$('ocrStatus').textContent='تم مسح الصورة. يمكنك اختيار صورة أخرى.';$('ocrProgress').classList.add('hidden');});
 $('saveBtn').addEventListener('click',saveRecord);
 $('cancelEdit').addEventListener('click',resetForm);
+$('openCustomerForm').addEventListener('click',()=>{resetForm();$('customerFormDialog').showModal();});
+$('closeCustomerForm').addEventListener('click',resetForm);
+$('customerFormDialog').addEventListener('click',event=>{if(event.target === $('customerFormDialog')) resetForm();});
 $('searchInput').addEventListener('input',renderRecords);
 $('branchFilter').addEventListener('change',renderRecords);
 
