@@ -790,18 +790,24 @@ a{color:#e3bd78}
 
 
 <section id="complaintsPanel" class="panel hidden">
-  <div class="report-heading"><div><h2>متابعة شكاوى العملاء</h2><p class="muted">تسجيل الشكوى ومتابعة حالتها حتى الحل</p></div><span class="report-total" id="complaintCount">0 شكوى</span></div>
-  <div id="complaintMsg" class="msg hidden"></div>
-  <div class="complaint-form">
-    <div><label for="complaintName">اسم العميل</label><input id="complaintName" placeholder="اسم العميل"></div>
-    <div><label for="complaintPhone">رقم الهاتف</label><input id="complaintPhone" inputmode="tel" placeholder="رقم الهاتف"></div>
-    <div><label for="complaintBranch">الفرع</label><select id="complaintBranch"><option value="">اختر الفرع</option></select></div>
-    <div class="complaint-wide"><label for="complaintDescription">تفاصيل الشكوى</label><textarea id="complaintDescription" rows="3" placeholder="اكتب تفاصيل الشكوى..."></textarea></div>
-    <div class="complaint-wide"><label for="complaintResolution">ملاحظات الحل (اختياري)</label><textarea id="complaintResolution" rows="2" placeholder="الإجراء الذي تم اتخاذه"></textarea></div>
-    <button type="button" id="addComplaintBtn">تسجيل الشكوى</button>
-  </div>
-  <div id="complaintsList" class="complaints-list"><p class="muted">جاري تحميل الشكاوى...</p></div>
+  <div class="report-heading"><div><h2>متابعة شكاوى العملاء</h2><p class="muted">اضغط لفتح تسجيل الشكاوى ومتابعة حالتها حتى الحل</p></div><button type="button" id="openComplaints" class="primary-btn">عرض الشكاوى</button></div>
 </section>
+<dialog id="complaintsDialog" class="report-dialog">
+  <div class="report-dialog-card">
+    <div class="report-heading"><div><h2>متابعة شكاوى العملاء</h2><p class="muted">تسجيل الشكوى ومتابعة حالتها حتى الحل</p></div><span class="report-total" id="complaintCount">0 شكوى</span></div>
+    <div id="complaintMsg" class="msg hidden"></div>
+    <div class="complaint-form">
+      <div><label for="complaintName">اسم العميل</label><input id="complaintName" placeholder="اسم العميل"></div>
+      <div><label for="complaintPhone">رقم الهاتف</label><input id="complaintPhone" inputmode="tel" placeholder="رقم الهاتف"></div>
+      <div><label for="complaintBranch">الفرع</label><select id="complaintBranch"><option value="">اختر الفرع</option></select></div>
+      <div class="complaint-wide"><label for="complaintDescription">تفاصيل الشكوى</label><textarea id="complaintDescription" rows="3" placeholder="اكتب تفاصيل الشكوى..."></textarea></div>
+      <div class="complaint-wide"><label for="complaintResolution">ملاحظات الحل (اختياري)</label><textarea id="complaintResolution" rows="2" placeholder="الإجراء الذي تم اتخاذه"></textarea></div>
+      <button type="button" id="addComplaintBtn">تسجيل الشكوى</button>
+    </div>
+    <div id="complaintsList" class="complaints-list"><p class="muted">جاري تحميل الشكاوى...</p></div>
+    <div class="report-dialog-actions"><button type="button" id="closeComplaints" class="secondary-btn">إغلاق</button></div>
+  </div>
+</dialog>
 
 <section id="activityPanel" class="panel hidden">
   <div class="report-heading"><div><h2>سجل نشاط المدير</h2><p class="muted">تسجيل تلقائي لعمليات الإضافة والتعديل والحذف</p></div></div>
@@ -1137,7 +1143,7 @@ async function showApp(user,admin,managerProfile=null,operationsManager=false) {
   $('welcomeText').style.color=operationsManager?'#D4AF37':'';
   $('roleText').textContent=admin?'المدير الرئيسي - صلاحية كاملة':operationsManager?'':managerProfile?'مدير فرع: '+managerProfile.branch:'زائر - عرض فقط';
   $('formPanel').classList.toggle('hidden',!admin); $('complaintsPanel').classList.toggle('hidden',!admin&&!operationsManager);
-  $('complaintMsg').classList.toggle('hidden',!admin); $('complaintsPanel').querySelector('.complaint-form').classList.toggle('hidden',!admin);
+  $('complaintMsg').classList.toggle('hidden',!admin); $('complaintsDialog').querySelector('.complaint-form').classList.toggle('hidden',!admin);
   $('activityPanel').classList.toggle('hidden',!admin); $('repeatCustomersPanel').classList.toggle('hidden',!admin&&!operationsManager); $('staffAdminTools').classList.toggle('hidden',!admin);
   $('customersNavBtn').classList.toggle('hidden',isBranchManager); $('staffNavBtn').classList.toggle('hidden',isBranchManager);
   $('attendanceNavBtn').classList.toggle('hidden',!admin&&!operationsManager&&!isBranchManager);
@@ -1993,6 +1999,11 @@ $('branchReportDialog').addEventListener('click',event=>{
   if(event.target === $('branchReportDialog')) $('branchReportDialog').close();
 });
 
+$('openComplaints').addEventListener('click',()=> $('complaintsDialog').showModal());
+$('closeComplaints').addEventListener('click',()=> $('complaintsDialog').close());
+$('complaintsDialog').addEventListener('click',event=>{
+  if(event.target === $('complaintsDialog')) $('complaintsDialog').close();
+});
 $('openMonthlyReport').addEventListener('click',()=> $('monthlyReportDialog').showModal());
 $('closeMonthlyReport').addEventListener('click',()=> $('monthlyReportDialog').close());
 $('monthlyReportDialog').addEventListener('click',event=>{
