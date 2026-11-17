@@ -117,6 +117,11 @@ input[type=file]{padding:10px;background:#f8fafc}
 @media(max-width:680px){.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.stat-card{padding:13px 11px;gap:9px}.stat-icon{flex-basis:38px;width:38px;height:38px;font-size:18px}.stat-card strong{font-size:21px}.stat-card p{font-size:11px}}
 
 
+.report-dialog{width:min(760px,calc(100% - 28px));max-width:none;max-height:85vh;padding:0;border:0;border-radius:18px;background:transparent;overflow:visible}
+.report-dialog::backdrop{background:rgba(12,25,42,.62);backdrop-filter:blur(3px)}
+.report-dialog-card{max-height:85vh;overflow:auto;padding:22px;border-radius:18px;background:#fff;box-shadow:0 20px 60px rgba(0,0,0,.22)}
+.report-dialog-actions{display:flex;justify-content:flex-end;margin-top:20px}
+@media(max-width:600px){.report-dialog-card{padding:17px}.report-dialog .branch-bars{grid-template-columns:1fr}}
 .branch-report{margin-top:0}
 .report-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
 .report-heading h2{margin-bottom:3px}
@@ -699,11 +704,20 @@ a{color:#e3bd78}
 
 <section class="panel branch-report">
   <div class="report-heading">
-    <div><h2>تقرير أداء الفروع</h2><p class="muted">مقارنة عدد سجلات العملاء في كل فرع</p></div>
-    <span class="report-total" id="branchReportTotal">0 سجل</span>
+    <div><h2>تقرير أداء الفروع</h2><p class="muted">اضغط لعرض مقارنة عدد سجلات العملاء في كل فرع</p></div>
+    <button type="button" id="openBranchReport" class="primary-btn">عرض التقرير</button>
   </div>
-  <div id="branchReport" class="branch-bars"><p class="muted">سيظهر التقرير بعد تحميل البيانات.</p></div>
 </section>
+<dialog id="branchReportDialog" class="report-dialog">
+  <div class="report-dialog-card">
+    <div class="report-heading">
+      <div><h2>تقرير أداء الفروع</h2><p class="muted">مقارنة عدد سجلات العملاء في كل فرع</p></div>
+      <span class="report-total" id="branchReportTotal">0 سجل</span>
+    </div>
+    <div id="branchReport" class="branch-bars"><p class="muted">سيظهر التقرير بعد تحميل البيانات.</p></div>
+    <div class="report-dialog-actions"><button type="button" id="closeBranchReport" class="secondary-btn">إغلاق</button></div>
+  </div>
+</dialog>
 
 <section class="panel branch-performance-panel">
   <div class="report-heading"><div><h2>التقييم التلقائي لأداء الفروع</h2><p class="muted">متوسط تقييمات العملاء المسجلة من 4 درجات، مع ترتيب الفروع وعدد التقييمات المتاحة</p></div><span class="report-total">تقييم شامل</span></div>
@@ -1952,6 +1966,12 @@ branches.forEach(branch => {
 });
 $('addComplaintBtn').addEventListener('click',addComplaint);
 $('visitDate').value = today();
+
+$('openBranchReport').addEventListener('click',()=> $('branchReportDialog').showModal());
+$('closeBranchReport').addEventListener('click',()=> $('branchReportDialog').close());
+$('branchReportDialog').addEventListener('click',event=>{
+  if(event.target === $('branchReportDialog')) $('branchReportDialog').close();
+});
 
 $('reportMonth').value = today().slice(0,7);
 $('reportMonth').addEventListener('change',renderMonthlyReport);
