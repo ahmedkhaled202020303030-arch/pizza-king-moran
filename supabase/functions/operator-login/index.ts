@@ -26,7 +26,9 @@ Deno.serve(async (req) => {
   const operatorEmail = Deno.env.get("OPERATOR_AUTH_EMAIL") ?? "";
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  if (!/^\d{6}$/.test(expectedCode) || !operatorEmail || !supabaseUrl || !serviceRoleKey) {
+  const isPlainCode = /^\d{6}$/.test(expectedCode);
+  const isSha256Digest = /^[a-f0-9]{64}$/i.test(expectedCode);
+  if ((!isPlainCode && !isSha256Digest) || !operatorEmail || !supabaseUrl || !serviceRoleKey) {
     return json({ error: "إعدادات دخول مدير التشغيل غير مكتملة على الخادم." }, 500);
   }
 
@@ -54,7 +56,10 @@ Deno.serve(async (req) => {
   if (countError) return json({ error: "تعذر التحقق من المحاولات. تأكد من تنفيذ تحديث قاعدة البيانات." }, 500);
   if ((count ?? 0) >= 5) return json({ error: "تم إيقاف المحاولات مؤقتًا. حاول بعد 15 دقيقة." }, 429);
 
-  if (suppliedCode !== expectedCode) {
+  const codeIsValid = isPlainCode
+    ? suppliedCode === expectedCode
+    : (await sha256(suppliedCode)).toLowerCase() === expectedCode.toLowerCase();
+  if (!codeIsValid) {
     await admin.from("operations_login_attempts").insert({ ip_hash: ipHash });
     return json({ error: "الكود غير صحيح." }, 401);
   }
