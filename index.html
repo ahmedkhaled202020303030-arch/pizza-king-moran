@@ -125,6 +125,11 @@ input[type=file]{padding:10px;background:#f8fafc}
 .report-dialog-card .report-total{background:rgba(212,175,55,.16);color:#f2cc62;border:1px solid rgba(212,175,55,.45)}
 .report-dialog-card button{border-color:#c49a32}
 .report-dialog-card input,.report-dialog-card select,.report-dialog-card textarea{color:#171717;background:#fffaf0;border-color:#c9a64b}
+.report-dialog-card input[type="month"],
+.report-dialog-card input[type="date"],
+.report-dialog-card input[type="datetime-local"]{color-scheme:light;color:#171717!important;background:#fffaf0!important;border:1px solid #d4af37!important}
+.report-dialog-card input[type="month"]::-webkit-calendar-picker-indicator,
+.report-dialog-card input[type="date"]::-webkit-calendar-picker-indicator{filter:none;opacity:1;cursor:pointer}
 .report-dialog-card .branch-line-top strong{color:#f2cc62}
 .report-dialog-card .branch-track{background:#344252}
 .report-dialog-card .report-dialog-actions button{background:#d4af37;color:#172536;border:1px solid #d4af37;font-weight:800}
