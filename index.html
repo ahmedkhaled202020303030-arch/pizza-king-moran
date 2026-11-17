@@ -515,6 +515,44 @@ a{color:#e3bd78}
   box-shadow:0 0 0 1000px #ffffff inset !important;
 }
 
+
+/* ATTENDANCE STATUS CARD: HIGH CONTRAST */
+#attendanceTodayStatus{
+  background:#f8fafc !important;
+  color:#17263b !important;
+  -webkit-text-fill-color:#17263b !important;
+  border:1px solid #d5deea;
+  min-height:76px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  line-height:1.7;
+  font-weight:900;
+  opacity:1 !important;
+}
+#attendanceTodayStatus.is-pending{
+  color:#334155 !important;
+  -webkit-text-fill-color:#334155 !important;
+}
+#attendanceTodayStatus.is-checked-in{
+  background:#ecfdf5 !important;
+  color:#087443 !important;
+  -webkit-text-fill-color:#087443 !important;
+  border-color:#86d6ad;
+}
+#attendanceTodayStatus.is-complete{
+  background:#ecfdf5 !important;
+  color:#087443 !important;
+  -webkit-text-fill-color:#087443 !important;
+  border-color:#86d6ad;
+}
+#attendanceDuration{
+  color:#d7e0ed !important;
+  -webkit-text-fill-color:#d7e0ed !important;
+  font-weight:700;
+  line-height:1.8;
+}
+
 </style>
 </head>
 <body>
@@ -854,6 +892,9 @@ async function loadMyAttendance(){
  const {data:row,error}=await db.from('branch_attendance').select('*').eq('work_date',day).maybeSingle();
  if(error){showAttendanceMessage('تعذر تحميل سجل اليوم: '+error.message,true);return;}
  $('attendanceTodayStatus').textContent=!row?'لم يتم تسجيل الحضور اليوم':row.check_out_at?'تم تسجيل الحضور والانصراف':'تم تسجيل الحضور — بانتظار الانصراف';
+ $('attendanceTodayStatus').classList.toggle('is-pending',!row);
+ $('attendanceTodayStatus').classList.toggle('is-checked-in',!!row&&!row.check_out_at);
+ $('attendanceTodayStatus').classList.toggle('is-complete',!!row&&!!row.check_out_at);
  $('checkInBtn').disabled=!!row;$('checkOutBtn').disabled=!row||!!row.check_out_at;
  $('attendanceDuration').textContent=row?'الحضور: '+formatAttendanceTime(row.check_in_at)+' | الانصراف: '+formatAttendanceTime(row.check_out_at)+' | المدة: '+durationText(row.check_in_at,row.check_out_at):'';
  $('attendanceRecords').innerHTML=row?attendanceRowHTML(row):'<p class="muted">لا يوجد سجل حضور لهذا اليوم حتى الآن.</p>';
