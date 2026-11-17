@@ -500,6 +500,39 @@ a{color:#e3bd78}
 #adminAttendanceControls .attendance-admin-actions{display:flex;justify-content:flex-start;margin:10px 0;gap:10px;flex-wrap:wrap}
 .attendance-controls button:disabled{opacity:.5;cursor:not-allowed}
 @media(max-width:560px){.attendance-export-btn{width:100%!important}}
+/* ATTENDANCE PAGE - DARK NAVY ADMIN DASHBOARD */
+#attendanceView{background:linear-gradient(155deg,#0b192b,#101f34 60%,#0b1728)!important;color:#f4f7fb!important;border:1px solid #30435d!important;border-radius:20px!important;padding:22px!important}
+#attendanceView h2,#attendanceView h3{color:#f5d99e!important}
+#attendanceView .muted,#attendanceBranchLabel{color:#b8c7d9!important}
+#attendanceView .report-heading{align-items:center;border-bottom:1px solid #293e58;padding-bottom:16px;margin-bottom:18px}
+#attendanceView .report-heading button,#attendanceView .staff-toolbar select,#attendanceView .staff-toolbar input{background:#1b304b!important;color:#f5f7fb!important;border:1px solid #3a5270!important}
+#attendanceView .staff-toolbar select option{background:#13243a;color:#fff}
+#attendanceView #attendanceMessage{background:#321e2b!important;color:#fff!important;border:1px solid #a74350!important;padding:14px 16px!important;border-radius:12px;font-weight:800;line-height:1.8}
+#attendanceView #attendanceTodayStatus{background:#142a45!important;color:#fff!important;-webkit-text-fill-color:#fff!important;border:1px solid #3a5270!important;border-radius:14px}
+#attendanceView #attendanceTodayStatus.is-pending{background:#1b2c43!important;color:#f4d28d!important;-webkit-text-fill-color:#f4d28d!important}
+#attendanceView #attendanceTodayStatus.is-checked-in,#attendanceView #attendanceTodayStatus.is-complete{background:#123b32!important;color:#8ce0b5!important;-webkit-text-fill-color:#8ce0b5!important;border-color:#287c60!important}
+#attendanceView #attendanceDuration{color:#dce7f4!important}
+#attendanceView .attendance-admin-actions{justify-content:flex-start!important}
+#attendanceView .attendance-export-btn{background:#168451!important;color:#fff!important;border:1px solid #32a873!important;border-radius:10px;padding:12px 18px;font-weight:800}
+#attendanceView .report-total{color:#f4d99e!important;font-weight:800;margin:14px 0}
+.attendance-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:18px 0}
+.attendance-summary-card{background:linear-gradient(145deg,#132944,#0d1d31);border:1px solid #29425f;border-radius:14px;padding:16px;min-width:0}
+.attendance-summary-card span{display:block;color:#b9c9dc;font-size:13px;margin-bottom:8px}
+.attendance-summary-card strong{display:block;color:#f6f8fc;font-size:26px;font-weight:900}
+.attendance-summary-card.total strong{color:#5da6ff}.attendance-summary-card.present strong{color:#49c17d}.attendance-summary-card.left strong{color:#e3bd6d}.attendance-summary-card.open strong{color:#f16b6b}
+.attendance-table-wrap{overflow-x:auto;border:1px solid #29415d;border-radius:13px;margin-top:12px;background:#0c1b2e}
+.attendance-admin-table{width:100%;min-width:850px;border-collapse:collapse;color:#edf3fb;font-size:13px}
+.attendance-admin-table th{background:#172d48;color:#f2d79d;padding:14px 10px;text-align:center;white-space:nowrap;border-bottom:1px solid #35506e}
+.attendance-admin-table td{padding:12px 10px;text-align:center;border-bottom:1px solid #223952;color:#e4edf7;vertical-align:middle}
+.attendance-admin-table tr:nth-child(even){background:#10233a}
+.attendance-admin-table tr:hover{background:#1a3451}
+.attendance-admin-table .employee-name{font-weight:800;color:#fff}
+.attendance-admin-table .attendance-status-pill{display:inline-block;border-radius:7px;padding:5px 10px;font-weight:800;white-space:nowrap}
+.attendance-status-pill.complete{background:#155a40;color:#a3f0c6}.attendance-status-pill.open{background:#634a1d;color:#ffe0a0}.attendance-status-pill.missing{background:#612d36;color:#ffc1c1}
+.attendance-admin-table a{color:#72baff;font-weight:800;text-decoration:none}
+.attendance-admin-table .attendance-delete-btn{background:#b9363c!important;color:#fff!important;border:0;border-radius:7px;padding:8px 10px;white-space:nowrap}
+@media(max-width:760px){#attendanceView{padding:14px!important}.attendance-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.attendance-summary-card{padding:12px}.attendance-summary-card strong{font-size:22px}}
+
 
 /* BRANCH MANAGER LOGIN INPUT CONTRAST FIX */
 #managerUsername,#managerPassword{
@@ -617,7 +650,7 @@ a{color:#e3bd78}
   <button type="button" id="customersNavBtn" class="active">إدارة العملاء</button>
   <button type="button" id="staffNavBtn" class="secondary">دليل عمالة الفروع</button><button type="button" id="attendanceNavBtn" class="secondary hidden">الحضور والانصراف</button>
 </nav>
-<section id="attendanceView" class="panel hidden"><div class="report-heading"><div><h2>الحضور والانصراف</h2><p id="attendanceBranchLabel" class="muted">سجل الدوام اليومي</p></div><button id="attendanceRefreshBtn" class="light">تحديث</button></div><div id="attendanceMessage" class="msg hidden"></div><div id="managerAttendanceControls" class="attendance-controls hidden"><div class="attendance-clock" id="attendanceTodayStatus">لم يتم تسجيل الحضور اليوم</div><div class="row"><button id="checkInBtn">تسجيل الحضور بالموقع</button><button id="checkOutBtn" class="secondary" disabled>تسجيل الانصراف بالموقع</button></div><div id="attendanceDuration" class="muted"></div></div><div id="adminAttendanceControls" class="hidden"><div class="staff-toolbar"><select id="attendanceBranchFilter"><option value="">كل الفروع</option></select><input id="attendanceDateFilter" type="date"></div><div class="attendance-admin-actions"><button type="button" id="exportAttendanceBtn" class="attendance-export-btn">⬇ تصدير سجلات الحضور Excel</button></div><div class="report-total" id="attendanceRecordsCount">0 سجل</div></div><div id="attendanceRecords" class="attendance-records"><p class="muted">لا توجد سجلات للعرض.</p></div></section>
+<section id="attendanceView" class="panel hidden"><div class="report-heading"><div><h2>الحضور والانصراف</h2><p id="attendanceBranchLabel" class="muted">سجل الدوام اليومي</p></div><button id="attendanceRefreshBtn" class="light">تحديث</button></div><div id="attendanceMessage" class="msg hidden"></div><div id="managerAttendanceControls" class="attendance-controls hidden"><div class="attendance-clock" id="attendanceTodayStatus">لم يتم تسجيل الحضور اليوم</div><div class="row"><button id="checkInBtn">تسجيل الحضور بالموقع</button><button id="checkOutBtn" class="secondary" disabled>تسجيل الانصراف بالموقع</button></div><div id="attendanceDuration" class="muted"></div></div><div id="adminAttendanceControls" class="hidden"><div class="staff-toolbar"><select id="attendanceBranchFilter"><option value="">كل الفروع</option></select><input id="attendanceDateFilter" type="date"></div><div class="attendance-admin-actions"><button type="button" id="exportAttendanceBtn" class="attendance-export-btn">⬇ تصدير سجلات الحضور Excel</button></div><div class="report-total" id="attendanceRecordsCount">0 سجل</div><div id="attendanceSummaryCards" class="attendance-summary-grid"></div></div><div id="attendanceRecords" class="attendance-records"><p class="muted">لا توجد سجلات للعرض.</p></div></section>
 <div id="customersView">
 
 <section id="repeatCustomersPanel" class="panel repeat-customers-panel hidden">
@@ -950,6 +983,12 @@ async function exportAttendanceToExcel(){
  }catch(e){alert('تعذر تصدير السجلات: '+(e.message||e));}
  finally{btn.disabled=false;btn.textContent='⬇ تصدير سجلات الحضور Excel';}
 }
+function attendanceAdminRowHTML(row,username=''){
+ const fmt=t=>t?new Date(t).toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit',timeZone:'Africa/Cairo'}):'—';
+ const map=(lat,lng)=>lat==null?'—':'<a href="https://www.google.com/maps?q='+encodeURIComponent(lat+','+lng)+'" target="_blank" rel="noopener">عرض الموقع</a>';
+ const status=row.check_out_at?'<span class="attendance-status-pill complete">منصرف</span>':row.check_in_at?'<span class="attendance-status-pill open">حاضر</span>':'<span class="attendance-status-pill missing">غير مكتمل</span>';
+ return '<tr><td class="employee-name">'+escapeHTML(username)+'</td><td>'+escapeHTML(row.branch)+'</td><td>'+escapeHTML(row.work_date)+'</td><td>'+fmt(row.check_in_at)+'<br>'+map(row.check_in_lat,row.check_in_lng)+'</td><td>'+fmt(row.check_out_at)+'<br>'+map(row.check_out_lat,row.check_out_lng)+'</td><td>'+status+'</td><td>'+(row.check_out_at?durationText(row.check_in_at,row.check_out_at):'—')+'</td><td><button type="button" class="attendance-delete-btn" data-attendance-id="'+escapeHTML(row.id)+'">حذف السجل</button></td></tr>';
+}
 async function loadAdminAttendance(){
  if(!isAdmin)return;
  let q=db.from('branch_attendance').select('*').order('work_date',{ascending:false}).order('check_in_at',{ascending:false}).limit(500);
@@ -958,7 +997,9 @@ async function loadAdminAttendance(){
  const rows=data||[],ids=[...new Set(rows.map(x=>x.user_id))];let profiles=[];
  if(ids.length){const p=await db.from('profiles').select('user_id,username').in('user_id',ids);profiles=p.data||[];}
  const names=new Map(profiles.map(p=>[p.user_id,p.username]));$('attendanceRecordsCount').textContent=rows.length.toLocaleString('ar-EG')+' سجل';
- $('attendanceRecords').innerHTML=rows.length?rows.map(row=>attendanceRowHTML(row,names.get(row.user_id)||'مدير فرع',true)).join(''):'<p class="muted">لا توجد سجلات مطابقة.</p>';
+ const checkedIn=rows.filter(r=>!!r.check_in_at).length,checkedOut=rows.filter(r=>!!r.check_out_at).length,open=checkedIn-checkedOut;
+  $('attendanceSummaryCards').innerHTML='<div class="attendance-summary-card total"><span>إجمالي السجلات</span><strong>'+rows.length.toLocaleString('ar-EG')+'</strong></div><div class="attendance-summary-card present"><span>تم تسجيل الحضور</span><strong>'+checkedIn.toLocaleString('ar-EG')+'</strong></div><div class="attendance-summary-card left"><span>تم تسجيل الانصراف</span><strong>'+checkedOut.toLocaleString('ar-EG')+'</strong></div><div class="attendance-summary-card open"><span>بانتظار الانصراف</span><strong>'+open.toLocaleString('ar-EG')+'</strong></div>';
+  $('attendanceRecords').innerHTML=rows.length?'<div class="attendance-table-wrap"><table class="attendance-admin-table"><thead><tr><th>الموظف</th><th>الفرع</th><th>التاريخ</th><th>الحضور</th><th>الانصراف</th><th>الحالة</th><th>ساعات العمل</th><th>الإجراءات</th></tr></thead><tbody>'+rows.map(row=>attendanceAdminRowHTML(row,names.get(row.user_id)||'مدير فرع')).join('')+'</tbody></table></div>':'<p class="muted">لا توجد سجلات مطابقة.</p>';
 }
 
 async function loginGuest() {
