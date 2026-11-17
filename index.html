@@ -1073,7 +1073,7 @@ async function showApp(user,admin,managerProfile=null,operationsManager=false) {
   $('roleText').textContent=admin?'المدير الرئيسي - صلاحية كاملة':operationsManager?'مدير التشغيل - مشاهدة فقط':managerProfile?'مدير فرع: '+managerProfile.branch:'زائر - عرض فقط';
   $('formPanel').classList.toggle('hidden',!admin); $('complaintsPanel').classList.toggle('hidden',!admin&&!operationsManager);
   $('complaintMsg').classList.toggle('hidden',!admin); $('complaintsPanel').querySelector('.complaint-form').classList.toggle('hidden',!admin);
-  $('activityPanel').classList.toggle('hidden',!admin&&!operationsManager); $('repeatCustomersPanel').classList.toggle('hidden',!admin&&!operationsManager); $('staffAdminTools').classList.toggle('hidden',!admin);
+  $('activityPanel').classList.toggle('hidden',!admin); $('repeatCustomersPanel').classList.toggle('hidden',!admin&&!operationsManager); $('staffAdminTools').classList.toggle('hidden',!admin);
   $('customersNavBtn').classList.toggle('hidden',isBranchManager); $('staffNavBtn').classList.toggle('hidden',isBranchManager);
   $('attendanceNavBtn').classList.toggle('hidden',!admin&&!operationsManager&&!isBranchManager);
   $('customersView').classList.toggle('hidden',isBranchManager); $('staffDirectoryView').classList.toggle('hidden',isBranchManager);
