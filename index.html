@@ -507,7 +507,9 @@ a{color:#e3bd78}
 #attendanceView .report-heading{align-items:center;border-bottom:1px solid #293e58;padding-bottom:16px;margin-bottom:18px}
 #attendanceView .report-heading button,#attendanceView .staff-toolbar select,#attendanceView .staff-toolbar input{background:#1b304b!important;color:#f5f7fb!important;border:1px solid #3a5270!important}
 #attendanceView .staff-toolbar select option{background:#13243a;color:#fff}
-#attendanceView #attendanceMessage{background:#321e2b!important;color:#fff!important;border:1px solid #a74350!important;padding:14px 16px!important;border-radius:12px;font-weight:800;line-height:1.8}
+#attendanceView #attendanceMessage{display:block;background:linear-gradient(135deg,#172b45,#0c1b2e)!important;color:#fff!important;-webkit-text-fill-color:#fff!important;border:1px solid #d5a84f!important;border-right:5px solid #e1b85c!important;padding:16px 18px!important;border-radius:14px!important;font-weight:800!important;font-size:16px!important;line-height:1.9!important;box-shadow:0 8px 22px rgba(0,0,0,.22)!important;margin:14px 0!important}
+#attendanceView #attendanceMessage.attendance-error{background:linear-gradient(135deg,#172b45,#0c1b2e)!important;color:#fff!important;-webkit-text-fill-color:#fff!important;border-color:#d5a84f!important;border-right-color:#e05a62!important}
+#attendanceView #attendanceMessage.attendance-success{background:linear-gradient(135deg,#123b32,#102b29)!important;color:#eafff3!important;-webkit-text-fill-color:#eafff3!important;border-color:#3b9b70!important;border-right-color:#54c58b!important}
 #attendanceView #attendanceTodayStatus{background:#142a45!important;color:#fff!important;-webkit-text-fill-color:#fff!important;border:1px solid #3a5270!important;border-radius:14px}
 #attendanceView #attendanceTodayStatus.is-pending{background:#1b2c43!important;color:#f4d28d!important;-webkit-text-fill-color:#f4d28d!important}
 #attendanceView #attendanceTodayStatus.is-checked-in,#attendanceView #attendanceTodayStatus.is-complete{background:#123b32!important;color:#8ce0b5!important;-webkit-text-fill-color:#8ce0b5!important;border-color:#287c60!important}
@@ -921,7 +923,7 @@ async function loginBranchManager(){
  if(profileError||!profile||profile.role!=='branch_manager'||!profile.branch||String(profile.username||'').toLowerCase()!==username){await db.auth.signOut();showMessage('loginMsg','هذا الحساب غير مفعّل كمدير فرع أو بيانات الفرع غير مكتملة.',true);return;}
  await showApp(data.user,false,profile);
 }
-function showAttendanceMessage(message,error=false){$('attendanceMessage').textContent=message;$('attendanceMessage').style.background=error?'#fde8e8':'#e7f6ed';$('attendanceMessage').classList.remove('hidden');}
+function showAttendanceMessage(message,error=false){const box=$('attendanceMessage');box.textContent=(error?'⚠️  ':'✓  ')+message;box.classList.toggle('attendance-error',error);box.classList.toggle('attendance-success',!error);box.style.removeProperty('background');box.classList.remove('hidden');}
 function formatAttendanceTime(value){return value?new Date(value).toLocaleString('ar-EG',{dateStyle:'medium',timeStyle:'short'}):'—';}
 function durationText(start,end){if(!start)return'—';const m=Math.max(0,Math.floor((new Date(end||Date.now())-new Date(start))/60000));return Math.floor(m/60)+' ساعة و '+m%60+' دقيقة';}
 function getDeviceLocation(){return new Promise((resolve,reject)=>{if(!navigator.geolocation){reject(new Error('المتصفح لا يدعم تحديد الموقع.'));return;}navigator.geolocation.getCurrentPosition(p=>resolve({lat:p.coords.latitude,lng:p.coords.longitude,accuracy:p.coords.accuracy}),e=>reject(new Error(e.code===1?'يجب السماح للموقع من إعدادات المتصفح.':e.code===2?'تعذر تحديد موقعك حالياً.':'انتهت مهلة تحديد الموقع.')),{enableHighAccuracy:true,timeout:20000,maximumAge:0});});}
