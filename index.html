@@ -648,6 +648,7 @@ a{color:#e3bd78}
   <button type="button" class="login-choice" data-login-choice="adminLoginFields">دخول المدير الرئيسي</button>
   <button type="button" class="login-choice secondary" data-login-choice="operationsLoginFields">دخول مدير التشغيل</button>
   <button type="button" class="login-choice light" data-login-choice="managerLoginFields">دخول مديرين الفروع</button>
+  <button type="button" class="login-choice" data-login-choice="managerRegisterFields">طلب إنشاء حساب مدير فرع</button>
 </div>
 
 <div id="adminLoginFields" class="login-fields hidden">
@@ -675,7 +676,24 @@ a{color:#e3bd78}
   <label for="managerPassword">كلمة المرور</label>
   <input id="managerPassword" type="password" autocomplete="current-password" placeholder="كلمة المرور">
   <button id="managerLogin">تسجيل الدخول</button>
-  <p class="muted">حسابات مديري الفروع يتم إنشاؤها وتفعيلها بواسطة المدير الرئيسي.</p>
+  <p class="muted">الحسابات لا تعمل إلا بعد اعتماد المدير الرئيسي.</p>
+  <button type="button" class="light login-back">رجوع</button>
+</div>
+
+<div id="managerRegisterFields" class="login-fields hidden">
+  <h3>طلب إنشاء حساب مدير فرع</h3>
+  <label for="managerRequestName">الاسم بالكامل</label>
+  <input id="managerRequestName" type="text" maxlength="100" autocomplete="name" placeholder="اسم مدير الفرع">
+  <label for="managerRequestPhone">رقم الهاتف</label>
+  <input id="managerRequestPhone" type="tel" maxlength="20" autocomplete="tel" placeholder="رقم الهاتف">
+  <label for="managerRequestBranch">الفرع المطلوب</label>
+  <select id="managerRequestBranch"><option value="">اختر الفرع</option></select>
+  <label for="managerRequestUsername">اسم المستخدم</label>
+  <input id="managerRequestUsername" type="text" maxlength="40" autocomplete="username" placeholder="3 أحرف على الأقل - إنجليزي وأرقام">
+  <label for="managerRequestPassword">كلمة المرور</label>
+  <input id="managerRequestPassword" type="password" minlength="8" autocomplete="new-password" placeholder="8 أحرف أو أرقام على الأقل">
+  <button id="submitManagerRequest">إرسال طلب التسجيل</button>
+  <p class="muted">سيتم مراجعة الطلب وتفعيل الحساب بعد موافقة المدير الرئيسي وتأكيد الفرع.</p>
   <button type="button" class="light login-back">رجوع</button>
 </div>
 </section>
@@ -688,11 +706,19 @@ a{color:#e3bd78}
 <p id="roleText" class="muted"></p>
 </div>
 <div>
+<button id="managerRequestsOpen" class="light hidden" type="button">طلبات مديري الفروع</button>
 <button id="refreshBtn" class="light">تحديث البيانات</button>
 <button id="logoutBtn" class="secondary">خروج</button>
 </div>
 </div>
 </div>
+<dialog id="managerRequestsDialog" class="report-dialog">
+  <div class="report-dialog-card">
+    <div class="report-heading"><div><h2>طلبات إنشاء حسابات مديري الفروع</h2><p class="muted">راجع البيانات وحدد الفرع النهائي قبل التفعيل.</p></div><button type="button" id="closeManagerRequests" class="light" style="width:auto">إغلاق</button></div>
+    <div id="managerRequestsList"><p class="muted">اضغط تحديث لعرض الطلبات.</p></div>
+    <button type="button" id="refreshManagerRequests" class="secondary">تحديث الطلبات</button>
+  </div>
+</dialog>
 
 <nav class="app-nav" aria-label="أقسام النظام">
   <button type="button" id="customersNavBtn" class="active">إدارة العملاء</button>
@@ -1056,6 +1082,66 @@ async function loginOperationsManager(){
  finally{$('operationsLogin').disabled=false;$('operationsLogin').textContent='دخول مدير التشغيل';}
 }
 
+async function callBranchManagerAccounts(payload, requireAdmin=false){
+ const headers={'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY};
+ if(requireAdmin){
+  const {data:{session}}=await db.auth.getSession();
+  if(!session?.access_token)throw new Error('انتهت جلسة المدير الرئيسي. سجل الدخول مرة أخرى.');
+  headers.Authorization='Bearer '+session.access_token;
+ }
+ const response=await fetch(SUPABASE_URL+'/functions/v1/branch-manager-accounts',{
+  method:'POST',headers,body:JSON.stringify(payload)
+ });
+ const result=await response.json().catch(()=>({}));
+ if(!response.ok)throw new Error(result.error||'تعذر تنفيذ الطلب.');
+ return result;
+}
+
+async function submitBranchManagerRequest(){
+ hideMessage('loginMsg');
+ const full_name=$('managerRequestName').value.trim();
+ const phone=$('managerRequestPhone').value.trim();
+ const branch=$('managerRequestBranch').value;
+ const username=$('managerRequestUsername').value.trim().toLowerCase();
+ const password=$('managerRequestPassword').value;
+ if(full_name.length<3||!phone||!branch||!/^[a-z0-9._-]{3,40}$/.test(username)||password.length<8){
+  showMessage('loginMsg','راجع البيانات: الاسم ورقم الهاتف والفرع مطلوبون، واسم المستخدم 3 أحرف على الأقل، وكلمة المرور 8 أحرف على الأقل.',true);return;
+ }
+ const button=$('submitManagerRequest');button.disabled=true;button.textContent='جارٍ إرسال الطلب...';
+ try{
+  await callBranchManagerAccounts({action:'register',full_name,phone,branch,username,password});
+  $('managerRequestPassword').value='';
+  document.querySelectorAll('.login-fields').forEach(panel=>panel.classList.add('hidden'));
+  $('loginChoices').classList.remove('hidden');
+  showMessage('loginMsg','تم إرسال طلبك بنجاح. انتظر موافقة المدير الرئيسي وتفعيل حسابك.',false);
+ }catch(error){showMessage('loginMsg',error.message||'تعذر إرسال الطلب.',true);}
+ finally{button.disabled=false;button.textContent='إرسال طلب التسجيل';}
+}
+
+function renderManagerRequests(items){
+ const host=$('managerRequestsList');
+ if(!items?.length){host.innerHTML='<p class="muted">لا توجد طلبات معلقة حالياً.</p>';return;}
+ host.innerHTML=items.map(item=>'<div class="complaint-card" data-request-id="'+escapeHTML(item.id)+'"><h3>'+escapeHTML(item.full_name)+'</h3><p>اسم المستخدم: <b>'+escapeHTML(item.username)+'</b></p><p>الهاتف: '+escapeHTML(item.phone)+'</p><p>الفرع المطلوب: '+escapeHTML(item.requested_branch)+'</p><p class="muted">تاريخ الطلب: '+new Date(item.created_at).toLocaleString('ar-EG')+'</p><label>الفرع بعد الاعتماد</label><select class="manager-approval-branch"><option value="">اختر الفرع النهائي</option>'+branches.map(branch=>'<option value="'+escapeHTML(branch)+'"'+(branch===item.requested_branch?' selected':'')+'>'+escapeHTML(branch)+'</option>').join('')+'</select><div class="complaint-actions"><button type="button" class="approve-manager-request">اعتماد وتفعيل</button><button type="button" class="danger reject-manager-request">رفض الطلب</button></div></div>').join('');
+}
+
+async function loadManagerRequests(){
+ $('managerRequestsList').innerHTML='<p class="muted">جاري تحميل الطلبات...</p>';
+ try{
+  const result=await callBranchManagerAccounts({action:'list'},true);
+  renderManagerRequests(result.requests||[]);
+ }catch(error){$('managerRequestsList').innerHTML='<p class="msg">'+escapeHTML(error.message)+'</p>';}
+}
+
+async function processManagerRequest(requestId,action,branch=''){
+ if(!isAdmin||!requestId)return;
+ if(action==='approve'&&!branch){alert('اختر الفرع النهائي أولاً.');return;}
+ if(!confirm(action==='approve'?'تأكيد اعتماد الحساب وربطه بالفرع المحدد؟':'هل تريد رفض طلب التسجيل؟'))return;
+ try{
+  await callBranchManagerAccounts({action,request_id:requestId,branch},true);
+  await loadManagerRequests();
+ }catch(error){alert(error.message||'تعذر تنفيذ العملية.');}
+}
+
 async function loginBranchManager(){
  hideMessage('loginMsg');
  const username=$('managerUsername').value.trim().toLowerCase(),password=$('managerPassword').value;
@@ -1165,6 +1251,7 @@ async function showApp(user,admin,managerProfile=null,operationsManager=false) {
   $('loginPanel').classList.add('hidden'); $('appPanel').classList.remove('hidden');
   $('welcomeText').textContent=operationsManager?'مرحباً بك M.Tamer':admin?'مرحباً بك M.Ahmed':(isBranchManager&&String(currentManagerProfile?.username||'').toLowerCase()==='islam')?'مرحباً بك M.Eslam':'مرحباً بك';
   $('welcomeText').style.color=operationsManager?'#D4AF37':'';
+  $('managerRequestsOpen').classList.toggle('hidden',!admin);
   $('roleText').textContent=admin?'المدير الرئيسي - صلاحية كاملة':operationsManager?'':managerProfile?'مدير فرع: '+managerProfile.branch:'زائر - عرض فقط';
   $('formPanel').classList.toggle('hidden',!admin); $('complaintsPanel').classList.toggle('hidden',!admin&&!operationsManager);
   $('complaintMsg').classList.toggle('hidden',!admin); $('complaintsDialog').querySelector('.complaint-form').classList.toggle('hidden',!admin);
@@ -1960,7 +2047,7 @@ function showLoginChoice(panelId) {
   document.querySelectorAll('.login-fields').forEach(panel=>panel.classList.toggle('hidden',panel.id!==panelId));
   $('loginChoices').classList.add('hidden');
   hideMessage('loginMsg');
-  const firstInput=document.querySelector('#'+panelId+' input');
+  const firstInput=document.querySelector('#'+panelId+' input, #'+panelId+' select');
   if(firstInput)firstInput.focus();
 }
 function returnToLoginChoices() {
@@ -1973,6 +2060,18 @@ document.querySelectorAll('.login-back').forEach(button=>button.addEventListener
 
 $('adminLogin').addEventListener('click',loginAdmin);
 $('managerLogin').addEventListener('click',loginBranchManager);
+$('submitManagerRequest').addEventListener('click',submitBranchManagerRequest);
+$('managerRequestPassword').addEventListener('keydown',e=>{if(e.key==='Enter')submitBranchManagerRequest();});
+$('managerRequestsOpen').addEventListener('click',()=>{if(!isAdmin)return;$('managerRequestsDialog').showModal();loadManagerRequests();});
+$('closeManagerRequests').addEventListener('click',()=>$('managerRequestsDialog').close());
+$('refreshManagerRequests').addEventListener('click',loadManagerRequests);
+$('managerRequestsDialog').addEventListener('click',event=>{if(event.target===$('managerRequestsDialog'))$('managerRequestsDialog').close();});
+$('managerRequestsList').addEventListener('click',event=>{
+ const card=event.target.closest('[data-request-id]');if(!card||!isAdmin)return;
+ const id=card.dataset.requestId;
+ if(event.target.closest('.approve-manager-request'))processManagerRequest(id,'approve',card.querySelector('.manager-approval-branch').value);
+ if(event.target.closest('.reject-manager-request'))processManagerRequest(id,'reject');
+});
 $('managerPassword').addEventListener('keydown',e=>{if(e.key==='Enter')loginBranchManager();});
 $('checkInBtn').addEventListener('click',()=>submitAttendance('in'));
 $('checkOutBtn').addEventListener('click',()=>submitAttendance('out'));
@@ -2007,6 +2106,7 @@ $('branchFilter').addEventListener('change',renderRecords);
 
 fillBranches();
 branches.forEach(branch => {
+  $('managerRequestBranch').add(new Option(branch,branch));
   $('attendanceBranchFilter').add(new Option(branch,branch));
   $('complaintBranch').add(new Option(branch,branch));
   $('staffBranch').add(new Option(branch,branch));
