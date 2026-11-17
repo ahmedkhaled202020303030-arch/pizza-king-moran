@@ -601,6 +601,8 @@ a{color:#e3bd78}
 
 
 .registration-sections{display:grid;gap:11px;margin:16px 0}.registration-section{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:rgba(255,255,255,.02)}.registration-toggle{display:flex;align-items:center;justify-content:space-between;width:100%;margin:0;padding:15px 17px;text-align:right;background:linear-gradient(120deg,#243957,#1b2d46);color:#f0d49b;border-radius:0;box-shadow:none;font-weight:800}.registration-toggle:hover{filter:brightness(1.12);transform:none;box-shadow:none}.registration-fields{padding:14px 16px;border-top:1px solid var(--line)}.registration-fields>.ocr-box{margin-top:0}.registration-fields label:first-child{margin-top:4px}.registration-fields .rating-grid{margin-top:4px}
+
+.login-choices{display:grid;grid-template-columns:1fr;gap:11px;margin-top:20px}.login-choice{width:100%;min-height:52px;font-size:15px;font-weight:800}.login-choice.outline{background:#fff;color:var(--navy);border:1px solid var(--line);box-shadow:none}.login-fields{margin-top:8px;padding-top:4px}.login-fields h3{margin:8px 0 14px}.login-fields .login-back{margin-top:10px;background:#edf1f5;color:#34465c;box-shadow:none}.login-fields .login-back:hover{background:#e2e8ef;box-shadow:none}
 </style>
 </head>
 <body>
@@ -620,20 +622,44 @@ a{color:#e3bd78}
 <main>
 <section id="loginPanel" class="panel">
 <h2>تسجيل الدخول</h2>
-<p class="muted">اختر الدخول كمدير أو المتابعة كزائر للعرض فقط.</p>
+<p class="muted">اختر نوع الدخول للمتابعة.</p>
 <div id="loginMsg" class="msg hidden"></div>
 
-<label>البريد الإلكتروني للمدير الرئيسي</label>
-<input id="email" type="email" placeholder="البريد الإلكتروني المسجل في Supabase">
-
-<label>كلمة المرور</label>
-<input id="password" type="password" placeholder="كلمة المرور">
-
-<div class="row">
-<button id="adminLogin">دخول المدير الرئيسي</button>
-<button id="guestLogin" class="secondary">الدخول كزائر</button>
+<div id="loginChoices" class="login-choices">
+  <button type="button" class="login-choice" data-login-choice="adminLoginFields">دخول المدير الرئيسي</button>
+  <button type="button" class="login-choice secondary" data-login-choice="operationsLoginFields">دخول مدير التشغيل</button>
+  <button type="button" class="login-choice light" data-login-choice="managerLoginFields">دخول مدير الفرع</button>
+  <button type="button" id="guestLogin" class="login-choice outline">الدخول كزائر</button>
 </div>
-<hr style="border:0;border-top:1px solid var(--line);margin:22px 0"><h3>دخول مدير التشغيل</h3><label for="operationsCode">الكود الموحد (6 أرقام)</label><input id="operationsCode" type="password" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="••••••" aria-label="كود مدير التشغيل"><button id="operationsLogin" class="secondary">دخول مدير التشغيل</button><hr style="border:0;border-top:1px solid var(--line);margin:22px 0"><h3>دخول مدير الفرع</h3><label>اسم المستخدم</label><input id="managerUsername" type="text" autocomplete="username" placeholder="اسم المستخدم المخصص لك"><label>كلمة المرور</label><input id="managerPassword" type="password" autocomplete="current-password" placeholder="كلمة المرور"><button id="managerLogin" class="light">دخول مدير الفرع</button><p class="muted">حسابات مديري الفروع يتم إنشاؤها وتفعيلها بواسطة المدير الرئيسي.</p>
+
+<div id="adminLoginFields" class="login-fields hidden">
+  <h3>دخول المدير الرئيسي</h3>
+  <label for="email">البريد الإلكتروني للمدير الرئيسي</label>
+  <input id="email" type="email" autocomplete="username" placeholder="البريد الإلكتروني المسجل في Supabase">
+  <label for="password">كلمة المرور</label>
+  <input id="password" type="password" autocomplete="current-password" placeholder="كلمة المرور">
+  <button id="adminLogin">تسجيل الدخول</button>
+  <button type="button" class="light login-back">رجوع</button>
+</div>
+
+<div id="operationsLoginFields" class="login-fields hidden">
+  <h3>دخول مدير التشغيل</h3>
+  <label for="operationsCode">الكود الموحد (6 أرقام)</label>
+  <input id="operationsCode" type="password" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="••••••" aria-label="كود مدير التشغيل">
+  <button id="operationsLogin" class="secondary">تسجيل الدخول</button>
+  <button type="button" class="light login-back">رجوع</button>
+</div>
+
+<div id="managerLoginFields" class="login-fields hidden">
+  <h3>دخول مدير الفرع</h3>
+  <label for="managerUsername">اسم المستخدم</label>
+  <input id="managerUsername" type="text" autocomplete="username" placeholder="اسم المستخدم المخصص لك">
+  <label for="managerPassword">كلمة المرور</label>
+  <input id="managerPassword" type="password" autocomplete="current-password" placeholder="كلمة المرور">
+  <button id="managerLogin">تسجيل الدخول</button>
+  <p class="muted">حسابات مديري الفروع يتم إنشاؤها وتفعيلها بواسطة المدير الرئيسي.</p>
+  <button type="button" class="light login-back">رجوع</button>
+</div>
 </section>
 
 <section id="appPanel" class="hidden">
@@ -1868,6 +1894,21 @@ async function deleteBranchStaff(id) {
 
 document.querySelectorAll('[data-registration-toggle]').forEach(button=>button.addEventListener('click',()=>{const id=button.dataset.registrationToggle;const panel=$(id);setRegistrationSection(id,panel.classList.contains('hidden'));}));
 closeRegistrationSections();
+
+function showLoginChoice(panelId) {
+  document.querySelectorAll('.login-fields').forEach(panel=>panel.classList.toggle('hidden',panel.id!==panelId));
+  $('loginChoices').classList.add('hidden');
+  hideMessage('loginMsg');
+  const firstInput=document.querySelector('#'+panelId+' input');
+  if(firstInput)firstInput.focus();
+}
+function returnToLoginChoices() {
+  document.querySelectorAll('.login-fields').forEach(panel=>panel.classList.add('hidden'));
+  $('loginChoices').classList.remove('hidden');
+  hideMessage('loginMsg');
+}
+document.querySelectorAll('[data-login-choice]').forEach(button=>button.addEventListener('click',()=>showLoginChoice(button.dataset.loginChoice)));
+document.querySelectorAll('.login-back').forEach(button=>button.addEventListener('click',returnToLoginChoices));
 
 $('adminLogin').addEventListener('click',loginAdmin);
 $('guestLogin').addEventListener('click',loginGuest);
