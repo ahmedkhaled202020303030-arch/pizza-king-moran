@@ -920,6 +920,7 @@ async function loginOperationsManager(){
  if(!/^\d{6}$/.test(code)){showMessage('loginMsg','اكتب كود مدير التشغيل المكوّن من 6 أرقام.',true);return;}
  $('operationsLogin').disabled=true;$('operationsLogin').textContent='جارٍ التحقق...';
  try{
+  $('operationsLogin').textContent='جارٍ الاتصال بالخادم...';
   const controller=new AbortController();
   const requestTimer=setTimeout(()=>controller.abort(),20000);
   let response, data;
@@ -938,11 +939,14 @@ async function loginOperationsManager(){
    clearTimeout(requestTimer);
   }
   if(!response.ok||!data?.token_hash)throw new Error(data?.error||('فشل التحقق من الخادم (HTTP '+response.status+').'));
+  $('operationsLogin').textContent='تم التحقق من الكود — جارٍ إنشاء الجلسة...';
   const {data:authData,error:authError}=await db.auth.verifyOtp({token_hash:data.token_hash,type:'magiclink'});
   if(authError||!authData?.user)throw new Error(authError?.message||'تعذر إنشاء جلسة مدير التشغيل.');
+  $('operationsLogin').textContent='الجلسة جاهزة — جارٍ فحص الصلاحية...';
   const {data:profile,error:profileError}=await db.from('profiles').select('role').eq('user_id',authData.user.id).maybeSingle();
   if(profileError||profile?.role!=='operations_manager'){await db.auth.signOut();throw new Error('حساب مدير التشغيل غير مفعّل. نفّذ تحديث قاعدة البيانات أولاً.');}
   $('operationsCode').value='';
+  $('operationsLogin').textContent='تم الدخول — جارٍ فتح لوحة التشغيل...';
   await showApp(authData.user,false,null,true);
  }catch(error){
   let message=error?.message||'تعذر تسجيل الدخول.';
