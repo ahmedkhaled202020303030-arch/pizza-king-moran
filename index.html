@@ -1108,7 +1108,7 @@ async function submitBranchManagerRequest(){
  const branch=$('managerRequestBranch').value;
  const username=$('managerRequestUsername').value.trim().toLowerCase();
  const password=$('managerRequestPassword').value;
- if(full_name.length<3||!phone||!branch||!/^[a-z0-9._-]{3,40}$/.test(username)||password.length!==6 || !/^\\d{6}$/.test(password)){
+ if(full_name.length<3||!phone||!branch||!/^[a-z0-9._-]{3,40}$/.test(username)||password.length!==6 || !/^[0-9]{6}$/.test(password)){
   showMessage('loginMsg','راجع البيانات: الاسم ورقم الهاتف والفرع مطلوبون، واسم المستخدم 3 أحرف على الأقل، وكلمة المرور 6 أرقام بالضبط.',true);return;
  }
  const button=$('submitManagerRequest');button.disabled=true;button.textContent='جارٍ إرسال الطلب...';
