@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
     const username = String(body.username ?? "").trim().toLowerCase();
     const password = String(body.password ?? "");
     if (full_name.length < 3 || full_name.length > 100 || phone.length < 5 || phone.length > 20 ||
-        !branches.includes(branch) || !validUsername(username) || password.length < 8 || password.length > 72) {
+        !branches.includes(branch) || !validUsername(username) || !/^\d{6}$/.test(password)) {
       return json({ error: "راجع البيانات المدخلة وتأكد من صحة اسم المستخدم وكلمة المرور والفرع." }, 400);
     }
 
