@@ -3,3 +3,6 @@ verify_jwt = false
 
 [functions.branch-manager-accounts]
 verify_jwt = false
+
+[functions.branch-manager-biometric]
+verify_jwt = false
