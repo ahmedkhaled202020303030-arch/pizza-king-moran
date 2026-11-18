@@ -646,9 +646,34 @@ a{color:#e3bd78}
   background:linear-gradient(135deg,#203b5b,#315477);
   box-shadow:0 8px 22px rgba(8,17,31,.36);
 }
+
+/* Light mode */
+html.light-theme{color-scheme:light;--navy:#14263d;--navy-2:#203b5b;--orange:#e98220;--orange-dark:#c96812;--ink:#243247;--muted:#718096;--line:#e2e8f0;--surface:#fff;--bg:#f3f6fa;--green:#16845b;--red:#c0393b;--shadow:0 10px 28px rgba(20,38,61,.08)}
+html.light-theme body{background:var(--bg);color:var(--ink)}
+html.light-theme header{background:linear-gradient(125deg,#14263d,#315477);border-bottom:4px solid var(--orange)}
+html.light-theme .panel,html.light-theme .stat-card,html.light-theme .record,html.light-theme .upload-card,html.light-theme .complaint-card,html.light-theme .staff-card,html.light-theme .staff-form,html.light-theme .attendance-card{background:#fff!important;color:var(--ink);border-color:var(--line);box-shadow:var(--shadow)}
+html.light-theme h2,html.light-theme h3,html.light-theme .stat-card strong,html.light-theme .branch-line-top strong,html.light-theme .month-bar-value,html.light-theme .monthly-kpis strong,html.light-theme .activity-item strong,html.light-theme .upload-copy strong{color:var(--navy)!important}
+html.light-theme label{color:#34465c}
+html.light-theme input,html.light-theme select,html.light-theme textarea{background:#fbfcfe!important;color:var(--ink)!important;border-color:#d8e0e9!important;color-scheme:light}
+html.light-theme input:focus,html.light-theme select:focus,html.light-theme textarea:focus{background:#fff!important;border-color:var(--orange)!important}
+html.light-theme button:not(#themeToggle){background:linear-gradient(135deg,#ed963b,#d97719);color:#fff}
+html.light-theme button.secondary{background:#203b5b;color:#fff}
+html.light-theme button.light{background:#edf2f7;color:#203b5b}
+html.light-theme .record{border-top-color:var(--orange)}
+html.light-theme .tag,html.light-theme .report-total{background:#fff0df;color:#a6530b;border-color:#f5d7b3}
+html.light-theme .msg{background:#fff4df;color:#74521c;border-color:#f5d79e}
+html.light-theme .report-dialog-card{background:#fff!important;color:var(--ink)}
+html.light-theme .report-dialog-card h1,html.light-theme .report-dialog-card h2,html.light-theme .report-dialog-card h3,html.light-theme .report-dialog-card h4,html.light-theme .report-dialog-card label,html.light-theme .report-dialog-card strong{color:var(--navy)!important}
+html.light-theme .report-dialog-card p,html.light-theme .report-dialog-card span{color:var(--ink)}
+#themeToggle{position:fixed;z-index:2000;left:14px;top:14px;width:42px;height:42px;padding:0;margin:0;border:1px solid rgba(255,255,255,.25);border-radius:50%;display:grid;place-items:center;background:#14263d;color:#ffd27a;box-shadow:0 4px 14px #0003;cursor:pointer}
+#themeToggle svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+html.light-theme #themeToggle{background:#fff;color:#203b5b;border-color:#d8e0e9}
+@media(max-width:680px){#themeToggle{left:10px;top:10px;width:38px;height:38px}}
+
 </style>
 </head>
 <body>
+<button id="themeToggle" type="button" aria-label="التحويل إلى الوضع الفاتح" title="التحويل إلى الوضع الفاتح"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg></button>
 
 <header>
 <div class="header-branding">
@@ -2266,6 +2291,11 @@ $('customerProfileModal').addEventListener('click',event => {
 })();
 </script>
 
+<script>
+(()=>{const root=document.documentElement,btn=document.getElementById('themeToggle');if(!btn)return;let theme='dark';try{theme=localStorage.getItem('pkm-theme')||'dark'}catch(e){}
+function setTheme(t){const light=t==='light';root.classList.toggle('light-theme',light);btn.innerHTML=light?'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 15.5A8.5 8.5 0 0 1 8.5 3.5 8.5 8.5 0 1 0 20.5 15.5Z"/></svg>':'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>';btn.title=light?'التحويل إلى الوضع الداكن':'التحويل إلى الوضع الفاتح';btn.setAttribute('aria-label',btn.title);try{localStorage.setItem('pkm-theme',t)}catch(e){}}
+setTheme(theme);btn.addEventListener('click',()=>setTheme(root.classList.contains('light-theme')?'dark':'light'));})();
+</script>
 </body>
   </html>
   
