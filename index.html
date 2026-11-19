@@ -777,7 +777,8 @@ html.light-theme #themeToggle{background:#fff;color:#203b5b;border-color:#d8e0e9
   <input id="deliveryRepPassword" type="password" autocomplete="current-password" placeholder="كلمة المرور">
   <button id="deliveryRepLogin" class="secondary">تسجيل الدخول</button>
   <button id="deliveryRepForgotPassword" type="button" class="light">نسيت كلمة المرور؟</button>
-  <p class="muted">بيانات الدخول يتم تسليمها لك من المدير.</p>
+  <button id="deliveryRepRegisterBtn" type="button" class="light">إنشاء حساب مندوب جديد</button>
+  <p class="muted">قدّم طلب تسجيل وانتظر موافقة المدير الرئيسي أو مدير الفرع.</p>
   <button type="button" class="light login-back">رجوع</button>
 </div>
 
@@ -827,6 +828,15 @@ html.light-theme #themeToggle{background:#fff;color:#203b5b;border-color:#d8e0e9
   </div>
 </section>
 
+<dialog id="deliveryRepRegisterDialog" class="report-dialog"><div class="report-dialog-card">
+<h2>طلب إنشاء حساب مندوب مطاعم</h2><p class="muted">لن تتمكن من الدخول قبل الموافقة على طلبك.</p>
+<label for="deliveryRepRegisterName">الاسم بالكامل</label><input id="deliveryRepRegisterName" maxlength="100">
+<label for="deliveryRepRegisterPhone">رقم الهاتف</label><input id="deliveryRepRegisterPhone" type="tel" maxlength="20">
+<label for="deliveryRepRegisterUsername">اسم المستخدم</label><input id="deliveryRepRegisterUsername" maxlength="40" placeholder="إنجليزي وأرقام">
+<label for="deliveryRepRegisterBranch">الفرع المطلوب</label><select id="deliveryRepRegisterBranch"><option value="">اختر الفرع</option></select>
+<label for="deliveryRepRegisterPassword">كلمة المرور</label><input id="deliveryRepRegisterPassword" type="password" minlength="8" maxlength="128" placeholder="8 أحرف على الأقل">
+<button id="deliveryRepRegisterSubmit" type="button">إرسال طلب التسجيل</button><button id="deliveryRepRegisterClose" type="button" class="light">إغلاق</button><p id="deliveryRepRegisterMessage" class="muted"></p>
+</div></dialog>
 <dialog id="deliveryRepRecoveryDialog" class="report-dialog">
   <div class="report-dialog-card">
     <h2>تعيين كلمة مرور جديدة</h2>
@@ -877,6 +887,7 @@ html.light-theme #themeToggle{background:#fff;color:#203b5b;border-color:#d8e0e9
 </section>
 <section id="deliveryRepsView" class="panel hidden">
  <div class="report-heading"><div><h2>إدارة مندوبي المطاعم</h2><p class="muted">إدارة الحسابات ومتابعة حالة كل مندوب وفرعه</p></div><div class="row"><button type="button" id="deliveryRepAddBtn" class="primary-btn">إضافة مندوب</button><button type="button" id="deliveryRepsRefreshBtn" class="light">تحديث القائمة</button></div></div>
+ <div id="deliveryRepRequestsPanel" class="panel"><div class="report-heading"><div><h3>طلبات تسجيل المندوبين</h3><p class="muted">المدير الرئيسي يرى كل الطلبات، ومدير الفرع يرى طلبات فرعه فقط.</p></div><button type="button" id="deliveryRepRequestsRefresh" class="light">تحديث الطلبات</button></div><div id="deliveryRepRequestsList"><p class="muted">لا توجد طلبات محملة.</p></div></div>
  <div id="deliveryRepsMessage" class="msg hidden"></div>
  <div id="deliveryRepsList" class="attendance-records"><p class="muted">اضغط تحديث لعرض المندوبين.</p></div>
 </section>
@@ -1792,6 +1803,48 @@ function openDeliveryRepsMap(){
  deliveryRepsMapInterval=setInterval(loadDeliveryRepsMap,12000);
 }
 
+
+async function submitDeliveryRepRegistration(){
+ const full_name=$('deliveryRepRegisterName').value.trim(),phone=$('deliveryRepRegisterPhone').value.trim();
+ const username=$('deliveryRepRegisterUsername').value.trim().toLowerCase(),branch=$('deliveryRepRegisterBranch').value;
+ const password=$('deliveryRepRegisterPassword').value;
+ if(full_name.length<3||phone.length<5||!/^[a-z0-9._-]{3,40}$/.test(username)||!branch||password.length<8){
+  $('deliveryRepRegisterMessage').textContent='راجع البيانات، وكلمة المرور يجب ألا تقل عن 8 أحرف.';return;
+ }
+ const button=$('deliveryRepRegisterSubmit');button.disabled=true;button.textContent='جارٍ إرسال الطلب...';
+ try{
+  const response=await fetch(SUPABASE_URL+'/functions/v1/delivery-rep-registration',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY},body:JSON.stringify({action:'submit',full_name,phone,username,branch,password})});
+  const result=await response.json().catch(()=>({}));
+  if(!response.ok||result.error)throw new Error(result.error||'تعذر إرسال الطلب.');
+  $('deliveryRepRegisterMessage').textContent=result.message||'تم استلام طلبك.';
+  $('deliveryRepRegisterName').value='';$('deliveryRepRegisterPhone').value='';$('deliveryRepRegisterUsername').value='';$('deliveryRepRegisterPassword').value='';
+ }catch(error){$('deliveryRepRegisterMessage').textContent=error.message||'حدث خطأ أثناء إرسال الطلب.';}
+ finally{button.disabled=false;button.textContent='إرسال طلب التسجيل';}
+}
+async function loadDeliveryRepRequests(){
+ const host=$('deliveryRepRequestsList');
+ if(!isAdmin&&!isBranchManager){$('deliveryRepRequestsPanel').classList.add('hidden');return;}
+ host.innerHTML='<p class="muted">جارٍ تحميل الطلبات...</p>';
+ try{
+  const {data:{session}}=await db.auth.getSession();if(!session?.access_token)throw new Error('انتهت جلسة المدير.');
+  const response=await fetch(SUPABASE_URL+'/functions/v1/delivery-rep-registration',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+session.access_token},body:JSON.stringify({action:'list'})});
+  const result=await response.json().catch(()=>({}));if(!response.ok||result.error)throw new Error(result.error||'تعذر تحميل الطلبات.');
+  const requests=result.requests||[];
+  if(!requests.length){host.innerHTML='<p class="muted">لا توجد طلبات معلقة حالياً.</p>';return;}
+  host.innerHTML=requests.map(item=>'<article class="complaint-card"><h3>'+escapeHTML(item.full_name)+'</h3><p>اسم المستخدم: <b>'+escapeHTML(item.username)+'</b></p><p>الهاتف: '+escapeHTML(item.phone)+'</p><p>الفرع: <b>'+escapeHTML(item.branch)+'</b></p><p>تاريخ الطلب: '+new Date(item.created_at).toLocaleString('ar-EG')+'</p><div class="row"><button type="button" class="delivery-rep-approve-btn" data-user-id="'+escapeHTML(item.user_id)+'">موافقة وتفعيل</button><button type="button" class="delivery-rep-reject-btn secondary" data-user-id="'+escapeHTML(item.user_id)+'">رفض الطلب</button></div></article>').join('');
+ }catch(error){host.innerHTML='<p>'+escapeHTML(error.message||'تعذر تحميل الطلبات.')+'</p>';}
+}
+async function reviewDeliveryRepRequest(userId,decision){
+ if(!userId||(!isAdmin&&!isBranchManager))return;
+ if(decision==='rejected'&&!confirm('هل أنت متأكد من رفض طلب التسجيل؟'))return;
+ try{
+  const {data:{session}}=await db.auth.getSession();if(!session?.access_token)throw new Error('انتهت جلسة المدير.');
+  const response=await fetch(SUPABASE_URL+'/functions/v1/delivery-rep-registration',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+session.access_token},body:JSON.stringify({action:'review',user_id:userId,decision,reason:'تم رفض الطلب من الإدارة'})});
+  const result=await response.json().catch(()=>({}));if(!response.ok||result.error)throw new Error(result.error||'تعذر تنفيذ القرار.');
+  showMessage('deliveryRepsMessage',result.message||'تم تحديث الطلب.');await loadDeliveryRepRequests();await loadDeliveryReps();
+ }catch(error){showMessage('deliveryRepsMessage',error.message||'تعذر تنفيذ القرار.',true);}
+}
+
 async function loadDeliveryReps(){
  const host=$('deliveryRepsList');const message=$('deliveryRepsMessage');
  host.innerHTML='<p class="muted">جارٍ تحميل قائمة المندوبين...</p>';message.classList.add('hidden');
@@ -1841,6 +1894,7 @@ async function showApp(user,admin,managerProfile=null,operationsManager=false) {
   $('deliveryRepsMapNavBtn').classList.toggle('hidden',!admin&&!operationsManager&&!isBranchManager);
   $('deliveryMapBranchFilter').innerHTML='<option value="">كل الفروع</option>'+(isBranchManager?[managerProfile.branch]:branches).map(branch=>'<option value="'+escapeHTML(branch)+'">'+escapeHTML(branch)+'</option>').join('');
   $('deliveryRepAddBtn').classList.toggle('hidden',!admin&&!isBranchManager);
+  $('deliveryRepRequestsPanel').classList.toggle('hidden',!admin&&!isBranchManager);
   $('newDeliveryRepBranch').disabled=isBranchManager;
   if(isBranchManager){$('newDeliveryRepBranch').innerHTML='<option value="'+escapeHTML(managerProfile.branch)+'">'+escapeHTML(managerProfile.branch)+'</option>';}
   $('customersView').classList.toggle('hidden',isBranchManager); $('staffDirectoryView').classList.toggle('hidden',isBranchManager);
@@ -2657,6 +2711,13 @@ document.querySelectorAll('.login-back').forEach(button=>button.addEventListener
 
 $('adminLogin').addEventListener('click',loginAdmin);
 $('deliveryRepLogin').addEventListener('click',loginDeliveryRep);
+$('deliveryRepRegisterBtn').addEventListener('click',()=>{
+ $('deliveryRepRegisterMessage').textContent='';
+ $('deliveryRepRegisterBranch').innerHTML='<option value="">اختر الفرع</option>'+branches.map(branch=>'<option value="'+escapeHTML(branch)+'">'+escapeHTML(branch)+'</option>').join('');
+ $('deliveryRepRegisterDialog').showModal();
+});
+$('deliveryRepRegisterClose').addEventListener('click',()=>$('deliveryRepRegisterDialog').close());
+$('deliveryRepRegisterSubmit').addEventListener('click',submitDeliveryRepRegistration);
 $('deliveryRepForgotPassword').addEventListener('click',requestDeliveryRepPasswordReset);
 $('deliveryRepSaveEmail').addEventListener('click',saveDeliveryRepEmail);
 $('deliveryRepUpdatePassword').addEventListener('click',saveDeliveryRepNewPassword);
@@ -2700,8 +2761,14 @@ $('checkInBtn').addEventListener('click',()=>submitAttendance('in'));
 $('checkOutBtn').addEventListener('click',()=>submitAttendance('out'));
 $('attendanceRefreshBtn').addEventListener('click',()=>isBranchManager?loadMyAttendance():loadAdminAttendance());
 $('attendanceNavBtn').addEventListener('click',()=>{stopDeliveryRepsMapRefresh();$('deliveryRepsMapView').classList.add('hidden');$('deliveryRepsMapNavBtn').classList.remove('active');$('customersView').classList.add('hidden');$('staffDirectoryView').classList.add('hidden');$('deliveryRepsView').classList.add('hidden');$('attendanceView').classList.remove('hidden');$('customersNavBtn').classList.remove('active');$('staffNavBtn').classList.remove('active');$('deliveryRepsNavBtn').classList.remove('active');$('attendanceNavBtn').classList.add('active');if(isAdmin||isOperationsManager)loadAdminAttendance();else loadMyAttendance();});
-$('deliveryRepsNavBtn').addEventListener('click',()=>{stopDeliveryRepsMapRefresh();$('deliveryRepsMapView').classList.add('hidden');$('deliveryRepsMapNavBtn').classList.remove('active');$('customersView').classList.add('hidden');$('staffDirectoryView').classList.add('hidden');$('attendanceView').classList.add('hidden');$('deliveryRepsView').classList.remove('hidden');$('customersNavBtn').classList.remove('active');$('staffNavBtn').classList.remove('active');$('attendanceNavBtn').classList.remove('active');$('deliveryRepsNavBtn').classList.add('active');loadDeliveryReps();});
+$('deliveryRepsNavBtn').addEventListener('click',()=>{stopDeliveryRepsMapRefresh();$('deliveryRepsMapView').classList.add('hidden');$('deliveryRepsMapNavBtn').classList.remove('active');$('customersView').classList.add('hidden');$('staffDirectoryView').classList.add('hidden');$('attendanceView').classList.add('hidden');$('deliveryRepsView').classList.remove('hidden');$('customersNavBtn').classList.remove('active');$('staffNavBtn').classList.remove('active');$('attendanceNavBtn').classList.remove('active');$('deliveryRepsNavBtn').classList.add('active');loadDeliveryReps();loadDeliveryRepRequests();});
 $('deliveryRepsRefreshBtn').addEventListener('click',loadDeliveryReps);
+$('deliveryRepRequestsRefresh').addEventListener('click',loadDeliveryRepRequests);
+$('deliveryRepRequestsList').addEventListener('click',e=>{
+ const approve=e.target.closest('.delivery-rep-approve-btn'),reject=e.target.closest('.delivery-rep-reject-btn');
+ if(approve)reviewDeliveryRepRequest(approve.dataset.userId,'approved');
+ if(reject)reviewDeliveryRepRequest(reject.dataset.userId,'rejected');
+});
 $('deliveryRepsMapNavBtn').addEventListener('click',openDeliveryRepsMap);
 $('deliveryMapRefreshBtn').addEventListener('click',loadDeliveryRepsMap);
 $('deliveryMapBranchFilter').addEventListener('change',loadDeliveryRepsMap);
