@@ -3,6 +3,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SITE_URL = "https://pizza-king-moran.pages.dev";
+const publicAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
@@ -47,27 +49,40 @@ Deno.serve(async (req) => {
       const full_name = String(body?.full_name || "").trim();
       const phone = String(body?.phone || "").trim();
       const username = String(body?.username || "").trim().toLowerCase();
+      const email = String(body?.email || "").trim().toLowerCase();
       const branch = String(body?.branch || "").trim();
       const password = String(body?.password || "");
       if (full_name.length < 3 || full_name.length > 100 ||
           phone.length < 5 || phone.length > 20 ||
           !validUsername(username) || !allowedBranches.includes(branch) ||
+          !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254 ||
           password.length < 8 || password.length > 128) {
-        return reply({ error: "راجع البيانات؛ كلمة المرور يجب ألا تقل عن 8 أحرف." }, 400);
+        return reply({ error: "راجع البيانات، واكتب بريدًا إلكترونيًا صحيحًا وكلمة مرور لا تقل عن 8 أحرف." }, 400);
       }
       const { data: existing, error: existingError } = await admin
         .from("delivery_rep_profiles").select("id").ilike("username", username).maybeSingle();
       if (existingError) throw existingError;
       if (existing) return reply({ error: "اسم المستخدم مستخدم بالفعل. اختر اسمًا آخر." }, 409);
+      const { data: emailExisting, error: emailCheckError } = await admin
+        .from("delivery_rep_profiles").select("id").ilike("email", email).maybeSingle();
+      if (emailCheckError) throw emailCheckError;
+      if (emailExisting) return reply({ error: "هذا البريد الإلكتروني مسجل بالفعل." }, 409);
 
-      const email = username + "@delivery-login.internal";
-      const { data: created, error: createError } = await admin.auth.admin.createUser({
-        email, password, email_confirm: true,
-        user_metadata: { display_name: full_name, account_type: "delivery_rep_pending" },
+      const { data: created, error: createError } = await publicAuth.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: SITE_URL,
+          data: { display_name: full_name, account_type: "delivery_rep_pending" },
+        },
       });
       if (createError || !created.user) {
         return reply({ error: createError?.message || "تعذر إنشاء طلب التسجيل." }, 400);
       }
+      if (created.user.identities && created.user.identities.length === 0) {
+        return reply({ error: "هذا البريد الإلكتروني مستخدم بالفعل." }, 409);
+      }
+
       const userId = created.user.id;
       const { error: profileError } = await admin.from("profiles").insert({
         user_id: userId, role: "delivery_rep", username,
@@ -78,16 +93,16 @@ Deno.serve(async (req) => {
         throw profileError;
       }
       const { error: repError } = await admin.from("delivery_rep_profiles").insert({
-        user_id: userId, full_name, phone, username, branch,
+        user_id: userId, full_name, phone, email, username, branch,
         is_active: false, availability_status: "unavailable",
         approval_status: "pending", created_by: null,
       });
       if (repError) {
         await admin.auth.admin.deleteUser(userId);
-        if (repError.code === "23505") return reply({ error: "اسم المستخدم مستخدم بالفعل." }, 409);
+        if (repError.code === "23505") return reply({ error: "اسم المستخدم أو البريد الإلكتروني مستخدم بالفعل." }, 409);
         throw repError;
       }
-      return reply({ message: "تم استلام طلبك بنجاح. انتظر موافقة المدير الرئيسي أو مدير الفرع قبل تسجيل الدخول." });
+      return reply({ message: "تم استلام طلبك. أرسلنا رسالة تأكيد إلى بريدك الإلكتروني؛ افتحها لتأكيد البريد، ثم انتظر موافقة المدير قبل تسجيل الدخول." });
     }
 
     const { user, profile } = await managerFromRequest(req);
