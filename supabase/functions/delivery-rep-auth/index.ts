@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
 
       const { data: rep, error: repError } = await admin
         .from("delivery_rep_profiles")
-        .select("user_id, username, is_active")
+        .select("user_id, username, email, is_active")
         .ilike("username", username)
         .maybeSingle();
 
@@ -78,13 +78,20 @@ Deno.serve(async (req) => {
       const authEmail = authData.user.email || `${username}@delivery-login.internal`;
 
       if (action === "forgot") {
-        if (authEmail.endsWith("@delivery-login.internal")) {
-          return response({ message: "If the account has a confirmed recovery email, a message will be sent." });
+        const requestedEmail = String(body?.email || "").trim().toLowerCase();
+        const savedEmail = String(rep.email || "").trim().toLowerCase();
+        const confirmedEmail = String(authData.user.email || "").trim().toLowerCase();
+        const genericMessage = "إذا كانت بيانات الحساب مطابقة والبريد مؤكدًا، ستصلك رسالة استعادة كلمة المرور.";
+        if (!requestedEmail || authEmail.endsWith("@delivery-login.internal") ||
+            requestedEmail !== confirmedEmail || (savedEmail && requestedEmail !== savedEmail) ||
+            !authData.user.email_confirmed_at) {
+          return response({ message: genericMessage });
         }
-        await publicAuth.auth.resetPasswordForEmail(authEmail, {
+        const { error: resetError } = await publicAuth.auth.resetPasswordForEmail(confirmedEmail, {
           redirectTo: SITE_URL,
         });
-        return response({ message: "If the account has a confirmed recovery email, a message will be sent." });
+        if (resetError) return response({ message: genericMessage });
+        return response({ message: genericMessage });
       }
 
       const { data: signInData, error: signInError } =
