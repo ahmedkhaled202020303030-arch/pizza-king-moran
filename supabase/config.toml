@@ -9,3 +9,6 @@ verify_jwt = false
 
 [functions.delivery-rep-accounts]
 verify_jwt = false
+
+[functions.delivery-rep-auth]
+verify_jwt = false
