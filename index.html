@@ -1412,11 +1412,18 @@ async function loginDeliveryRep(){
  if(!/^[a-z0-9._-]{3,40}$/.test(username)||!password){
   showMessage('loginMsg','اكتب اسم المستخدم وكلمة المرور بشكل صحيح.',true);return;
  }
+ let user=null;
  const {data:authResult,error:authError}=await db.functions.invoke('delivery-rep-auth',{body:{action:'login',username,password}});
- if(authError||!authResult?.session){showMessage('loginMsg','تعذر تسجيل الدخول. راجع اسم المستخدم وكلمة المرور مع المدير.',true);return;}
- const {data,error}=await db.auth.setSession(authResult.session);
- if(error||!data?.user){showMessage('loginMsg','تعذر إكمال تسجيل الدخول. حاول مرة أخرى.',true);return;}
- const user=data.user;
+ if(!authError&&authResult?.session){
+  const {data,error}=await db.auth.setSession(authResult.session);
+  if(!error)user=data?.user||null;
+ }
+ // Keep the original login working until the new Edge Function is deployed.
+ if(!user){
+  const {data:legacyData,error:legacyError}=await db.auth.signInWithPassword({email:username+'@delivery-login.internal',password});
+  if(!legacyError)user=legacyData?.user||null;
+ }
+ if(!user){showMessage('loginMsg','تعذر تسجيل الدخول. راجع اسم المستخدم وكلمة المرور مع المدير.',true);return;}
  const [{data:profile,error:profileError},{data:rep,error:repError}]=await Promise.all([
   db.from('profiles').select('role,username').eq('user_id',user.id).maybeSingle(),
   db.from('delivery_rep_profiles').select('full_name,phone,email,username,branch,is_active,availability_status').eq('user_id',user.id).maybeSingle()
