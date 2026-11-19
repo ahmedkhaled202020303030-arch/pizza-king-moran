@@ -1248,7 +1248,7 @@ function biometricBytes(value){
 function biometricBase64url(value){
  const bytes=new Uint8Array(value);let binary='';
  bytes.forEach(byte=>binary+=String.fromCharCode(byte));
- return btoa(binary).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/g,'');
+ return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/g,'');
 }
 function serializeRegistrationCredential(credential){
  return {id:credential.id,rawId:biometricBase64url(credential.rawId),type:credential.type,
