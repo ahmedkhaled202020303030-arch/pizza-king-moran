@@ -2535,11 +2535,15 @@ $('deliveryRepForgotPassword').addEventListener('click',requestDeliveryRepPasswo
 $('deliveryRepSaveEmail').addEventListener('click',saveDeliveryRepEmail);
 $('deliveryRepUpdatePassword').addEventListener('click',saveDeliveryRepNewPassword);
 $('deliveryRepCancelRecovery').addEventListener('click',()=>$('deliveryRepRecoveryDialog').close());
+function openDeliveryRepRecovery(){
+ $('deliveryRepRecoveryMessage').textContent='تم التحقق من رابط الاستعادة. عيّن كلمة المرور الجديدة.';
+ if(!$('deliveryRepRecoveryDialog').open)$('deliveryRepRecoveryDialog').showModal();
+}
 db.auth.onAuthStateChange((event,session)=>{
- if(event==='PASSWORD_RECOVERY'&&session){
-  $('deliveryRepRecoveryMessage').textContent='تم التحقق من رابط الاستعادة. عيّن كلمة المرور الجديدة.';
-  $('deliveryRepRecoveryDialog').showModal();
- }
+ if(event==='PASSWORD_RECOVERY'&&session)openDeliveryRepRecovery();
+});
+db.auth.getSession().then(({data})=>{
+ if(data?.session&&/type=recovery/i.test(window.location.hash))openDeliveryRepRecovery();
 });
 $('deliveryRepPassword').addEventListener('keydown',e=>{if(e.key==='Enter')loginDeliveryRep();});
 $('deliveryRepAvailable').addEventListener('click',()=>setMyDeliveryRepStatus('available'));
