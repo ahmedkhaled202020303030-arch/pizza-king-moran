@@ -773,7 +773,7 @@ html.light-theme #themeToggle{background:#fff;color:#203b5b;border-color:#d8e0e9
   <button type="button" id="customersNavBtn" class="active">إدارة العملاء</button>
   <button type="button" id="staffNavBtn" class="secondary">دليل عمالة الفروع</button><button type="button" id="attendanceNavBtn" class="secondary hidden">الحضور والانصراف</button>
 </nav>
-<section id="attendanceView" class="panel hidden"><div class="report-heading"><div><h2>الحضور والانصراف</h2><p id="attendanceBranchLabel" class="muted">سجل الدوام اليومي</p></div><button id="attendanceRefreshBtn" class="light">تحديث</button></div><div id="attendanceMessage" class="msg hidden"></div><div id="managerAttendanceControls" class="attendance-controls hidden"><div class="attendance-clock" id="attendanceTodayStatus">لم يتم تسجيل الحضور اليوم</div><div class="row"><button id="checkInBtn">تسجيل الحضور بالموقع</button><button id="checkOutBtn" class="secondary" disabled>تسجيل الانصراف بالموقع</button></div><div id="attendanceDuration" class="muted"></div></div><div id="adminAttendanceControls" class="hidden"><div class="staff-toolbar"><select id="attendanceBranchFilter"><option value="">كل الفروع</option></select><input id="attendanceDateFilter" type="date"></div><div class="attendance-admin-actions"><button type="button" id="exportAttendanceBtn" class="attendance-export-btn">⬇ تصدير سجلات الحضور Excel</button></div><div class="report-total" id="attendanceRecordsCount">0 سجل</div><div id="attendanceSummaryCards" class="attendance-summary-grid"></div></div><div id="attendanceRecords" class="attendance-records"><p class="muted">لا توجد سجلات للعرض.</p></div></section>
+<section id="attendanceView" class="panel hidden"><div class="report-heading"><div><h2>الحضور والانصراف</h2><p id="attendanceBranchLabel" class="muted">سجل الدوام اليومي</p></div><button id="attendanceRefreshBtn" class="light">تحديث</button></div><div id="attendanceMessage" class="msg hidden"></div><div id="managerAttendanceControls" class="attendance-controls hidden"><div class="attendance-clock" id="attendanceTodayStatus">لم يتم تسجيل الحضور اليوم</div><div class="row"><button type="button" id="registerBiometricBtn" class="secondary">تفعيل بصمة هذا الهاتف</button></div><div id="biometricStatus" class="muted">جارٍ فحص إعداد البصمة...</div><div class="row"><button id="checkInBtn">تسجيل الحضور بالبصمة والموقع</button><button id="checkOutBtn" class="secondary" disabled>تسجيل الانصراف بالبصمة والموقع</button></div><div id="attendanceDuration" class="muted"></div></div><div id="adminAttendanceControls" class="hidden"><div class="staff-toolbar"><select id="attendanceBranchFilter"><option value="">كل الفروع</option></select><input id="attendanceDateFilter" type="date"></div><div class="attendance-admin-actions"><button type="button" id="exportAttendanceBtn" class="attendance-export-btn">⬇ تصدير سجلات الحضور Excel</button></div><div class="report-total" id="attendanceRecordsCount">0 سجل</div><div id="attendanceSummaryCards" class="attendance-summary-grid"></div></div><div id="attendanceRecords" class="attendance-records"><p class="muted">لا توجد سجلات للعرض.</p></div></section>
 <div id="customersView">
 
 <section id="repeatCustomersPanel" class="panel repeat-customers-panel hidden">
@@ -1240,10 +1240,99 @@ async function loadMyAttendance(){
  $('attendanceDuration').textContent=row?'الحضور: '+formatAttendanceTime(row.check_in_at)+' | الانصراف: '+formatAttendanceTime(row.check_out_at)+' | المدة: '+durationText(row.check_in_at,row.check_out_at):'';
  $('attendanceRecords').innerHTML=row?attendanceRowHTML(row):'<p class="muted">لا يوجد سجل حضور لهذا اليوم حتى الآن.</p>';
 }
+function biometricBytes(value){
+ const normalized=String(value||'').replace(/-/g,'+').replace(/_/g,'/');
+ const binary=atob(normalized+'='.repeat((4-normalized.length%4)%4));
+ return Uint8Array.from(binary,c=>c.charCodeAt(0));
+}
+function biometricBase64url(value){
+ const bytes=new Uint8Array(value);let binary='';
+ bytes.forEach(byte=>binary+=String.fromCharCode(byte));
+ return btoa(binary).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/g,'');
+}
+function serializeRegistrationCredential(credential){
+ return {id:credential.id,rawId:biometricBase64url(credential.rawId),type:credential.type,
+  response:{clientDataJSON:biometricBase64url(credential.response.clientDataJSON),
+   attestationObject:biometricBase64url(credential.response.attestationObject),
+   transports:credential.response.getTransports?credential.response.getTransports():[]},
+  clientExtensionResults:credential.getClientExtensionResults()};
+}
+function serializeAuthenticationCredential(credential){
+ return {id:credential.id,rawId:biometricBase64url(credential.rawId),type:credential.type,
+  response:{clientDataJSON:biometricBase64url(credential.response.clientDataJSON),
+   authenticatorData:biometricBase64url(credential.response.authenticatorData),
+   signature:biometricBase64url(credential.response.signature),
+   userHandle:credential.response.userHandle?biometricBase64url(credential.response.userHandle):null},
+  clientExtensionResults:credential.getClientExtensionResults()};
+}
+function biometricErrorMessage(error){
+ if(error&&error.name==='NotAllowedError')return 'تم إلغاء التحقق أو لم تتم الموافقة على البصمة. حاول مرة أخرى.';
+ if(error&&error.name==='NotSupportedError')return 'هذا الهاتف أو المتصفح لا يدعم التحقق بالبصمة من الموقع.';
+ if(error&&error.name==='InvalidStateError')return 'بصمة هذا الهاتف مسجلة بالفعل لهذا الحساب.';
+ return error?.message||'تعذر إكمال عملية البصمة.';
+}
+async function loadBiometricStatus(){
+ if(!isBranchManager)return;
+ const label=$('biometricStatus'),btn=$('registerBiometricBtn');
+ if(!window.PublicKeyCredential||!navigator.credentials){label.textContent='هذا المتصفح لا يدعم بصمة الهاتف. افتح الموقع من Chrome على هاتف يدعم قفل الشاشة.';btn.disabled=true;return;}
+ btn.disabled=false;label.textContent='جارٍ فحص إعداد البصمة...';
+ try{
+  const {data,error}=await db.functions.invoke('branch-manager-biometric',{body:{action:'status'}});
+  if(error)throw error;
+  label.textContent=data?.enrolled?'تم تفعيل بصمة الهاتف لهذا الحساب. عدد الأجهزة: '+(data.devices||1):'لم يتم تفعيل البصمة لهذا الحساب بعد.';
+  btn.textContent=data?.enrolled?'إضافة / تسجيل بصمة هاتف':'تفعيل بصمة هذا الهاتف';
+ }catch(e){label.textContent=e.message||'تعذر فحص حالة البصمة. تأكد من تحديث قاعدة البيانات.';}
+}
+async function registerBranchManagerBiometric(){
+ const btn=$('registerBiometricBtn');btn.disabled=true;
+ try{
+  if(!window.isSecureContext||!window.PublicKeyCredential||!navigator.credentials)throw new Error('افتح الموقع من Chrome على الهاتف عبر اتصال HTTPS، وتأكد من وجود بصمة أو قفل شاشة.');
+  showAttendanceMessage('جارٍ تجهيز تسجيل بصمة الهاتف...');
+  const {data:started,error:startError}=await db.functions.invoke('branch-manager-biometric',{body:{action:'registration-options'}});
+  if(startError)throw startError;
+  if(!started?.options||!started?.challenge_id)throw new Error(started?.error||'تعذر تجهيز تسجيل البصمة.');
+  const options=started.options;
+  options.challenge=biometricBytes(options.challenge);
+  options.user.id=biometricBytes(options.user.id);
+  options.excludeCredentials=(options.excludeCredentials||[]).map(item=>({...item,id:biometricBytes(item.id)}));
+  const credential=await navigator.credentials.create({publicKey:options});
+  if(!credential)throw new Error('لم يتم إنشاء بيانات البصمة.');
+  const {data:verified,error:verifyError}=await db.functions.invoke('branch-manager-biometric',{body:{action:'registration-verify',challenge_id:started.challenge_id,response:serializeRegistrationCredential(credential)}});
+  if(verifyError)throw verifyError;
+  if(!verified?.success)throw new Error(verified?.error||'لم يكتمل تسجيل البصمة.');
+  showAttendanceMessage('تم تفعيل بصمة هذا الهاتف بنجاح.');
+  await loadBiometricStatus();
+ }catch(e){showAttendanceMessage(biometricErrorMessage(e),true);btn.disabled=false;}
+}
+async function verifyAttendanceBiometric(kind){
+ const action=kind==='in'?'check_in':'check_out';
+ const {data:started,error:startError}=await db.functions.invoke('branch-manager-biometric',{body:{action:'authentication-options',kind:action}});
+ if(startError)throw startError;
+ if(!started?.options||!started?.challenge_id)throw new Error(started?.error||'تعذر بدء التحقق بالبصمة.');
+ const options=started.options;
+ options.challenge=biometricBytes(options.challenge);
+ options.allowCredentials=(options.allowCredentials||[]).map(item=>({...item,id:biometricBytes(item.id)}));
+ const credential=await navigator.credentials.get({publicKey:options});
+ if(!credential)throw new Error('لم يتم التحقق من بصمة الهاتف.');
+ const {data:verified,error:verifyError}=await db.functions.invoke('branch-manager-biometric',{body:{action:'authentication-verify',challenge_id:started.challenge_id,response:serializeAuthenticationCredential(credential)}});
+ if(verifyError)throw verifyError;
+ if(!verified?.success||!verified?.biometric_ticket)throw new Error(verified?.error||'فشل التحقق من بصمة الهاتف.');
+ return verified.biometric_ticket;
+}
 async function submitAttendance(kind){
- const btn=$(''+(kind==='in'?'checkInBtn':'checkOutBtn'));btn.disabled=true;
- try{showAttendanceMessage('جارٍ تحديد الموقع وتسجيل الوقت...');const loc=await getDeviceLocation();const {error}=await db.rpc(kind==='in'?'record_branch_check_in':'record_branch_check_out',{p_lat:loc.lat,p_lng:loc.lng,p_accuracy_m:loc.accuracy});if(error)throw error;showAttendanceMessage(kind==='in'?'تم تسجيل الحضور بنجاح.':'تم تسجيل الانصراف بنجاح.');await loadMyAttendance();}
- catch(e){showAttendanceMessage(e.message||'تعذر تسجيل الحركة.',true);btn.disabled=false;}
+ const btn=$(kind==='in'?'checkInBtn':'checkOutBtn');btn.disabled=true;
+ try{
+  if(!window.isSecureContext||!window.PublicKeyCredential||!navigator.credentials)throw new Error('المتصفح لا يدعم بصمة الهاتف. افتح الموقع من Chrome على هاتف يدعم قفل الشاشة.');
+  showAttendanceMessage('يرجى تأكيد هويتك ببصمة الهاتف...');
+  const biometricTicket=await verifyAttendanceBiometric(kind);
+  showAttendanceMessage('تم التحقق من البصمة. جارٍ تحديد الموقع...');
+  const loc=await getDeviceLocation();
+  const rpc=kind==='in'?'record_branch_check_in_biometric':'record_branch_check_out_biometric';
+  const {error}=await db.rpc(rpc,{p_lat:loc.lat,p_lng:loc.lng,p_accuracy_m:loc.accuracy,p_biometric_ticket:biometricTicket});
+  if(error)throw error;
+  showAttendanceMessage(kind==='in'?'تم تسجيل الحضور بالبصمة والموقع بنجاح.':'تم تسجيل الانصراف بالبصمة والموقع بنجاح.');
+  await loadMyAttendance();
+ }catch(e){showAttendanceMessage(biometricErrorMessage(e),true);btn.disabled=false;}
 }
 async function exportAttendanceToExcel(){
  if(!isAdmin&&!isOperationsManager)return;
@@ -1327,7 +1416,7 @@ async function showApp(user,admin,managerProfile=null,operationsManager=false) {
   $('attendanceView').classList.toggle('hidden',!isBranchManager); $('managerAttendanceControls').classList.toggle('hidden',!isBranchManager);
   $('adminAttendanceControls').classList.toggle('hidden',!admin&&!operationsManager);
   $('attendanceBranchLabel').textContent=managerProfile?'الفرع: '+managerProfile.branch:'متابعة سجلات حضور وانصراف جميع الفروع';
-  if(isBranchManager){$('attendanceNavBtn').classList.add('active');await loadMyAttendance();return;}
+  if(isBranchManager){$('attendanceNavBtn').classList.add('active');await loadBiometricStatus();await loadMyAttendance();return;}
   $('attendanceNavBtn').classList.remove('active'); await loadRecords(); await loadBranchStaff(); showDirectoryView('customers');
 }
 
@@ -2138,6 +2227,7 @@ $('managerRequestsList').addEventListener('click',event=>{
  if(event.target.closest('.reject-manager-request'))processManagerRequest(id,'reject');
 });
 $('managerPassword').addEventListener('keydown',e=>{if(e.key==='Enter')loginBranchManager();});
+$('registerBiometricBtn').addEventListener('click',registerBranchManagerBiometric);
 $('checkInBtn').addEventListener('click',()=>submitAttendance('in'));
 $('checkOutBtn').addEventListener('click',()=>submitAttendance('out'));
 $('attendanceRefreshBtn').addEventListener('click',()=>isBranchManager?loadMyAttendance():loadAdminAttendance());
