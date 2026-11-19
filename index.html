@@ -1253,6 +1253,7 @@ function durationText(start,end){if(!start)return'—';const m=Math.max(0,Math.f
 let attendanceTimerInterval=null;
 let currentAttendanceTimerRow=null;
 let branchManagersTimerInterval=null;
+let branchManagersRefreshInterval=null;
 let activeBranchManagerRows=[];
 let activeBranchManagerNames=new Map();
 function elapsedClockText(start,end){
@@ -1516,13 +1517,14 @@ async function showApp(user,admin,managerProfile=null,operationsManager=false) {
   $('adminAttendanceControls').classList.toggle('hidden',!admin&&!operationsManager);
   $('attendanceBranchLabel').textContent=managerProfile?'الفرع: '+managerProfile.branch:'متابعة سجلات حضور وانصراف جميع الفروع';
   if(isBranchManager){$('attendanceNavBtn').classList.add('active');await loadBiometricStatus();await loadMyAttendance();return;}
-   if(admin||operationsManager){await loadActiveBranchManagerTimers();if(branchManagersTimerInterval)clearInterval(branchManagersTimerInterval);branchManagersTimerInterval=setInterval(()=>{loadActiveBranchManagerTimers();tickBranchManagersTimers();},60000);}
+   if(admin||operationsManager){await loadActiveBranchManagerTimers();if(branchManagersTimerInterval)clearInterval(branchManagersTimerInterval);if(branchManagersRefreshInterval)clearInterval(branchManagersRefreshInterval);branchManagersTimerInterval=setInterval(tickBranchManagersTimers,1000);branchManagersRefreshInterval=setInterval(loadActiveBranchManagerTimers,60000);}
   $('attendanceNavBtn').classList.remove('active'); await loadRecords(); await loadBranchStaff(); showDirectoryView('customers');
 }
 
 async function logout() {
   stopAttendanceTimer();
   if(branchManagersTimerInterval){clearInterval(branchManagersTimerInterval);branchManagersTimerInterval=null;}
+  if(branchManagersRefreshInterval){clearInterval(branchManagersRefreshInterval);branchManagersRefreshInterval=null;}
   activeBranchManagerRows=[];activeBranchManagerNames.clear();$('branchManagersTimerBubble')?.classList.add('hidden');
   await db.auth.signOut();
   currentUser = null;
