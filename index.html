@@ -775,6 +775,8 @@ html.light-theme #themeToggle{background:#fff;color:#203b5b;border-color:#d8e0e9
   <input id="deliveryRepUsername" type="text" autocomplete="username" placeholder="اسم المستخدم المخصص لك">
   <label for="deliveryRepPassword">كلمة المرور</label>
   <input id="deliveryRepPassword" type="password" autocomplete="current-password" placeholder="كلمة المرور">
+  <label for="deliveryRepRecoveryEmail">البريد الإلكتروني المسجل بالحساب</label>
+  <input id="deliveryRepRecoveryEmail" type="email" autocomplete="email" placeholder="name@example.com">
   <button id="deliveryRepLogin" class="secondary">تسجيل الدخول</button>
   <button id="deliveryRepForgotPassword" type="button" class="light">نسيت كلمة المرور؟</button>
   <button id="deliveryRepRegisterBtn" type="button" class="light">إنشاء حساب مندوب جديد</button>
@@ -833,6 +835,8 @@ html.light-theme #themeToggle{background:#fff;color:#203b5b;border-color:#d8e0e9
 <label for="deliveryRepRegisterName">الاسم بالكامل</label><input id="deliveryRepRegisterName" maxlength="100">
 <label for="deliveryRepRegisterPhone">رقم الهاتف</label><input id="deliveryRepRegisterPhone" type="tel" maxlength="20">
 <label for="deliveryRepRegisterUsername">اسم المستخدم</label><input id="deliveryRepRegisterUsername" maxlength="40" placeholder="إنجليزي وأرقام">
+<label for="deliveryRepRegisterEmail">البريد الإلكتروني الشخصي</label><input id="deliveryRepRegisterEmail" type="email" maxlength="254" autocomplete="email" placeholder="name@example.com">
+<p class="muted">سنرسل رسالة تأكيد إلى هذا البريد. يجب تأكيده قبل تفعيل الحساب.</p>
 <label for="deliveryRepRegisterBranch">الفرع المطلوب</label><select id="deliveryRepRegisterBranch"><option value="">اختر الفرع</option></select>
 <label for="deliveryRepRegisterPassword">كلمة المرور</label><input id="deliveryRepRegisterPassword" type="password" minlength="8" maxlength="128" placeholder="8 أحرف على الأقل">
 <button id="deliveryRepRegisterSubmit" type="button">إرسال طلب التسجيل</button><button id="deliveryRepRegisterClose" type="button" class="light">إغلاق</button><p id="deliveryRepRegisterMessage" class="muted"></p>
@@ -1408,12 +1412,16 @@ async function callDeliveryRepAuth(payload){
 async function requestDeliveryRepPasswordReset(){
  hideMessage('loginMsg');
  const username=$('deliveryRepUsername').value.trim().toLowerCase();
+ const email=$('deliveryRepRecoveryEmail').value.trim().toLowerCase();
  if(!/^[a-z0-9._-]{3,40}$/.test(username)){
-  showMessage('loginMsg','اكتب اسم المستخدم أولاً ثم اضغط نسيت كلمة المرور.',true);return;
+  showMessage('loginMsg','اكتب اسم المستخدم أولاً.',true);return;
+ }
+ if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)){
+  showMessage('loginMsg','اكتب البريد الإلكتروني المسجل بالحساب بشكل صحيح.',true);return;
  }
  try{
-  await callDeliveryRepAuth({action:'forgot',username});
-  showMessage('loginMsg','إذا كان للحساب إيميل مؤكد، ستصلك رسالة استعادة كلمة المرور عليه. راجع صندوق الوارد والرسائل غير المرغوب فيها.');
+  await callDeliveryRepAuth({action:'forgot',username,email});
+  showMessage('loginMsg','إذا كان اسم المستخدم والبريد متطابقين والبريد مؤكدًا، ستصلك رسالة إعادة تعيين كلمة المرور. راجع الوارد والرسائل غير المرغوب فيها.');
  }catch(error){
   showMessage('loginMsg','تعذر إرسال رسالة الاستعادة حالياً. حاول لاحقاً أو تواصل مع المدير.',true);
  }
@@ -1806,18 +1814,18 @@ function openDeliveryRepsMap(){
 
 async function submitDeliveryRepRegistration(){
  const full_name=$('deliveryRepRegisterName').value.trim(),phone=$('deliveryRepRegisterPhone').value.trim();
- const username=$('deliveryRepRegisterUsername').value.trim().toLowerCase(),branch=$('deliveryRepRegisterBranch').value;
+ const username=$('deliveryRepRegisterUsername').value.trim().toLowerCase(),email=$('deliveryRepRegisterEmail').value.trim().toLowerCase(),branch=$('deliveryRepRegisterBranch').value;
  const password=$('deliveryRepRegisterPassword').value;
- if(full_name.length<3||phone.length<5||!/^[a-z0-9._-]{3,40}$/.test(username)||!branch||password.length<8){
-  $('deliveryRepRegisterMessage').textContent='راجع البيانات، وكلمة المرور يجب ألا تقل عن 8 أحرف.';return;
+ if(full_name.length<3||phone.length<5||!/^[a-z0-9._-]{3,40}$/.test(username)||!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)||!branch||password.length<8){
+  $('deliveryRepRegisterMessage').textContent='راجع البيانات، واكتب بريدًا صحيحًا وكلمة مرور لا تقل عن 8 أحرف.';return;
  }
  const button=$('deliveryRepRegisterSubmit');button.disabled=true;button.textContent='جارٍ إرسال الطلب...';
  try{
-  const response=await fetch(SUPABASE_URL+'/functions/v1/delivery-rep-registration',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY},body:JSON.stringify({action:'submit',full_name,phone,username,branch,password})});
+  const response=await fetch(SUPABASE_URL+'/functions/v1/delivery-rep-registration',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY},body:JSON.stringify({action:'submit',full_name,phone,username,email,branch,password})});
   const result=await response.json().catch(()=>({}));
   if(!response.ok||result.error)throw new Error(result.error||'تعذر إرسال الطلب.');
   $('deliveryRepRegisterMessage').textContent=result.message||'تم استلام طلبك.';
-  $('deliveryRepRegisterName').value='';$('deliveryRepRegisterPhone').value='';$('deliveryRepRegisterUsername').value='';$('deliveryRepRegisterPassword').value='';
+  $('deliveryRepRegisterName').value='';$('deliveryRepRegisterPhone').value='';$('deliveryRepRegisterUsername').value='';$('deliveryRepRegisterEmail').value='';$('deliveryRepRegisterPassword').value='';
  }catch(error){$('deliveryRepRegisterMessage').textContent=error.message||'حدث خطأ أثناء إرسال الطلب.';}
  finally{button.disabled=false;button.textContent='إرسال طلب التسجيل';}
 }
@@ -1831,7 +1839,7 @@ async function loadDeliveryRepRequests(){
   const result=await response.json().catch(()=>({}));if(!response.ok||result.error)throw new Error(result.error||'تعذر تحميل الطلبات.');
   const requests=result.requests||[];
   if(!requests.length){host.innerHTML='<p class="muted">لا توجد طلبات معلقة حالياً.</p>';return;}
-  host.innerHTML=requests.map(item=>'<article class="complaint-card"><h3>'+escapeHTML(item.full_name)+'</h3><p>اسم المستخدم: <b>'+escapeHTML(item.username)+'</b></p><p>الهاتف: '+escapeHTML(item.phone)+'</p><p>الفرع: <b>'+escapeHTML(item.branch)+'</b></p><p>تاريخ الطلب: '+new Date(item.created_at).toLocaleString('ar-EG')+'</p><div class="row"><button type="button" class="delivery-rep-approve-btn" data-user-id="'+escapeHTML(item.user_id)+'">موافقة وتفعيل</button><button type="button" class="delivery-rep-reject-btn secondary" data-user-id="'+escapeHTML(item.user_id)+'">رفض الطلب</button></div></article>').join('');
+  host.innerHTML=requests.map(item=>'<article class="complaint-card"><h3>'+escapeHTML(item.full_name)+'</h3><p>اسم المستخدم: <b>'+escapeHTML(item.username)+'</b></p><p>البريد الإلكتروني: '+escapeHTML(item.email||'—')+'</p><p>تأكيد البريد: <b>'+ (item.email_confirmed?'مؤكد':'لم يتم التأكيد بعد') +'</b></p><p>الهاتف: '+escapeHTML(item.phone)+'</p><p>الفرع: <b>'+escapeHTML(item.branch)+'</b></p><p>تاريخ الطلب: '+new Date(item.created_at).toLocaleString('ar-EG')+'</p><div class="row"><button type="button" class="delivery-rep-approve-btn" data-user-id="'+escapeHTML(item.user_id)+'" '+(item.email_confirmed?'':'disabled title="يجب تأكيد البريد أولاً"')+'>موافقة وتفعيل</button><button type="button" class="delivery-rep-reject-btn secondary" data-user-id="'+escapeHTML(item.user_id)+'">رفض الطلب</button></div></article>').join('');
  }catch(error){host.innerHTML='<p>'+escapeHTML(error.message||'تعذر تحميل الطلبات.')+'</p>';}
 }
 async function reviewDeliveryRepRequest(userId,decision){
