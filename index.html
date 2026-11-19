@@ -852,8 +852,22 @@ html.light-theme #themeToggle{background:#fff;color:#203b5b;border-color:#d8e0e9
 
 <nav class="app-nav" aria-label="أقسام النظام">
   <button type="button" id="customersNavBtn" class="active">إدارة العملاء</button>
-  <button type="button" id="staffNavBtn" class="secondary">دليل عمالة الفروع</button><button type="button" id="attendanceNavBtn" class="secondary hidden">الحضور والانصراف</button>
+  <button type="button" id="staffNavBtn" class="secondary">دليل عمالة الفروع</button><button type="button" id="attendanceNavBtn" class="secondary hidden">الحضور والانصراف</button><button type="button" id="deliveryRepsNavBtn" class="secondary hidden">مندوبي المطاعم</button>
 </nav>
+<section id="deliveryRepsView" class="panel hidden">
+ <div class="report-heading"><div><h2>إدارة مندوبي المطاعم</h2><p class="muted">إدارة الحسابات ومتابعة حالة كل مندوب وفرعه</p></div><div class="row"><button type="button" id="deliveryRepAddBtn" class="primary-btn">إضافة مندوب</button><button type="button" id="deliveryRepsRefreshBtn" class="light">تحديث القائمة</button></div></div>
+ <div id="deliveryRepsMessage" class="msg hidden"></div>
+ <div id="deliveryRepsList" class="attendance-records"><p class="muted">اضغط تحديث لعرض المندوبين.</p></div>
+</section>
+<dialog id="deliveryRepCreateDialog" class="report-dialog"><div class="report-dialog-card">
+ <div class="report-heading"><div><h2>إنشاء حساب مندوب جديد</h2><p class="muted">سيكون لكل مندوب حساب دخول مستقل وفرع محدد.</p></div><button type="button" id="deliveryRepCreateClose" class="light">إغلاق</button></div>
+ <label for="newDeliveryRepName">اسم المندوب بالكامل</label><input id="newDeliveryRepName" type="text" maxlength="100" placeholder="الاسم بالكامل">
+ <label for="newDeliveryRepPhone">رقم الهاتف</label><input id="newDeliveryRepPhone" type="tel" maxlength="20" placeholder="رقم الهاتف">
+ <label for="newDeliveryRepUsername">اسم المستخدم</label><input id="newDeliveryRepUsername" type="text" maxlength="40" placeholder="اسم مستخدم باللغة الإنجليزية">
+ <label for="newDeliveryRepBranch">الفرع</label><select id="newDeliveryRepBranch"><option value="">اختر الفرع</option></select>
+ <label for="newDeliveryRepPassword">كلمة المرور</label><input id="newDeliveryRepPassword" type="password" minlength="6" autocomplete="new-password" placeholder="6 أحرف على الأقل">
+ <button type="button" id="deliveryRepCreateSubmit">إنشاء الحساب</button><p id="deliveryRepCreateMessage" class="muted"></p>
+</div></dialog>
 <section id="attendanceView" class="panel hidden"><div class="report-heading"><div><h2>الحضور والانصراف</h2><p id="attendanceBranchLabel" class="muted">سجل الدوام اليومي</p></div><button id="attendanceRefreshBtn" class="light">تحديث</button></div><div id="attendanceMessage" class="msg hidden"></div><div id="managerAttendanceControls" class="attendance-controls hidden"><div class="attendance-clock" id="attendanceTodayStatus">لم يتم تسجيل الحضور اليوم</div><div class="row"><button type="button" id="registerBiometricBtn" class="secondary">تفعيل بصمة هذا الهاتف</button></div><div id="biometricStatus" class="muted">جارٍ فحص إعداد البصمة...</div><div class="row"><button id="checkInBtn">تسجيل الحضور بالبصمة والموقع</button><button id="checkOutBtn" class="secondary" disabled>تسجيل الانصراف بالبصمة والموقع</button></div><div id="attendanceDuration" class="muted"></div></div><div id="adminAttendanceControls" class="hidden"><div class="staff-toolbar"><select id="attendanceBranchFilter"><option value="">كل الفروع</option></select><input id="attendanceDateFilter" type="date"></div><div class="attendance-admin-actions"><button type="button" id="exportAttendanceBtn" class="attendance-export-btn">⬇ تصدير سجلات الحضور Excel</button></div><div class="report-total" id="attendanceRecordsCount">0 سجل</div><div id="attendanceSummaryCards" class="attendance-summary-grid"></div></div><div id="attendanceRecords" class="attendance-records"><p class="muted">لا توجد سجلات للعرض.</p></div></section>
 <button id="attendanceTimerBubble" class="hidden" type="button" aria-label="عرض مدة العمل"><span class="timer-bubble-icon">⏱️</span><span class="timer-bubble-copy"><small id="attendanceTimerBubbleLabel">مدة العمل</small><strong id="attendanceTimerBubbleValue">00:00:00</strong></span></button>
 <button id="branchManagersTimerBubble" class="hidden" type="button" aria-label="متابعة عدادات مديري الفروع"><span class="timer-bubble-icon">⏱️</span><span class="timer-bubble-copy"><small>مديرو الفروع الحاضرون</small><strong id="branchManagersTimerBubbleValue">0 مدير</strong></span></button>
@@ -1101,6 +1115,7 @@ let isOperationsManager = false;
 let isBranchManager = false;
 let currentManagerProfile = null;
 let allRecords = [];
+let deliveryRepRows = [];
 let compactRecordsView = true;
 
 function showMessage(id, text, error=false) {
@@ -1708,6 +1723,39 @@ async function loginGuest() {
   await showApp(data.user,false);
 }
 
+async function loadDeliveryReps(){
+ const host=$('deliveryRepsList');const message=$('deliveryRepsMessage');
+ host.innerHTML='<p class="muted">جارٍ تحميل قائمة المندوبين...</p>';message.classList.add('hidden');
+ const {data,error}=await db.from('delivery_rep_profiles').select('user_id,full_name,phone,email,username,branch,is_active,availability_status,created_at').order('created_at',{ascending:false});
+ if(error){host.innerHTML='';showMessage('deliveryRepsMessage','تعذر تحميل المندوبين: '+error.message,true);return;}
+ deliveryRepRows=data||[];
+ if(!deliveryRepRows.length){host.innerHTML='<p class="muted">لا يوجد مندوبون مسجلون حتى الآن.</p>';return;}
+ const statusLabels={available:'متاح',busy:'مشغول',unavailable:'غير متاح'};
+ host.innerHTML=deliveryRepRows.map(rep=>'<article class="complaint-card"><h3>'+escapeHTML(rep.full_name||'مندوب بدون اسم')+'</h3><p>اسم المستخدم: <b>'+escapeHTML(rep.username||'—')+'</b></p><p>الفرع: '+escapeHTML(rep.branch||'—')+'</p><p>الهاتف: '+escapeHTML(rep.phone||'—')+'</p><p>الإيميل: '+escapeHTML(rep.email||'غير مسجل')+'</p><p>الحالة: <b>'+escapeHTML(statusLabels[rep.availability_status]||'غير معروف')+'</b></p><p>الحساب: '+(rep.is_active?'نشط':'موقوف')+'</p></article>').join('');
+}
+
+async function createDeliveryRepAccount(){
+ if(!isAdmin&&!isBranchManager)return;
+ const full_name=$('newDeliveryRepName').value.trim(),phone=$('newDeliveryRepPhone').value.trim();
+ const username=$('newDeliveryRepUsername').value.trim().toLowerCase(),branch=$('newDeliveryRepBranch').value,password=$('newDeliveryRepPassword').value;
+ const selectedBranch=isBranchManager?currentManagerProfile?.branch:branch;
+ if(full_name.length<3||!phone||!selectedBranch||!/^[a-z0-9._-]{3,40}$/.test(username)||password.length<6){
+  $('deliveryRepCreateMessage').textContent='راجع الاسم والهاتف واسم المستخدم والفرع، وكلمة المرور يجب ألا تقل عن 6 أحرف.';return;
+ }
+ const button=$('deliveryRepCreateSubmit');button.disabled=true;button.textContent='جارٍ إنشاء الحساب...';
+ try{
+  const {data:{session}}=await db.auth.getSession();
+  if(!session?.access_token)throw new Error('انتهت جلسة المدير. سجل الدخول مرة أخرى.');
+  const response=await fetch(SUPABASE_URL+'/functions/v1/delivery-rep-accounts',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+session.access_token},body:JSON.stringify({action:'create',full_name,phone,username,branch:selectedBranch,password})});
+  const result=await response.json().catch(()=>({}));
+  if(!response.ok||result.error)throw new Error(result.error||'تعذر إنشاء الحساب.');
+  $('deliveryRepCreateMessage').textContent='تم إنشاء حساب المندوب بنجاح.';
+  $('newDeliveryRepName').value='';$('newDeliveryRepPhone').value='';$('newDeliveryRepUsername').value='';$('newDeliveryRepPassword').value='';
+  await loadDeliveryReps();
+ }catch(error){$('deliveryRepCreateMessage').textContent=error.message||'حدث خطأ أثناء إنشاء الحساب.';}
+ finally{button.disabled=false;button.textContent='إنشاء الحساب';}
+}
+
 async function showApp(user,admin,managerProfile=null,operationsManager=false) {
   currentUser=user; isAdmin=admin; isOperationsManager=operationsManager; isBranchManager=!!managerProfile; currentManagerProfile=managerProfile;
   $('loginPanel').classList.add('hidden'); $('appPanel').classList.remove('hidden');
@@ -1720,13 +1768,18 @@ async function showApp(user,admin,managerProfile=null,operationsManager=false) {
   $('activityPanel').classList.toggle('hidden',!admin); $('repeatCustomersPanel').classList.toggle('hidden',!admin&&!operationsManager); $('staffAdminTools').classList.toggle('hidden',!admin);
   $('customersNavBtn').classList.toggle('hidden',isBranchManager); $('staffNavBtn').classList.toggle('hidden',isBranchManager);
   $('attendanceNavBtn').classList.toggle('hidden',!admin&&!operationsManager&&!isBranchManager);
+  $('deliveryRepsNavBtn').classList.toggle('hidden',!admin&&!operationsManager&&!isBranchManager);
+  $('deliveryRepAddBtn').classList.toggle('hidden',!admin&&!isBranchManager);
+  $('newDeliveryRepBranch').disabled=isBranchManager;
+  if(isBranchManager){$('newDeliveryRepBranch').innerHTML='<option value="'+escapeHTML(managerProfile.branch)+'">'+escapeHTML(managerProfile.branch)+'</option>';}
   $('customersView').classList.toggle('hidden',isBranchManager); $('staffDirectoryView').classList.toggle('hidden',isBranchManager);
-  $('attendanceView').classList.toggle('hidden',!isBranchManager); $('managerAttendanceControls').classList.toggle('hidden',!isBranchManager);
+  $('attendanceView').classList.toggle('hidden',!isBranchManager);
+  $('deliveryRepsView').classList.add('hidden'); $('managerAttendanceControls').classList.toggle('hidden',!isBranchManager);
   $('adminAttendanceControls').classList.toggle('hidden',!admin&&!operationsManager);
   $('attendanceBranchLabel').textContent=managerProfile?'الفرع: '+managerProfile.branch:'متابعة سجلات حضور وانصراف جميع الفروع';
   if(isBranchManager){$('attendanceNavBtn').classList.add('active');await loadBiometricStatus();await loadMyAttendance();return;}
    if(admin||operationsManager){await loadActiveBranchManagerTimers();if(branchManagersTimerInterval)clearInterval(branchManagersTimerInterval);if(branchManagersRefreshInterval)clearInterval(branchManagersRefreshInterval);branchManagersTimerInterval=setInterval(tickBranchManagersTimers,1000);branchManagersRefreshInterval=setInterval(loadActiveBranchManagerTimers,60000);}
-  $('attendanceNavBtn').classList.remove('active'); await loadRecords(); await loadBranchStaff(); showDirectoryView('customers');
+  $('attendanceNavBtn').classList.remove('active'); $('deliveryRepsNavBtn').classList.remove('active'); await loadRecords(); await loadBranchStaff(); showDirectoryView('customers');
 }
 
 async function logout() {
@@ -2573,7 +2626,12 @@ $('attendanceTimerDialog').addEventListener('click',event=>{if(event.target===$(
 $('checkInBtn').addEventListener('click',()=>submitAttendance('in'));
 $('checkOutBtn').addEventListener('click',()=>submitAttendance('out'));
 $('attendanceRefreshBtn').addEventListener('click',()=>isBranchManager?loadMyAttendance():loadAdminAttendance());
-$('attendanceNavBtn').addEventListener('click',()=>{$('customersView').classList.add('hidden');$('staffDirectoryView').classList.add('hidden');$('attendanceView').classList.remove('hidden');$('customersNavBtn').classList.remove('active');$('staffNavBtn').classList.remove('active');$('attendanceNavBtn').classList.add('active');if(isAdmin||isOperationsManager)loadAdminAttendance();else loadMyAttendance();});
+$('attendanceNavBtn').addEventListener('click',()=>{$('customersView').classList.add('hidden');$('staffDirectoryView').classList.add('hidden');$('deliveryRepsView').classList.add('hidden');$('attendanceView').classList.remove('hidden');$('customersNavBtn').classList.remove('active');$('staffNavBtn').classList.remove('active');$('deliveryRepsNavBtn').classList.remove('active');$('attendanceNavBtn').classList.add('active');if(isAdmin||isOperationsManager)loadAdminAttendance();else loadMyAttendance();});
+$('deliveryRepsNavBtn').addEventListener('click',()=>{$('customersView').classList.add('hidden');$('staffDirectoryView').classList.add('hidden');$('attendanceView').classList.add('hidden');$('deliveryRepsView').classList.remove('hidden');$('customersNavBtn').classList.remove('active');$('staffNavBtn').classList.remove('active');$('attendanceNavBtn').classList.remove('active');$('deliveryRepsNavBtn').classList.add('active');loadDeliveryReps();});
+$('deliveryRepsRefreshBtn').addEventListener('click',loadDeliveryReps);
+$('deliveryRepAddBtn').addEventListener('click',()=>{$('deliveryRepCreateMessage').textContent='';$('deliveryRepCreateDialog').showModal();});
+$('deliveryRepCreateClose').addEventListener('click',()=>$('deliveryRepCreateDialog').close());
+$('deliveryRepCreateSubmit').addEventListener('click',createDeliveryRepAccount);
 $('attendanceBranchFilter').addEventListener('change',loadAdminAttendance);$('attendanceDateFilter').addEventListener('change',loadAdminAttendance);
 $('exportAttendanceBtn').addEventListener('click',exportAttendanceToExcel);
 $('operationsLogin').addEventListener('click',loginOperationsManager);
