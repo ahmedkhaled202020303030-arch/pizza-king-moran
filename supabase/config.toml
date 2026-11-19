@@ -6,3 +6,6 @@ verify_jwt = false
 
 [functions.branch-manager-biometric]
 verify_jwt = false
+
+[functions.delivery-rep-accounts]
+verify_jwt = false
