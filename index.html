@@ -763,6 +763,7 @@ html.light-theme #themeToggle{background:#fff;color:#203b5b;border-color:#d8e0e9
   <label for="deliveryRepPassword">كلمة المرور</label>
   <input id="deliveryRepPassword" type="password" autocomplete="current-password" placeholder="كلمة المرور">
   <button id="deliveryRepLogin" class="secondary">تسجيل الدخول</button>
+  <button id="deliveryRepForgotPassword" type="button" class="light">نسيت كلمة المرور؟</button>
   <p class="muted">بيانات الدخول يتم تسليمها لك من المدير.</p>
   <button type="button" class="light login-back">رجوع</button>
 </div>
@@ -802,8 +803,30 @@ html.light-theme #themeToggle{background:#fff;color:#203b5b;border-color:#d8e0e9
       <button id="deliveryRepBusy" type="button" class="secondary">مشغول</button>
       <button id="deliveryRepUnavailable" type="button" class="light">غير متاح</button>
     </div>
+    <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line)">
+      <h3>إيميل استعادة كلمة المرور</h3>
+      <p class="muted">سجّل إيميلك الشخصي الذي تستطيع فتحه من هاتفك. سنرسل إليه رسالة تأكيد.</p>
+      <label for="deliveryRepEmail">البريد الإلكتروني</label>
+      <input id="deliveryRepEmail" type="email" autocomplete="email" placeholder="name@example.com">
+      <button id="deliveryRepSaveEmail" type="button" class="secondary">حفظ / تحديث الإيميل</button>
+      <p id="deliveryRepEmailMessage" class="muted"></p>
+    </div>
   </div>
 </section>
+
+<dialog id="deliveryRepRecoveryDialog" class="report-dialog">
+  <div class="report-dialog-card">
+    <h2>تعيين كلمة مرور جديدة</h2>
+    <p class="muted">اكتب كلمة المرور الجديدة مرتين.</p>
+    <label for="deliveryRepNewPassword">كلمة المرور الجديدة</label>
+    <input id="deliveryRepNewPassword" type="password" minlength="8" autocomplete="new-password" placeholder="8 أحرف أو أكثر">
+    <label for="deliveryRepConfirmPassword">تأكيد كلمة المرور</label>
+    <input id="deliveryRepConfirmPassword" type="password" minlength="8" autocomplete="new-password" placeholder="أعد كتابة كلمة المرور">
+    <button id="deliveryRepUpdatePassword" type="button">حفظ كلمة المرور الجديدة</button>
+    <button id="deliveryRepCancelRecovery" type="button" class="light">إغلاق</button>
+    <p id="deliveryRepRecoveryMessage" class="muted"></p>
+  </div>
+</dialog>
 
 <section id="appPanel" class="hidden">
 <div class="panel">
@@ -1328,6 +1351,60 @@ async function setMyDeliveryRepStatus(status){
  }
 }
 
+async function callDeliveryRepAuth(payload){
+ const {data,error}=await db.functions.invoke('delivery-rep-auth',{body:payload});
+ if(error)throw new Error(data?.error||error.message||'تعذر تنفيذ الطلب.');
+ if(data?.error)throw new Error(data.error);
+ return data||{};
+}
+
+async function requestDeliveryRepPasswordReset(){
+ hideMessage('loginMsg');
+ const username=$('deliveryRepUsername').value.trim().toLowerCase();
+ if(!/^[a-z0-9._-]{3,40}$/.test(username)){
+  showMessage('loginMsg','اكتب اسم المستخدم أولاً ثم اضغط نسيت كلمة المرور.',true);return;
+ }
+ try{
+  await callDeliveryRepAuth({action:'forgot',username});
+  showMessage('loginMsg','إذا كان للحساب إيميل مؤكد، ستصلك رسالة استعادة كلمة المرور عليه. راجع صندوق الوارد والرسائل غير المرغوب فيها.');
+ }catch(error){
+  showMessage('loginMsg','تعذر إرسال رسالة الاستعادة حالياً. حاول لاحقاً أو تواصل مع المدير.',true);
+ }
+}
+
+async function saveDeliveryRepEmail(){
+ if(!currentDeliveryRep)return;
+ const email=$('deliveryRepEmail').value.trim().toLowerCase();
+ if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)){
+  $('deliveryRepEmailMessage').textContent='اكتب بريدًا إلكترونيًا صحيحًا.';return;
+ }
+ $('deliveryRepSaveEmail').disabled=true;
+ $('deliveryRepEmailMessage').textContent='جارٍ حفظ الإيميل وإرسال رسالة التأكيد...';
+ try{
+  const result=await callDeliveryRepAuth({action:'set-email',email});
+  $('deliveryRepEmailMessage').textContent=result.message||'تم إرسال رسالة تأكيد إلى الإيميل الجديد. افتح الرسالة واضغط رابط التأكيد قبل تسجيل الخروج.';
+ }catch(error){
+  $('deliveryRepEmailMessage').textContent='تعذر حفظ الإيميل: '+error.message;
+ }finally{$('deliveryRepSaveEmail').disabled=false;}
+}
+
+async function saveDeliveryRepNewPassword(){
+ const password=$('deliveryRepNewPassword').value;
+ const confirmPassword=$('deliveryRepConfirmPassword').value;
+ if(password.length<8){$('deliveryRepRecoveryMessage').textContent='كلمة المرور يجب ألا تقل عن 8 أحرف.';return;}
+ if(password!==confirmPassword){$('deliveryRepRecoveryMessage').textContent='كلمتا المرور غير متطابقتين.';return;}
+ $('deliveryRepUpdatePassword').disabled=true;
+ const {error}=await db.auth.updateUser({password});
+ if(error){
+  $('deliveryRepRecoveryMessage').textContent='تعذر تحديث كلمة المرور: '+error.message;
+  $('deliveryRepUpdatePassword').disabled=false;return;
+ }
+ $('deliveryRepRecoveryDialog').close();
+ $('deliveryRepNewPassword').value='';$('deliveryRepConfirmPassword').value='';
+ await db.auth.signOut();
+ alert('تم تحديث كلمة المرور. يمكنك الآن تسجيل الدخول باسم المستخدم وكلمة المرور الجديدة.');
+}
+
 async function loginDeliveryRep(){
  hideMessage('loginMsg');
  const username=$('deliveryRepUsername').value.trim().toLowerCase();
@@ -1335,12 +1412,14 @@ async function loginDeliveryRep(){
  if(!/^[a-z0-9._-]{3,40}$/.test(username)||!password){
   showMessage('loginMsg','اكتب اسم المستخدم وكلمة المرور بشكل صحيح.',true);return;
  }
- const {data,error}=await db.auth.signInWithPassword({email:username+'@delivery-login.internal',password});
- if(error){showMessage('loginMsg','تعذر تسجيل الدخول. راجع اسم المستخدم وكلمة المرور مع المدير.',true);return;}
+ const {data:authResult,error:authError}=await db.functions.invoke('delivery-rep-auth',{body:{action:'login',username,password}});
+ if(authError||!authResult?.session){showMessage('loginMsg','تعذر تسجيل الدخول. راجع اسم المستخدم وكلمة المرور مع المدير.',true);return;}
+ const {data,error}=await db.auth.setSession(authResult.session);
+ if(error||!data?.user){showMessage('loginMsg','تعذر إكمال تسجيل الدخول. حاول مرة أخرى.',true);return;}
  const user=data.user;
  const [{data:profile,error:profileError},{data:rep,error:repError}]=await Promise.all([
   db.from('profiles').select('role,username').eq('user_id',user.id).maybeSingle(),
-  db.from('delivery_rep_profiles').select('full_name,phone,username,branch,is_active,availability_status').eq('user_id',user.id).maybeSingle()
+  db.from('delivery_rep_profiles').select('full_name,phone,email,username,branch,is_active,availability_status').eq('user_id',user.id).maybeSingle()
  ]);
  if(profileError||repError||profile?.role!=='delivery_rep'||String(profile?.username||'').toLowerCase()!==username||!rep||!rep.is_active||String(rep.username||'').toLowerCase()!==username){
   await db.auth.signOut();
@@ -1352,6 +1431,8 @@ async function loginDeliveryRep(){
  $('deliveryRepPanel').classList.remove('hidden');
  $('deliveryRepWelcome').textContent='مرحباً '+rep.full_name;
  $('deliveryRepBranch').textContent=rep.branch;
+ $('deliveryRepEmail').value=rep.email||'';
+ $('deliveryRepEmailMessage').textContent=rep.email?'الإيميل المسجل: '+rep.email:'لم يتم تسجيل إيميل استعادة حتى الآن.';
  renderDeliveryRepStatus(rep.availability_status);
  if(rep.availability_status==='available'||rep.availability_status==='busy')startDeliveryRepTracking();
  else $('deliveryRepLocationMessage').textContent='أنت غير متاح حالياً، وموقعك غير مشارك.';
@@ -2443,6 +2524,16 @@ document.querySelectorAll('.login-back').forEach(button=>button.addEventListener
 
 $('adminLogin').addEventListener('click',loginAdmin);
 $('deliveryRepLogin').addEventListener('click',loginDeliveryRep);
+$('deliveryRepForgotPassword').addEventListener('click',requestDeliveryRepPasswordReset);
+$('deliveryRepSaveEmail').addEventListener('click',saveDeliveryRepEmail);
+$('deliveryRepUpdatePassword').addEventListener('click',saveDeliveryRepNewPassword);
+$('deliveryRepCancelRecovery').addEventListener('click',()=>$('deliveryRepRecoveryDialog').close());
+db.auth.onAuthStateChange((event,session)=>{
+ if(event==='PASSWORD_RECOVERY'&&session){
+  $('deliveryRepRecoveryMessage').textContent='تم التحقق من رابط الاستعادة. عيّن كلمة المرور الجديدة.';
+  $('deliveryRepRecoveryDialog').showModal();
+ }
+});
 $('deliveryRepPassword').addEventListener('keydown',e=>{if(e.key==='Enter')loginDeliveryRep();});
 $('deliveryRepAvailable').addEventListener('click',()=>setMyDeliveryRepStatus('available'));
 $('deliveryRepBusy').addEventListener('click',()=>setMyDeliveryRepStatus('busy'));
