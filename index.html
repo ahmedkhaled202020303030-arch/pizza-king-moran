@@ -10,6 +10,7 @@
 <link rel="icon" type="image/svg+xml" href="/icons/app-icon.svg">
 <link rel="apple-touch-icon" href="/icons/app-icon.svg">
 <title>Pizza King & Morin - خدمة العملاء</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -696,6 +697,18 @@ html.light-theme #themeToggle{background:#fff;color:#203b5b;border-color:#d8e0e9
 .attendance-timer-detail strong{color:#fff}
 .attendance-timer-dialog-card button{margin-top:16px}
 @media(max-width:560px){#attendanceTimerBubble{right:10px;bottom:12px;min-width:158px;padding:9px 12px}.attendance-timer-dialog-card{padding:18px}}
+
+.delivery-map-toolbar{display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin:12px 0}
+.delivery-map-toolbar>div{flex:1;min-width:180px}
+.delivery-map-toolbar button{width:auto;min-width:130px}
+#deliveryRepsMap{height:min(68vh,620px);min-height:360px;width:100%;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#dce6ef;z-index:1}
+.delivery-map-legend{display:flex;gap:14px;flex-wrap:wrap;margin:10px 0;color:var(--muted);font-size:12px}
+.delivery-map-dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-left:5px;vertical-align:middle}
+.delivery-map-dot.available{background:#16a36a}.delivery-map-dot.busy{background:#e69a24}
+.delivery-map-marker{width:30px;height:30px;border:3px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 9px rgba(0,0,0,.35)}
+.delivery-map-marker.available{background:#16a36a}.delivery-map-marker.busy{background:#e69a24}
+.leaflet-popup-content{font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;line-height:1.8}
+@media(max-width:600px){#deliveryRepsMap{height:58vh;min-height:330px}.delivery-map-toolbar>div,.delivery-map-toolbar button{width:100%;min-width:100%}}
 </style>
 </head>
 <body>
@@ -852,8 +865,16 @@ html.light-theme #themeToggle{background:#fff;color:#203b5b;border-color:#d8e0e9
 
 <nav class="app-nav" aria-label="أقسام النظام">
   <button type="button" id="customersNavBtn" class="active">إدارة العملاء</button>
-  <button type="button" id="staffNavBtn" class="secondary">دليل عمالة الفروع</button><button type="button" id="attendanceNavBtn" class="secondary hidden">الحضور والانصراف</button><button type="button" id="deliveryRepsNavBtn" class="secondary hidden">مندوبي المطاعم</button>
+  <button type="button" id="staffNavBtn" class="secondary">دليل عمالة الفروع</button><button type="button" id="attendanceNavBtn" class="secondary hidden">الحضور والانصراف</button><button type="button" id="deliveryRepsNavBtn" class="secondary hidden">مندوبي المطاعم</button><button type="button" id="deliveryRepsMapNavBtn" class="secondary hidden">خريطة المندوبين</button>
 </nav>
+
+<section id="deliveryRepsMapView" class="panel hidden">
+ <div class="report-heading"><div><h2>خريطة المندوبين</h2><p class="muted">متابعة مواقع المندوبين المتاحين والمشغولين أثناء العمل.</p></div><span id="deliveryMapCount" class="tag">0 مندوب</span></div>
+ <div class="delivery-map-toolbar"><div><label for="deliveryMapBranchFilter">تصفية حسب الفرع</label><select id="deliveryMapBranchFilter"><option value="">كل الفروع</option></select></div><button type="button" id="deliveryMapRefreshBtn" class="light">تحديث الخريطة</button></div>
+ <div class="delivery-map-legend"><span><i class="delivery-map-dot available"></i>متاح</span><span><i class="delivery-map-dot busy"></i>مشغول</span><span id="deliveryMapUpdatedAt">لم يتم التحديث بعد</span></div>
+ <div id="deliveryMapMessage" class="msg">يتم عرض المندوبين الذين يشاركون موقعهم وحالتهم متاح أو مشغول فقط.</div>
+ <div id="deliveryRepsMap" role="application" aria-label="خريطة مواقع مندوبي المطاعم"></div>
+</section>
 <section id="deliveryRepsView" class="panel hidden">
  <div class="report-heading"><div><h2>إدارة مندوبي المطاعم</h2><p class="muted">إدارة الحسابات ومتابعة حالة كل مندوب وفرعه</p></div><div class="row"><button type="button" id="deliveryRepAddBtn" class="primary-btn">إضافة مندوب</button><button type="button" id="deliveryRepsRefreshBtn" class="light">تحديث القائمة</button></div></div>
  <div id="deliveryRepsMessage" class="msg hidden"></div>
@@ -1723,6 +1744,54 @@ async function loginGuest() {
   await showApp(data.user,false);
 }
 
+
+let deliveryRepsLeafletMap=null,deliveryRepsMapMarkers=[],deliveryRepsMapInterval=null,deliveryRepsMapLoading=false;
+function stopDeliveryRepsMapRefresh(){if(deliveryRepsMapInterval){clearInterval(deliveryRepsMapInterval);deliveryRepsMapInterval=null;}}
+function clearDeliveryRepsMapMarkers(){deliveryRepsMapMarkers.forEach(marker=>marker.remove());deliveryRepsMapMarkers=[];}
+function initDeliveryRepsMap(){
+ if(deliveryRepsLeafletMap)return;
+ if(!window.L){showMessage('deliveryMapMessage','تعذر تحميل مكتبة الخرائط. تحقق من اتصال الإنترنت ثم أعد المحاولة.',true);return;}
+ deliveryRepsLeafletMap=L.map('deliveryRepsMap',{zoomControl:true}).setView([30.0444,31.2357],10);
+ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(deliveryRepsLeafletMap);
+}
+async function loadDeliveryRepsMap(){
+ if(deliveryRepsMapLoading||!currentUser)return;
+ deliveryRepsMapLoading=true;
+ try{
+  initDeliveryRepsMap();if(!deliveryRepsLeafletMap)return;
+  const {data:reps,error:repError}=await db.from('delivery_rep_profiles').select('user_id,full_name,branch,availability_status,is_active').eq('is_active',true).in('availability_status',['available','busy']);
+  if(repError)throw repError;
+  let activeReps=reps||[];const selectedBranch=$('deliveryMapBranchFilter').value;
+  if(selectedBranch)activeReps=activeReps.filter(rep=>rep.branch===selectedBranch);
+  const ids=activeReps.map(rep=>rep.user_id);let locations=[];
+  if(ids.length){const result=await db.from('delivery_rep_locations').select('user_id,latitude,longitude,accuracy_m,recorded_at').in('user_id',ids);if(result.error)throw result.error;locations=result.data||[];}
+  const byUser=new Map(locations.map(item=>[item.user_id,item]));clearDeliveryRepsMapMarkers();
+  const bounds=[];let plotted=0;
+  activeReps.forEach(rep=>{
+   const loc=byUser.get(rep.user_id);if(!loc)return;
+   const lat=Number(loc.latitude),lng=Number(loc.longitude);if(!Number.isFinite(lat)||!Number.isFinite(lng))return;
+   const status=rep.availability_status==='busy'?'busy':'available';
+   const marker=L.marker([lat,lng],{icon:L.divIcon({className:'',html:'<div class="delivery-map-marker '+status+'"></div>',iconSize:[30,30],iconAnchor:[15,30],popupAnchor:[0,-28]})});
+   const when=loc.recorded_at?new Date(loc.recorded_at).toLocaleString('ar-EG'):'غير معروف';
+   const popup='<b>'+escapeHTML(rep.full_name||'مندوب')+'</b><br>الفرع: '+escapeHTML(rep.branch||'—')+'<br>الحالة: '+(status==='busy'?'مشغول':'متاح')+'<br>آخر تحديث: '+escapeHTML(when);
+   marker.bindPopup(popup).addTo(deliveryRepsLeafletMap);deliveryRepsMapMarkers.push(marker);bounds.push([lat,lng]);plotted++;
+  });
+  $('deliveryMapCount').textContent=plotted.toLocaleString('ar-EG')+' مندوب على الخريطة';
+  $('deliveryMapUpdatedAt').textContent='آخر تحديث: '+new Date().toLocaleTimeString('ar-EG');
+  if(!plotted){deliveryRepsLeafletMap.setView([30.0444,31.2357],10);showMessage('deliveryMapMessage',activeReps.length?'لا توجد مواقع مستلمة للمندوبين حتى الآن. تأكد أن المندوب سمح بمشاركة الموقع.':'لا يوجد مندوبون بحالة متاح أو مشغول في هذا النطاق.');}
+  else{hideMessage('deliveryMapMessage');if(bounds.length===1)deliveryRepsLeafletMap.setView(bounds[0],15);else deliveryRepsLeafletMap.fitBounds(bounds,{padding:[35,35],maxZoom:15});}
+  setTimeout(()=>deliveryRepsLeafletMap&&deliveryRepsLeafletMap.invalidateSize(),120);
+ }catch(error){showMessage('deliveryMapMessage','تعذر تحميل مواقع المندوبين: '+(error.message||'خطأ غير معروف'),true);}
+ finally{deliveryRepsMapLoading=false;}
+}
+function openDeliveryRepsMap(){
+ stopDeliveryRepsMapRefresh();
+ $('customersView').classList.add('hidden');$('staffDirectoryView').classList.add('hidden');$('attendanceView').classList.add('hidden');$('deliveryRepsView').classList.add('hidden');$('deliveryRepsMapView').classList.remove('hidden');
+ ['customersNavBtn','staffNavBtn','attendanceNavBtn','deliveryRepsNavBtn'].forEach(id=>$(id).classList.remove('active'));
+ $('deliveryRepsMapNavBtn').classList.add('active');loadDeliveryRepsMap();
+ deliveryRepsMapInterval=setInterval(loadDeliveryRepsMap,12000);
+}
+
 async function loadDeliveryReps(){
  const host=$('deliveryRepsList');const message=$('deliveryRepsMessage');
  host.innerHTML='<p class="muted">جارٍ تحميل قائمة المندوبين...</p>';message.classList.add('hidden');
@@ -1769,12 +1838,14 @@ async function showApp(user,admin,managerProfile=null,operationsManager=false) {
   $('customersNavBtn').classList.toggle('hidden',isBranchManager); $('staffNavBtn').classList.toggle('hidden',isBranchManager);
   $('attendanceNavBtn').classList.toggle('hidden',!admin&&!operationsManager&&!isBranchManager);
   $('deliveryRepsNavBtn').classList.toggle('hidden',!admin&&!operationsManager&&!isBranchManager);
+  $('deliveryRepsMapNavBtn').classList.toggle('hidden',!admin&&!operationsManager&&!isBranchManager);
+  $('deliveryMapBranchFilter').innerHTML='<option value="">كل الفروع</option>'+(isBranchManager?[managerProfile.branch]:branches).map(branch=>'<option value="'+escapeHTML(branch)+'">'+escapeHTML(branch)+'</option>').join('');
   $('deliveryRepAddBtn').classList.toggle('hidden',!admin&&!isBranchManager);
   $('newDeliveryRepBranch').disabled=isBranchManager;
   if(isBranchManager){$('newDeliveryRepBranch').innerHTML='<option value="'+escapeHTML(managerProfile.branch)+'">'+escapeHTML(managerProfile.branch)+'</option>';}
   $('customersView').classList.toggle('hidden',isBranchManager); $('staffDirectoryView').classList.toggle('hidden',isBranchManager);
   $('attendanceView').classList.toggle('hidden',!isBranchManager);
-  $('deliveryRepsView').classList.add('hidden'); $('managerAttendanceControls').classList.toggle('hidden',!isBranchManager);
+  $('deliveryRepsView').classList.add('hidden'); $('deliveryRepsMapView').classList.add('hidden'); $('managerAttendanceControls').classList.toggle('hidden',!isBranchManager);
   $('adminAttendanceControls').classList.toggle('hidden',!admin&&!operationsManager);
   $('attendanceBranchLabel').textContent=managerProfile?'الفرع: '+managerProfile.branch:'متابعة سجلات حضور وانصراف جميع الفروع';
   if(isBranchManager){$('attendanceNavBtn').classList.add('active');await loadBiometricStatus();await loadMyAttendance();return;}
@@ -1783,6 +1854,7 @@ async function showApp(user,admin,managerProfile=null,operationsManager=false) {
 }
 
 async function logout() {
+  stopDeliveryRepsMapRefresh();
   stopAttendanceTimer();
   if(branchManagersTimerInterval){clearInterval(branchManagersTimerInterval);branchManagersTimerInterval=null;}
   if(branchManagersRefreshInterval){clearInterval(branchManagersRefreshInterval);branchManagersRefreshInterval=null;}
@@ -2417,6 +2489,7 @@ async function deleteRecord(id) {
 let allBranchStaff = [];
 
 function showDirectoryView(view) {
+  stopDeliveryRepsMapRefresh();$('deliveryRepsMapView').classList.add('hidden');$('deliveryRepsMapNavBtn').classList.remove('active');
   const staff = view === 'staff';
   $('attendanceView').classList.add('hidden');
   $('attendanceNavBtn').classList.remove('active');
@@ -2626,9 +2699,12 @@ $('attendanceTimerDialog').addEventListener('click',event=>{if(event.target===$(
 $('checkInBtn').addEventListener('click',()=>submitAttendance('in'));
 $('checkOutBtn').addEventListener('click',()=>submitAttendance('out'));
 $('attendanceRefreshBtn').addEventListener('click',()=>isBranchManager?loadMyAttendance():loadAdminAttendance());
-$('attendanceNavBtn').addEventListener('click',()=>{$('customersView').classList.add('hidden');$('staffDirectoryView').classList.add('hidden');$('deliveryRepsView').classList.add('hidden');$('attendanceView').classList.remove('hidden');$('customersNavBtn').classList.remove('active');$('staffNavBtn').classList.remove('active');$('deliveryRepsNavBtn').classList.remove('active');$('attendanceNavBtn').classList.add('active');if(isAdmin||isOperationsManager)loadAdminAttendance();else loadMyAttendance();});
-$('deliveryRepsNavBtn').addEventListener('click',()=>{$('customersView').classList.add('hidden');$('staffDirectoryView').classList.add('hidden');$('attendanceView').classList.add('hidden');$('deliveryRepsView').classList.remove('hidden');$('customersNavBtn').classList.remove('active');$('staffNavBtn').classList.remove('active');$('attendanceNavBtn').classList.remove('active');$('deliveryRepsNavBtn').classList.add('active');loadDeliveryReps();});
+$('attendanceNavBtn').addEventListener('click',()=>{stopDeliveryRepsMapRefresh();$('deliveryRepsMapView').classList.add('hidden');$('deliveryRepsMapNavBtn').classList.remove('active');$('customersView').classList.add('hidden');$('staffDirectoryView').classList.add('hidden');$('deliveryRepsView').classList.add('hidden');$('attendanceView').classList.remove('hidden');$('customersNavBtn').classList.remove('active');$('staffNavBtn').classList.remove('active');$('deliveryRepsNavBtn').classList.remove('active');$('attendanceNavBtn').classList.add('active');if(isAdmin||isOperationsManager)loadAdminAttendance();else loadMyAttendance();});
+$('deliveryRepsNavBtn').addEventListener('click',()=>{stopDeliveryRepsMapRefresh();$('deliveryRepsMapView').classList.add('hidden');$('deliveryRepsMapNavBtn').classList.remove('active');$('customersView').classList.add('hidden');$('staffDirectoryView').classList.add('hidden');$('attendanceView').classList.add('hidden');$('deliveryRepsView').classList.remove('hidden');$('customersNavBtn').classList.remove('active');$('staffNavBtn').classList.remove('active');$('attendanceNavBtn').classList.remove('active');$('deliveryRepsNavBtn').classList.add('active');loadDeliveryReps();});
 $('deliveryRepsRefreshBtn').addEventListener('click',loadDeliveryReps);
+$('deliveryRepsMapNavBtn').addEventListener('click',openDeliveryRepsMap);
+$('deliveryMapRefreshBtn').addEventListener('click',loadDeliveryRepsMap);
+$('deliveryMapBranchFilter').addEventListener('change',loadDeliveryRepsMap);
 $('deliveryRepAddBtn').addEventListener('click',()=>{$('deliveryRepCreateMessage').textContent='';if(isAdmin)$('newDeliveryRepBranch').innerHTML='<option value="">اختر الفرع</option>'+branches.map(branch=>'<option value="'+escapeHTML(branch)+'">'+escapeHTML(branch)+'</option>').join('');$('deliveryRepCreateDialog').showModal();});
 $('deliveryRepCreateClose').addEventListener('click',()=>$('deliveryRepCreateDialog').close());
 $('deliveryRepCreateSubmit').addEventListener('click',createDeliveryRepAccount);
