@@ -670,6 +670,24 @@ html.light-theme .report-dialog-card p,html.light-theme .report-dialog-card span
 html.light-theme #themeToggle{background:#fff;color:#203b5b;border-color:#d8e0e9}
 @media(max-width:680px){#themeToggle{left:10px;top:10px;width:38px;height:38px}}
 
+
+/* Floating attendance timer for branch managers */
+#attendanceTimerBubble{position:fixed;z-index:1800;right:14px;bottom:18px;width:auto;min-width:174px;max-width:calc(100vw - 28px);margin:0;padding:10px 14px;border:1px solid #4da3ff;border-radius:999px;background:linear-gradient(135deg,#173b60,#0c1c30);color:#fff;box-shadow:0 10px 28px rgba(0,0,0,.38);display:flex;align-items:center;justify-content:center;gap:9px;cursor:pointer}
+#attendanceTimerBubble.hidden{display:none!important}
+#attendanceTimerBubble .timer-bubble-icon{font-size:20px;line-height:1}
+#attendanceTimerBubble .timer-bubble-copy{display:flex;flex-direction:column;align-items:flex-start;line-height:1.25}
+#attendanceTimerBubble small{font-size:10px;color:#b9d9f8;font-weight:700}
+#attendanceTimerBubble strong{font-size:16px;letter-spacing:1px;font-variant-numeric:tabular-nums;color:#fff}
+#attendanceTimerDialog{width:min(390px,calc(100% - 28px));max-width:none;border:1px solid #4da3ff;border-radius:20px;padding:0;background:#102239;color:#f5f8ff;box-shadow:0 22px 70px rgba(0,0,0,.5)}
+#attendanceTimerDialog::backdrop{background:rgba(4,12,22,.72);backdrop-filter:blur(4px)}
+.attendance-timer-dialog-card{padding:22px;text-align:center}
+.attendance-timer-dialog-card h2{color:#f3d99e!important;margin:0 0 6px}
+.attendance-timer-large{font-size:clamp(34px,10vw,46px);font-weight:900;letter-spacing:2px;color:#7fc3ff;font-variant-numeric:tabular-nums;direction:ltr;margin:12px 0}
+.attendance-timer-detail{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #2b4562;text-align:right;font-size:13px}
+.attendance-timer-detail span{color:#b9c9dc}
+.attendance-timer-detail strong{color:#fff}
+.attendance-timer-dialog-card button{margin-top:16px}
+@media(max-width:560px){#attendanceTimerBubble{right:10px;bottom:12px;min-width:158px;padding:9px 12px}.attendance-timer-dialog-card{padding:18px}}
 </style>
 </head>
 <body>
@@ -774,6 +792,8 @@ html.light-theme #themeToggle{background:#fff;color:#203b5b;border-color:#d8e0e9
   <button type="button" id="staffNavBtn" class="secondary">دليل عمالة الفروع</button><button type="button" id="attendanceNavBtn" class="secondary hidden">الحضور والانصراف</button>
 </nav>
 <section id="attendanceView" class="panel hidden"><div class="report-heading"><div><h2>الحضور والانصراف</h2><p id="attendanceBranchLabel" class="muted">سجل الدوام اليومي</p></div><button id="attendanceRefreshBtn" class="light">تحديث</button></div><div id="attendanceMessage" class="msg hidden"></div><div id="managerAttendanceControls" class="attendance-controls hidden"><div class="attendance-clock" id="attendanceTodayStatus">لم يتم تسجيل الحضور اليوم</div><div class="row"><button type="button" id="registerBiometricBtn" class="secondary">تفعيل بصمة هذا الهاتف</button></div><div id="biometricStatus" class="muted">جارٍ فحص إعداد البصمة...</div><div class="row"><button id="checkInBtn">تسجيل الحضور بالبصمة والموقع</button><button id="checkOutBtn" class="secondary" disabled>تسجيل الانصراف بالبصمة والموقع</button></div><div id="attendanceDuration" class="muted"></div></div><div id="adminAttendanceControls" class="hidden"><div class="staff-toolbar"><select id="attendanceBranchFilter"><option value="">كل الفروع</option></select><input id="attendanceDateFilter" type="date"></div><div class="attendance-admin-actions"><button type="button" id="exportAttendanceBtn" class="attendance-export-btn">⬇ تصدير سجلات الحضور Excel</button></div><div class="report-total" id="attendanceRecordsCount">0 سجل</div><div id="attendanceSummaryCards" class="attendance-summary-grid"></div></div><div id="attendanceRecords" class="attendance-records"><p class="muted">لا توجد سجلات للعرض.</p></div></section>
+<button id="attendanceTimerBubble" class="hidden" type="button" aria-label="عرض مدة العمل"><span class="timer-bubble-icon">⏱️</span><span class="timer-bubble-copy"><small id="attendanceTimerBubbleLabel">مدة العمل</small><strong id="attendanceTimerBubbleValue">00:00:00</strong></span></button>
+<dialog id="attendanceTimerDialog"><div class="attendance-timer-dialog-card"><h2>عداد وقت العمل</h2><p id="attendanceTimerDialogState" class="muted">الوقت منذ تسجيل الحضور</p><div id="attendanceTimerDialogValue" class="attendance-timer-large">00:00:00</div><div class="attendance-timer-detail"><span>الفرع</span><strong id="attendanceTimerBranch">—</strong></div><div class="attendance-timer-detail"><span>وقت الحضور</span><strong id="attendanceTimerCheckIn">—</strong></div><div class="attendance-timer-detail"><span>وقت الانصراف</span><strong id="attendanceTimerCheckOut">لم يتم التسجيل</strong></div><div class="attendance-timer-detail"><span>إجمالي مدة العمل</span><strong id="attendanceTimerTotal">—</strong></div><button id="closeAttendanceTimerDialog" type="button" class="secondary">إغلاق</button></div></dialog>
 <div id="customersView">
 
 <section id="repeatCustomersPanel" class="panel repeat-customers-panel hidden">
@@ -1218,8 +1238,43 @@ async function loginBranchManager(){
  await showApp(data.user,false,profile);
 }
 function showAttendanceMessage(message,error=false){const box=$('attendanceMessage');box.textContent=(error?'⚠️  ':'✓  ')+message;box.classList.toggle('attendance-error',error);box.classList.toggle('attendance-success',!error);box.style.removeProperty('background');box.classList.remove('hidden');}
-function formatAttendanceTime(value){return value?new Date(value).toLocaleString('ar-EG',{dateStyle:'medium',timeStyle:'short'}):'—';}
+function formatAttendanceTime(value){return value?new Date(value).toLocaleString('ar-EG',{dateStyle:'medium',timeStyle:'short',timeZone:'Africa/Cairo'}):'—';}
 function durationText(start,end){if(!start)return'—';const m=Math.max(0,Math.floor((new Date(end||Date.now())-new Date(start))/60000));return Math.floor(m/60)+' ساعة و '+m%60+' دقيقة';}
+let attendanceTimerInterval=null;
+let currentAttendanceTimerRow=null;
+function elapsedClockText(start,end){
+ const seconds=Math.max(0,Math.floor((new Date(end||Date.now()).getTime()-new Date(start).getTime())/1000));
+ const h=Math.floor(seconds/3600),m=Math.floor((seconds%3600)/60),s=seconds%60;
+ return [h,m,s].map(v=>String(v).padStart(2,'0')).join(':');
+}
+function renderAttendanceTimer(){
+ const bubble=$('attendanceTimerBubble');
+ if(!bubble)return;
+ const row=currentAttendanceTimerRow;
+ if(!isBranchManager||!row?.check_in_at){bubble.classList.add('hidden');return;}
+ const elapsed=elapsedClockText(row.check_in_at,row.check_out_at||null);
+ $('attendanceTimerBubbleValue').textContent=elapsed;
+ $('attendanceTimerBubbleLabel').textContent=row.check_out_at?'مدة العمل النهائية':'وقت العمل الحالي';
+ $('attendanceTimerDialogState').textContent=row.check_out_at?'تم تسجيل الانصراف — العداد متوقف':'العداد يعمل منذ تسجيل الحضور';
+ $('attendanceTimerDialogValue').textContent=elapsed;
+ $('attendanceTimerBranch').textContent=row.branch||currentManagerProfile?.branch||'—';
+ $('attendanceTimerCheckIn').textContent=formatAttendanceTime(row.check_in_at);
+ $('attendanceTimerCheckOut').textContent=formatAttendanceTime(row.check_out_at);
+ $('attendanceTimerTotal').textContent=durationText(row.check_in_at,row.check_out_at);
+ bubble.classList.remove('hidden');
+}
+function startAttendanceTimer(row){
+ currentAttendanceTimerRow=row||null;
+ if(attendanceTimerInterval){clearInterval(attendanceTimerInterval);attendanceTimerInterval=null;}
+ renderAttendanceTimer();
+ if(row?.check_in_at&&!row.check_out_at)attendanceTimerInterval=setInterval(renderAttendanceTimer,1000);
+}
+function stopAttendanceTimer(){
+ if(attendanceTimerInterval){clearInterval(attendanceTimerInterval);attendanceTimerInterval=null;}
+ currentAttendanceTimerRow=null;
+ $('attendanceTimerBubble')?.classList.add('hidden');
+ if($('attendanceTimerDialog')?.open)$('attendanceTimerDialog').close();
+}
 function getDeviceLocation(){return new Promise((resolve,reject)=>{if(!navigator.geolocation){reject(new Error('المتصفح لا يدعم تحديد الموقع.'));return;}navigator.geolocation.getCurrentPosition(p=>resolve({lat:p.coords.latitude,lng:p.coords.longitude,accuracy:p.coords.accuracy}),e=>reject(new Error(e.code===1?'يجب السماح للموقع من إعدادات المتصفح.':e.code===2?'تعذر تحديد موقعك حالياً.':'انتهت مهلة تحديد الموقع.')),{enableHighAccuracy:true,timeout:20000,maximumAge:0});});}
 function attendanceRowHTML(row,username='',allowDelete=false){
  const map=(lat,lng)=>lat==null?'—':'<a href="https://www.google.com/maps?q='+encodeURIComponent(lat+','+lng)+'" target="_blank" rel="noopener">عرض الموقع</a>';
@@ -1232,6 +1287,7 @@ async function loadMyAttendance(){
  const day=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo'}).format(new Date());
  const {data:row,error}=await db.from('branch_attendance').select('*').eq('work_date',day).maybeSingle();
  if(error){showAttendanceMessage('تعذر تحميل سجل اليوم: '+error.message,true);return;}
+ startAttendanceTimer(row);
  $('attendanceTodayStatus').textContent=!row?'لم يتم تسجيل الحضور اليوم':row.check_out_at?'تم تسجيل الحضور والانصراف':'تم تسجيل الحضور — بانتظار الانصراف';
  $('attendanceTodayStatus').classList.toggle('is-pending',!row);
  $('attendanceTodayStatus').classList.toggle('is-checked-in',!!row&&!row.check_out_at);
@@ -1421,6 +1477,7 @@ async function showApp(user,admin,managerProfile=null,operationsManager=false) {
 }
 
 async function logout() {
+  stopAttendanceTimer();
   await db.auth.signOut();
   currentUser = null;
   isAdmin = false;
@@ -2228,6 +2285,9 @@ $('managerRequestsList').addEventListener('click',event=>{
 });
 $('managerPassword').addEventListener('keydown',e=>{if(e.key==='Enter')loginBranchManager();});
 $('registerBiometricBtn').addEventListener('click',registerBranchManagerBiometric);
+$('attendanceTimerBubble').addEventListener('click',()=>{renderAttendanceTimer();$('attendanceTimerDialog').showModal();});
+$('closeAttendanceTimerDialog').addEventListener('click',()=>$('attendanceTimerDialog').close());
+$('attendanceTimerDialog').addEventListener('click',event=>{if(event.target===$('attendanceTimerDialog'))$('attendanceTimerDialog').close();});
 $('checkInBtn').addEventListener('click',()=>submitAttendance('in'));
 $('checkOutBtn').addEventListener('click',()=>submitAttendance('out'));
 $('attendanceRefreshBtn').addEventListener('click',()=>isBranchManager?loadMyAttendance():loadAdminAttendance());
