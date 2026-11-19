@@ -111,12 +111,16 @@ Deno.serve(async (req) => {
 
     if (action === "list") {
       let query = admin.from("delivery_rep_profiles")
-        .select("user_id,full_name,phone,username,branch,approval_status,created_at")
+        .select("user_id,full_name,phone,email,username,branch,approval_status,created_at")
         .eq("approval_status", "pending").order("created_at", { ascending: false });
       if (!isAdmin) query = query.eq("branch", branch);
       const { data, error } = await query;
       if (error) throw error;
-      return reply({ requests: data || [] });
+      const requests = await Promise.all((data || []).map(async (item) => {
+        const { data: authResult } = await admin.auth.admin.getUserById(item.user_id);
+        return { ...item, email_confirmed: !!authResult?.user?.email_confirmed_at };
+      }));
+      return reply({ requests });
     }
 
     if (action === "review") {
@@ -133,6 +137,13 @@ Deno.serve(async (req) => {
       const { data: requestRow, error: requestError } = await query.maybeSingle();
       if (requestError) throw requestError;
       if (!requestRow) return reply({ error: "الطلب غير موجود أو خارج نطاق فرعك." }, 404);
+
+      if (decision === "approved") {
+        const { data: authResult, error: authLookupError } = await admin.auth.admin.getUserById(user_id);
+        if (authLookupError || !authResult?.user?.email_confirmed_at) {
+          return reply({ error: "لا يمكن تفعيل الحساب قبل أن يؤكد المندوب بريده الإلكتروني من الرسالة المرسلة إليه." }, 400);
+        }
+      }
 
       const { error: updateError } = await admin.from("delivery_rep_profiles").update({
         approval_status: decision, is_active: decision === "approved",
