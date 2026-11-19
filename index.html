@@ -1416,7 +1416,7 @@ async function requestDeliveryRepPasswordReset(){
  if(!/^[a-z0-9._-]{3,40}$/.test(username)){
   showMessage('loginMsg','اكتب اسم المستخدم أولاً.',true);return;
  }
- if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)){
+ if(!/^[^\s@]+@[^\s@]+\\.[^\s@]+$/.test(email)){
   showMessage('loginMsg','اكتب البريد الإلكتروني المسجل بالحساب بشكل صحيح.',true);return;
  }
  try{
@@ -1430,7 +1430,7 @@ async function requestDeliveryRepPasswordReset(){
 async function saveDeliveryRepEmail(){
  if(!currentDeliveryRep)return;
  const email=$('deliveryRepEmail').value.trim().toLowerCase();
- if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)){
+ if(!/^[^\s@]+@[^\s@]+\\.[^\s@]+$/.test(email)){
   $('deliveryRepEmailMessage').textContent='اكتب بريدًا إلكترونيًا صحيحًا.';return;
  }
  $('deliveryRepSaveEmail').disabled=true;
@@ -1816,7 +1816,7 @@ async function submitDeliveryRepRegistration(){
  const full_name=$('deliveryRepRegisterName').value.trim(),phone=$('deliveryRepRegisterPhone').value.trim();
  const username=$('deliveryRepRegisterUsername').value.trim().toLowerCase(),email=$('deliveryRepRegisterEmail').value.trim().toLowerCase(),branch=$('deliveryRepRegisterBranch').value;
  const password=$('deliveryRepRegisterPassword').value;
- if(full_name.length<3||phone.length<5||!/^[a-z0-9._-]{3,40}$/.test(username)||!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)||!branch||password.length<8){
+ if(full_name.length<3||phone.length<5||!/^[a-z0-9._-]{3,40}$/.test(username)||!/^[^\s@]+@[^\s@]+\\.[^\s@]+$/.test(email)||!branch||password.length<8){
   $('deliveryRepRegisterMessage').textContent='راجع البيانات، واكتب بريدًا صحيحًا وكلمة مرور لا تقل عن 8 أحرف.';return;
  }
  const button=$('deliveryRepRegisterSubmit');button.disabled=true;button.textContent='جارٍ إرسال الطلب...';
