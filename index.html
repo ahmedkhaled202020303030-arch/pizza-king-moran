@@ -723,6 +723,7 @@ html.light-theme #themeToggle{background:#fff;color:#203b5b;border-color:#d8e0e9
   <button type="button" class="login-choice" data-login-choice="adminLoginFields">دخول المدير الرئيسي</button>
   <button type="button" class="login-choice secondary" data-login-choice="operationsLoginFields">دخول مدير التشغيل</button>
   <button type="button" class="login-choice light" data-login-choice="managerLoginFields">دخول مديرين الفروع</button>
+  <button type="button" class="login-choice secondary" data-login-choice="deliveryRepLoginFields">دخول مندوب المطاعم</button>
   <button type="button" class="login-choice" data-login-choice="managerRegisterFields">طلب إنشاء حساب مدير فرع</button>
 </div>
 
@@ -755,6 +756,17 @@ html.light-theme #themeToggle{background:#fff;color:#203b5b;border-color:#d8e0e9
   <button type="button" class="light login-back">رجوع</button>
 </div>
 
+<div id="deliveryRepLoginFields" class="login-fields hidden">
+  <h3>دخول مندوب المطاعم</h3>
+  <label for="deliveryRepUsername">اسم المستخدم</label>
+  <input id="deliveryRepUsername" type="text" autocomplete="username" placeholder="اسم المستخدم المخصص لك">
+  <label for="deliveryRepPassword">كلمة المرور</label>
+  <input id="deliveryRepPassword" type="password" autocomplete="current-password" placeholder="كلمة المرور">
+  <button id="deliveryRepLogin" class="secondary">تسجيل الدخول</button>
+  <p class="muted">بيانات الدخول يتم تسليمها لك من المدير.</p>
+  <button type="button" class="light login-back">رجوع</button>
+</div>
+
 <div id="managerRegisterFields" class="login-fields hidden">
   <h3>طلب إنشاء حساب مدير فرع</h3>
   <label for="managerRequestName">الاسم بالكامل</label>
@@ -771,6 +783,26 @@ html.light-theme #themeToggle{background:#fff;color:#203b5b;border-color:#d8e0e9
   <p class="muted">سيتم مراجعة الطلب وتفعيل الحساب بعد موافقة المدير الرئيسي وتأكيد الفرع.</p>
   <button type="button" class="light login-back">رجوع</button>
 </div>
+</section>
+
+<section id="deliveryRepPanel" class="panel hidden">
+  <div class="row" style="align-items:center;gap:12px;flex-wrap:wrap">
+    <div>
+      <h2 style="margin:0">لوحة مندوب المطاعم</h2>
+      <p id="deliveryRepWelcome" class="muted" style="margin:4px 0"></p>
+    </div>
+    <button id="deliveryRepLogout" class="light" type="button">خروج</button>
+  </div>
+  <div class="panel" style="margin-top:16px">
+    <p><strong>الفرع:</strong> <span id="deliveryRepBranch">—</span></p>
+    <p><strong>حالتك الحالية:</strong> <span id="deliveryRepStatusText">غير متاح</span></p>
+    <p id="deliveryRepLocationMessage" class="muted">لن يتم مشاركة موقعك إلا عندما تختار متاح أو مشغول.</p>
+    <div class="row" style="gap:10px;flex-wrap:wrap">
+      <button id="deliveryRepAvailable" type="button">متاح</button>
+      <button id="deliveryRepBusy" type="button" class="secondary">مشغول</button>
+      <button id="deliveryRepUnavailable" type="button" class="light">غير متاح</button>
+    </div>
+  </div>
 </section>
 
 <section id="appPanel" class="hidden">
@@ -1237,6 +1269,94 @@ async function processManagerRequest(requestId,action,branch=''){
  }catch(error){alert(error.message||'تعذر تنفيذ العملية.');}
 }
 
+let currentDeliveryRep = null;
+let deliveryRepWatchId = null;
+
+function stopDeliveryRepTracking(){
+ if(deliveryRepWatchId!==null&&navigator.geolocation){
+  navigator.geolocation.clearWatch(deliveryRepWatchId);
+  deliveryRepWatchId=null;
+ }
+}
+
+function startDeliveryRepTracking(){
+ stopDeliveryRepTracking();
+ if(!navigator.geolocation){
+  $('deliveryRepLocationMessage').textContent='المتصفح لا يدعم تحديد الموقع.';
+  return;
+ }
+ $('deliveryRepLocationMessage').textContent='جارٍ طلب إذن الموقع وتحديث موقعك أثناء العمل...';
+ deliveryRepWatchId=navigator.geolocation.watchPosition(async position=>{
+  if(!currentDeliveryRep)return;
+  const {latitude,longitude,accuracy}=position.coords;
+  const {error}=await db.rpc('update_delivery_rep_location',{
+   p_latitude:latitude,p_longitude:longitude,p_accuracy_m:accuracy
+  });
+  $('deliveryRepLocationMessage').textContent=error
+   ?'تعذر تحديث الموقع: '+error.message
+   :'موقعك يتحدث الآن أثناء حالة العمل.';
+ },error=>{
+  const messages={1:'اسمح للموقع بالوصول إلى موقعك من إعدادات الهاتف.',2:'تعذر تحديد موقعك حالياً.',3:'انتهت مهلة تحديد الموقع، حاول مرة أخرى.'};
+  $('deliveryRepLocationMessage').textContent=messages[error.code]||'تعذر تحديد الموقع.';
+ },{enableHighAccuracy:true,maximumAge:5000,timeout:20000});
+}
+
+function renderDeliveryRepStatus(status){
+ const labels={available:'متاح',busy:'مشغول',unavailable:'غير متاح'};
+ $('deliveryRepStatusText').textContent=labels[status]||'غير معروف';
+ $('deliveryRepAvailable').disabled=status==='available';
+ $('deliveryRepBusy').disabled=status==='busy';
+ $('deliveryRepUnavailable').disabled=status==='unavailable';
+}
+
+async function setMyDeliveryRepStatus(status){
+ if(!currentDeliveryRep)return;
+ $('deliveryRepAvailable').disabled=true;$('deliveryRepBusy').disabled=true;$('deliveryRepUnavailable').disabled=true;
+ const {error}=await db.rpc('set_delivery_rep_status',{p_status:status});
+ if(error){
+  renderDeliveryRepStatus(currentDeliveryRep.availability_status);
+  $('deliveryRepLocationMessage').textContent='تعذر تغيير الحالة: '+error.message;
+  return;
+ }
+ currentDeliveryRep.availability_status=status;
+ renderDeliveryRepStatus(status);
+ if(status==='unavailable'){
+  stopDeliveryRepTracking();
+  $('deliveryRepLocationMessage').textContent='تم إيقاف مشاركة موقعك وإخفاء آخر موقع.';
+ }else{
+  startDeliveryRepTracking();
+ }
+}
+
+async function loginDeliveryRep(){
+ hideMessage('loginMsg');
+ const username=$('deliveryRepUsername').value.trim().toLowerCase();
+ const password=$('deliveryRepPassword').value;
+ if(!/^[a-z0-9._-]{3,40}$/.test(username)||!password){
+  showMessage('loginMsg','اكتب اسم المستخدم وكلمة المرور بشكل صحيح.',true);return;
+ }
+ const {data,error}=await db.auth.signInWithPassword({email:username+'@delivery-login.internal',password});
+ if(error){showMessage('loginMsg','تعذر تسجيل الدخول. راجع اسم المستخدم وكلمة المرور مع المدير.',true);return;}
+ const user=data.user;
+ const [{data:profile,error:profileError},{data:rep,error:repError}]=await Promise.all([
+  db.from('profiles').select('role,username').eq('user_id',user.id).maybeSingle(),
+  db.from('delivery_rep_profiles').select('full_name,phone,username,branch,is_active,availability_status').eq('user_id',user.id).maybeSingle()
+ ]);
+ if(profileError||repError||profile?.role!=='delivery_rep'||String(profile?.username||'').toLowerCase()!==username||!rep||!rep.is_active||String(rep.username||'').toLowerCase()!==username){
+  await db.auth.signOut();
+  showMessage('loginMsg','هذا الحساب غير مفعّل كمندوب مطاعم أو تم إيقافه.',true);return;
+ }
+ currentDeliveryRep={...rep,user_id:user.id};
+ $('loginPanel').classList.add('hidden');
+ $('appPanel').classList.add('hidden');
+ $('deliveryRepPanel').classList.remove('hidden');
+ $('deliveryRepWelcome').textContent='مرحباً '+rep.full_name;
+ $('deliveryRepBranch').textContent=rep.branch;
+ renderDeliveryRepStatus(rep.availability_status);
+ if(rep.availability_status==='available'||rep.availability_status==='busy')startDeliveryRepTracking();
+ else $('deliveryRepLocationMessage').textContent='أنت غير متاح حالياً، وموقعك غير مشارك.';
+}
+
 async function loginBranchManager(){
  hideMessage('loginMsg');
  const username=$('managerUsername').value.trim().toLowerCase(),password=$('managerPassword').value;
@@ -1526,6 +1646,10 @@ async function logout() {
   if(branchManagersTimerInterval){clearInterval(branchManagersTimerInterval);branchManagersTimerInterval=null;}
   if(branchManagersRefreshInterval){clearInterval(branchManagersRefreshInterval);branchManagersRefreshInterval=null;}
   activeBranchManagerRows=[];activeBranchManagerNames.clear();$('branchManagersTimerBubble')?.classList.add('hidden');
+  stopDeliveryRepTracking();
+  currentDeliveryRep = null;
+  $('deliveryRepPanel').classList.add('hidden');
+  $('deliveryRepUsername').value='';$('deliveryRepPassword').value='';
   await db.auth.signOut();
   currentUser = null;
   isAdmin = false;
@@ -2318,6 +2442,12 @@ document.querySelectorAll('[data-login-choice]').forEach(button=>button.addEvent
 document.querySelectorAll('.login-back').forEach(button=>button.addEventListener('click',returnToLoginChoices));
 
 $('adminLogin').addEventListener('click',loginAdmin);
+$('deliveryRepLogin').addEventListener('click',loginDeliveryRep);
+$('deliveryRepPassword').addEventListener('keydown',e=>{if(e.key==='Enter')loginDeliveryRep();});
+$('deliveryRepAvailable').addEventListener('click',()=>setMyDeliveryRepStatus('available'));
+$('deliveryRepBusy').addEventListener('click',()=>setMyDeliveryRepStatus('busy'));
+$('deliveryRepUnavailable').addEventListener('click',()=>setMyDeliveryRepStatus('unavailable'));
+$('deliveryRepLogout').addEventListener('click',logout);
 $('managerLogin').addEventListener('click',loginBranchManager);
 $('submitManagerRequest').addEventListener('click',submitBranchManagerRequest);
 $('managerRequestPassword').addEventListener('keydown',e=>{if(e.key==='Enter')submitBranchManagerRequest();});
