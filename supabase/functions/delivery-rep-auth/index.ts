@@ -139,11 +139,16 @@ Deno.serve(async (req) => {
 
       if (duplicate) return response({ error: "هذا البريد مسجل لحساب مندوب آخر." }, 409);
 
-      const { error: updateAuthError } = await admin.auth.admin.updateUserById(
-        user.id,
-        { email, email_confirm: false },
-      );
-      if (updateAuthError) {
+      const emailUpdateResponse = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+        method: "PUT",
+        headers: {
+          "apikey": SUPABASE_ANON_KEY,
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+      if (!emailUpdateResponse.ok) {
         return response({ error: "تعذر تحديث البريد. تأكد أنه غير مستخدم في حساب آخر." }, 400);
       }
 
