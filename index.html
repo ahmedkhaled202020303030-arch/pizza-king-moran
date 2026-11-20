@@ -851,6 +851,112 @@ button:disabled{opacity:.58;filter:saturate(.55);transform:none;box-shadow:0 2px
 #attendanceTimerBubble{background:linear-gradient(145deg,#202020,#080808)!important;border-color:#b9973c!important;color:#f2d36b!important}
 #attendanceTimerDialog{background:#090909!important;border-color:#b9973c!important}
 
+
+/* NEXORA EXACT SIGNATURE PALETTE — adapted to Pizza King & Morin */
+:root{
+  color-scheme:dark;
+  --navy:#f3d58e;
+  --navy-2:#26344a;
+  --orange:#e0b653;
+  --orange-dark:#a87925;
+  --ink:#f1eee7;
+  --muted:#b7b0a2;
+  --line:#55472f;
+  --surface:#11151b;
+  --bg:#080b10;
+  --green:#42c995;
+  --red:#ef737b;
+  --shadow:0 16px 38px rgba(0,0,0,.42)
+}
+body{
+  background:radial-gradient(ellipse at 86% 0%,rgba(224,182,83,.13),transparent 34%),
+    radial-gradient(ellipse at 5% 38%,rgba(66,76,91,.16),transparent 38%),#080b10!important;
+  color:#f1eee7!important
+}
+header{
+  background:linear-gradient(120deg,#05070a 0%,#111720 58%,#202a36 100%)!important;
+  border-bottom:2px solid #c49a3e!important;
+  color:#f3d58e!important
+}
+header p{color:#d8d0bf!important}
+.panel,.stat-card,.record,.upload-card,.complaint-card,.staff-card,
+#attendanceView,.attendance-card,.profile-dialog,.staff-profile-dialog{
+  background:linear-gradient(145deg,#171b21,#0e1218)!important;
+  color:#f1eee7!important;border-color:#493d2a!important;
+  box-shadow:0 16px 38px rgba(0,0,0,.42)!important
+}
+h2,h3,.stat-card strong,.branch-line-top strong,.month-bar-value,
+.monthly-kpis strong,.activity-item strong,.upload-copy strong,
+#attendanceView h2,#attendanceView h3{
+  color:#f0d18a!important
+}
+label{color:#d8cfbd!important}
+input,select,textarea,
+#attendanceView .staff-toolbar select,#attendanceView .staff-toolbar input{
+  background:#0b1017!important;color:#f3eee3!important;border-color:#55472f!important;
+  color-scheme:dark
+}
+input:focus,select:focus,textarea:focus{
+  background:#151b23!important;border-color:#e0b653!important;
+  box-shadow:0 0 0 3px rgba(224,182,83,.2)!important
+}
+button{
+  background:linear-gradient(180deg,#f0d17f 0%,#d7ad55 48%,#b88732 100%)!important;
+  color:#17130b!important;border-color:#f0d17f!important;
+  box-shadow:0 5px 0 #805d22,0 8px 16px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.35)!important
+}
+button:hover{filter:brightness(1.08);box-shadow:0 7px 0 #805d22,0 11px 19px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.4)!important}
+button:active{box-shadow:0 1px 0 #805d22,0 3px 7px rgba(0,0,0,.35),inset 0 2px 5px rgba(0,0,0,.18)!important}
+button.secondary,.secondary,button.light,.light{
+  background:linear-gradient(135deg,#344154,#202a38)!important;
+  color:#f5dfad!important;border:1px solid #6b5835!important;
+  box-shadow:0 5px 0 #151d28,0 8px 16px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.1)!important
+}
+button.danger,.danger{background:#a93645!important;color:#fff!important;border-color:#7e2833!important}
+.record{border-top-color:#d4aa50!important}
+.record a,a{color:#e6c477!important}
+.tag,.report-total,.stat-icon,.upload-icon{
+  background:rgba(224,182,83,.15)!important;color:#f2d58e!important;
+  border:1px solid rgba(224,182,83,.32)!important
+}
+.ocr-progress span,.branch-fill{background:linear-gradient(90deg,#9f7428,#f0d17f)!important}
+.month-bar-fill{background:linear-gradient(180deg,#f0d17f,#9f7428)!important}
+.monthly-kpis>div,.profile-summary{background:#0c1118!important;border-color:#493d2a!important}
+.profile-dialog,.staff-profile-dialog{background:#111820!important;border-color:#55472f!important;color:#f1eee7!important}
+.staff-name-trigger,.staff-detail-line strong{color:#f0d18a!important}
+.app-nav button.active,#guestLogin,#pwaInstallBtn{
+  background:linear-gradient(135deg,#f0d17f,#b88732)!important;color:#17130b!important
+}
+.registration-toggle{background:linear-gradient(120deg,#242a32,#151a21)!important;color:#f0d18a!important}
+.login-choice.outline{background:#151a21!important;color:#f0d18a!important;border-color:#6a5634!important}
+:focus-visible{outline-color:#f0d17f!important}
+::placeholder{color:#918875!important;opacity:1}
+#attendanceView{
+  background:linear-gradient(145deg,#171b21,#0e1218)!important;
+  border-color:#493d2a!important;color:#f1eee7!important
+}
+#attendanceView .attendance-clock,#attendanceView .attendance-card,
+#attendanceView .attendance-summary-card,#attendanceView .attendance-table-wrap,
+#attendanceView #attendanceMessage,#attendanceView #attendanceTodayStatus,
+#attendanceTimerDialog{
+  background:linear-gradient(145deg,#171b21,#0e1218)!important;
+  border-color:#55472f!important;color:#f1eee7!important
+}
+#attendanceView .attendance-admin-table th{
+  background:#202a36!important;color:#f0d18a!important;border-color:#55472f!important
+}
+#attendanceView .attendance-admin-table td,
+#attendanceView .attendance-admin-table tr:nth-child(even),
+#attendanceView .attendance-admin-table tr:hover{
+  background:#0c1118!important;color:#f1eee7!important;border-color:#302a20!important
+}
+#attendanceView .attendance-summary-card span{color:#b7b0a2!important}
+#attendanceView .attendance-export-btn{background:linear-gradient(135deg,#f0d17f,#b88732)!important;color:#17130b!important}
+#attendanceView .attendance-status-pill.complete{background:#244b3d!important;color:#8de0b8!important}
+#attendanceView .attendance-status-pill.open{background:#574729!important;color:#f5d18c!important}
+#attendanceTimerBubble{background:linear-gradient(145deg,#111820,#0b1017)!important;border-color:#c49a3e!important;color:#f0d18a!important}
+#attendanceTimerDialog{background:#111820!important;border-color:#c49a3e!important}
+
 </style>
 </head>
 <body>
