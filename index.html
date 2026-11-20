@@ -962,6 +962,11 @@ button.danger,.danger{background:#a93645!important;color:#fff!important;border-c
 
 
 
+
+#installDeliveryAppBtn.delivery-install-inline{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;margin:10px 0;padding:13px 16px;border:1px solid #b88732;border-radius:12px;background:linear-gradient(145deg,#f0d17f,#b88732);color:#17130b;font-weight:900;box-shadow:0 7px 18px rgba(0,0,0,.28);cursor:pointer}
+#installDeliveryAppBtn.delivery-install-inline svg{width:21px;height:21px;flex:none}
+html.delivery-app-mode #installDeliveryAppBtn.delivery-install-inline{display:none!important}
+
 /* Standalone Pizza King Delivery app */
 html.delivery-app-mode,html.delivery-app-mode body{min-height:100%;background:#080b10!important;color:#f1eee7!important}
 html.delivery-app-mode body{font-family:Tahoma,Arial,sans-serif}
@@ -1053,6 +1058,7 @@ html.delivery-app-mode #pwaInstallBtn{background:linear-gradient(145deg,#f0d17f,
   <label for="deliveryRepRecoveryEmail">البريد الإلكتروني المسجل بالحساب</label>
   <input id="deliveryRepRecoveryEmail" type="email" autocomplete="email" placeholder="name@example.com">
   <button id="deliveryRepLogin" class="secondary">تسجيل الدخول</button>
+  <button id="installDeliveryAppBtn" type="button" class="delivery-install-inline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5"/><path d="M5 17v3h14v-3"/></svg><span>تثبيت تطبيق المندوب المستقل</span></button>
   <button id="deliveryRepForgotPassword" type="button" class="light">نسيت كلمة المرور؟</button>
   <button id="deliveryRepRegisterBtn" type="button" class="light">إنشاء حساب مندوب جديد</button>
   <p class="muted">قدّم طلب تسجيل وانتظر موافقة المدير الرئيسي أو مدير الفرع.</p>
@@ -2996,6 +3002,13 @@ document.querySelectorAll('.manager-register-back').forEach(button=>button.addEv
 
 $('adminLogin').addEventListener('click',loginAdmin);
 $('deliveryRepLogin').addEventListener('click',loginDeliveryRep);
+$('installDeliveryAppBtn').addEventListener('click',()=>{
+ if(window.DELIVERY_APP_MODE){
+  $('pwaInstallBtn')?.click();
+  return;
+ }
+ window.open('/?app=delivery','_blank','noopener');
+});
 $('deliveryRepRegisterBtn').addEventListener('click',()=>{
  $('deliveryRepRegisterMessage').textContent='';
  $('deliveryRepRegisterBranch').innerHTML='<option value="">اختر الفرع</option>'+branches.map(branch=>'<option value="'+escapeHTML(branch)+'">'+escapeHTML(branch)+'</option>').join('');
