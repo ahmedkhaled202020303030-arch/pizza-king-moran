@@ -762,6 +762,52 @@ button:hover{filter:brightness(1.08);box-shadow:0 8px 22px rgba(181,139,37,.28)}
 .upload-card:hover{border-color:#d4af37}
 :focus-visible{outline-color:#e5c46f}
 
+
+/* THREE-DIMENSIONAL BUTTONS — black & gold finish */
+button{
+  position:relative;
+  border:1px solid #f0d77d;
+  border-bottom:4px solid #876719;
+  border-radius:12px;
+  background:linear-gradient(180deg,#f2d778 0%,#d4af37 48%,#ae8420 100%);
+  color:#17130a;
+  text-shadow:0 1px 0 rgba(255,255,255,.22);
+  box-shadow:0 5px 0 #5e4715,0 8px 16px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.48);
+  transform:translateY(0);
+  transition:transform .14s ease,box-shadow .14s ease,filter .14s ease;
+}
+button:hover{
+  filter:brightness(1.08);
+  transform:translateY(-2px);
+  box-shadow:0 7px 0 #5e4715,0 11px 19px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.55);
+}
+button:active{
+  transform:translateY(3px);
+  border-bottom-width:1px;
+  box-shadow:0 1px 0 #5e4715,0 3px 7px rgba(0,0,0,.35),inset 0 2px 5px rgba(0,0,0,.18);
+}
+button.secondary,button.light{
+  color:#f0d77d;
+  background:linear-gradient(180deg,#38332a 0%,#211e19 52%,#111 100%);
+  border:1px solid #c49b2e;
+  border-bottom:4px solid #765b1b;
+  box-shadow:0 5px 0 #493813,0 8px 16px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.12);
+}
+button.secondary:hover,button.light:hover{
+  box-shadow:0 7px 0 #493813,0 11px 19px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.16);
+}
+button.secondary:active,button.light:active{
+  box-shadow:0 1px 0 #493813,0 3px 7px rgba(0,0,0,.35),inset 0 2px 5px rgba(0,0,0,.3);
+}
+button.danger{
+  color:#fff;background:linear-gradient(180deg,#d85b5b,#9f2929);
+  border-color:#ef9999;border-bottom-color:#641919;
+  box-shadow:0 5px 0 #641919,0 8px 16px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.25);
+}
+button.danger:hover{box-shadow:0 7px 0 #641919,0 11px 19px rgba(0,0,0,.42)}
+button.danger:active{box-shadow:0 1px 0 #641919,0 3px 7px rgba(0,0,0,.35)}
+button:disabled{opacity:.58;filter:saturate(.55);transform:none;box-shadow:0 2px 0 #5e4715}
+
 </style>
 </head>
 <body>
