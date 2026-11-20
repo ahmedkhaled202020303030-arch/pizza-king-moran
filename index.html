@@ -636,18 +636,6 @@ a{color:#e3bd78}
   box-shadow:0 8px 22px rgba(8,17,31,.36);
 }
 
-/* Navy color for the branch-manager account request choice */
-.login-choice[data-login-choice="managerRegisterFields"]{
-  background:linear-gradient(135deg,#172536,#263f60);
-  color:#f2cc62;
-  border:1px solid #d4af37;
-  box-shadow:0 6px 18px rgba(8,17,31,.28);
-}
-.login-choice[data-login-choice="managerRegisterFields"]:hover{
-  background:linear-gradient(135deg,#203b5b,#315477);
-  box-shadow:0 8px 22px rgba(8,17,31,.36);
-}
-
 /* Light mode */
 html.light-theme{color-scheme:light;--navy:#14263d;--navy-2:#203b5b;--orange:#e98220;--orange-dark:#c96812;--ink:#243247;--muted:#718096;--line:#e2e8f0;--surface:#fff;--bg:#f3f6fa;--green:#16845b;--red:#c0393b;--shadow:0 10px 28px rgba(20,38,61,.08)}
 html.light-theme body{background:var(--bg);color:var(--ink)}
@@ -986,7 +974,6 @@ button.danger,.danger{background:#a93645!important;color:#fff!important;border-c
   <button type="button" class="login-choice secondary" data-login-choice="operationsLoginFields">دخول مدير التشغيل</button>
   <button type="button" class="login-choice light" data-login-choice="managerLoginFields">دخول مديرين الفروع</button>
   <button type="button" class="login-choice secondary" data-login-choice="deliveryRepLoginFields">دخول مندوب المطاعم</button>
-  <button type="button" class="login-choice" data-login-choice="managerRegisterFields">طلب إنشاء حساب مدير فرع</button>
 </div>
 
 <div id="adminLoginFields" class="login-fields hidden">
@@ -1015,6 +1002,7 @@ button.danger,.danger{background:#a93645!important;color:#fff!important;border-c
   <input id="managerPassword" type="password" autocomplete="current-password" placeholder="كلمة المرور">
   <button id="managerLogin">تسجيل الدخول</button>
   <p class="muted">الحسابات لا تعمل إلا بعد اعتماد المدير الرئيسي.</p>
+  <button type="button" id="openManagerRegister" class="light">طلب إنشاء حساب مدير فرع جديد</button>
   <button type="button" class="light login-back">رجوع</button>
 </div>
 
@@ -1047,7 +1035,7 @@ button.danger,.danger{background:#a93645!important;color:#fff!important;border-c
   <input id="managerRequestPassword" type="password" minlength="6" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" autocomplete="new-password" placeholder="6 أرقام">
   <button id="submitManagerRequest">إرسال طلب التسجيل</button>
   <p class="muted">سيتم مراجعة الطلب وتفعيل الحساب بعد موافقة المدير الرئيسي وتأكيد الفرع.</p>
-  <button type="button" class="light login-back">رجوع</button>
+  <button type="button" class="light manager-register-back">رجوع إلى دخول مدير الفرع</button>
 </div>
 </section>
 
@@ -2965,6 +2953,8 @@ function returnToLoginChoices() {
 }
 document.querySelectorAll('[data-login-choice]').forEach(button=>button.addEventListener('click',()=>showLoginChoice(button.dataset.loginChoice)));
 document.querySelectorAll('.login-back').forEach(button=>button.addEventListener('click',returnToLoginChoices));
+$('openManagerRegister').addEventListener('click',()=>showLoginChoice('managerRegisterFields'));
+document.querySelectorAll('.manager-register-back').forEach(button=>button.addEventListener('click',()=>showLoginChoice('managerLoginFields')));
 
 $('adminLogin').addEventListener('click',loginAdmin);
 $('deliveryRepLogin').addEventListener('click',loginDeliveryRep);
