@@ -3210,14 +3210,11 @@ if (window.DELIVERY_APP_MODE) {
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
   const isAndroid = /android/i.test(navigator.userAgent);
   const isMobileDevice = isIOS || isAndroid;
-  // The independent Delivery app is installable from desktop browsers only.
-  if (window.DELIVERY_APP_MODE) {
-    if (!isMobileDevice) installButton.classList.add('visible');
-  } else if (isMobileDevice) {
+  // Show the dedicated Delivery install control on desktop and mobile.
+  if (window.DELIVERY_APP_MODE || isMobileDevice) {
     installButton.classList.add('visible');
   }
   window.addEventListener('beforeinstallprompt', event => {
-    if (window.DELIVERY_APP_MODE && isMobileDevice) return;
     event.preventDefault();
     installPrompt = event;
     installButton.classList.add('visible');
