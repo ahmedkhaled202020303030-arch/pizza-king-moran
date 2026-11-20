@@ -710,6 +710,58 @@ html.light-theme #themeToggle{background:#fff;color:#203b5b;border-color:#d8e0e9
 .leaflet-popup-content{font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;line-height:1.8}
 @media(max-width:600px){#deliveryRepsMap{height:58vh;min-height:330px}.delivery-map-toolbar>div,.delivery-map-toolbar button{width:100%;min-width:100%}}
 
+
+/* BLACK & GOLD THEME — no navy/blue palette */
+:root{
+  color-scheme:dark;
+  --navy:#080808;--navy-2:#171717;
+  --orange:#d4af37;--orange-dark:#a98220;
+  --ink:#f3f0e7;--muted:#aaa69b;--line:#39352a;
+  --surface:#141414;--bg:#090909;
+  --green:#42b883;--red:#df6666;
+  --shadow:0 14px 34px rgba(0,0,0,.42)
+}
+body{background:var(--bg);color:var(--ink)}
+header{
+  color:#f7e7b0;
+  background:linear-gradient(125deg,#050505 0%,#111 68%,#1b1b1b 100%);
+  border-bottom:4px solid #d4af37
+}
+header:before,header:after{border-color:rgba(212,175,55,.15)}
+header p{color:#c9c3b3}
+.panel,.stat-card,.record,.upload-card,.complaint-card{
+  background:linear-gradient(145deg,#191919,#101010);
+  color:var(--ink);border-color:#39352a;box-shadow:var(--shadow)
+}
+h2,h3,.stat-card strong,.branch-line-top strong,.month-bar-value,
+.monthly-kpis strong,.activity-item strong,.upload-copy strong{color:#e2c15d}
+label{color:#d8d1bd}
+input,select,textarea{
+  color:#f3f0e7;background:#101010;border-color:#494234;color-scheme:dark
+}
+input:focus,select:focus,textarea:focus{
+  background:#171717;border-color:#d4af37;
+  box-shadow:0 0 0 3px rgba(212,175,55,.16)
+}
+button{
+  background:linear-gradient(135deg,#e0c15d,#b58b25);
+  color:#17130a;box-shadow:0 6px 18px rgba(181,139,37,.2)
+}
+button:hover{filter:brightness(1.08);box-shadow:0 8px 22px rgba(181,139,37,.28)}
+.secondary,.light{
+  background:#171717;color:#e5c46f;border:1px solid #8e7027;box-shadow:none
+}
+.danger{background:#8e2929;color:#fff;border:0}
+.record{border-top-color:#d4af37}
+.record a,a{color:#e5c46f}
+.tag,.report-total,.stat-icon,.upload-icon{
+  background:rgba(212,175,55,.12);color:#e5c46f;border-color:rgba(212,175,55,.3)
+}
+.ocr-progress span,.branch-fill{background:linear-gradient(90deg,#a98220,#e5c46f)}
+.month-bar-fill{background:linear-gradient(180deg,#f0d987,#a98220)}
+.upload-card:hover{border-color:#d4af37}
+:focus-visible{outline-color:#e5c46f}
+
 </style>
 </head>
 <body>
