@@ -988,6 +988,10 @@ html.delivery-app-mode #deliveryRepPanel .panel{background:#10151c!important;bor
 html.delivery-app-mode #deliveryRepRegisterDialog,html.delivery-app-mode #deliveryRepRecoveryDialog{background:#111820!important;color:#f1eee7!important;border:1px solid #b88732!important;border-radius:18px!important;max-width:min(94vw,520px)}
 html.delivery-app-mode #deliveryRepRegisterDialog input,html.delivery-app-mode #deliveryRepRegisterDialog select,html.delivery-app-mode #deliveryRepRecoveryDialog input{background:#090d13!important;color:#fff!important;border:1px solid #55472f!important}
 html.delivery-app-mode #pwaInstallBtn{background:linear-gradient(145deg,#f0d17f,#b88732)!important;color:#17130b!important;border:1px solid #f0d17f!important;box-shadow:0 8px 24px rgba(0,0,0,.45)!important}
+html.delivery-app-mode #pwaInstallBtn{left:16px!important;right:16px!important;bottom:calc(18px + env(safe-area-inset-bottom))!important;width:calc(100% - 32px)!important;max-width:588px!important;min-height:54px!important;margin:0 auto!important;padding:15px 20px!important;justify-content:center!important;border-radius:15px!important;font-size:16px!important;font-weight:900!important;letter-spacing:.1px!important;z-index:1300!important}
+html.delivery-app-mode #pwaInstallBtn.visible{display:flex!important}
+html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!important}
+@media(min-width:620px){html.delivery-app-mode #pwaInstallBtn{left:50%!important;right:auto!important;transform:translateX(-50%)!important}}
 
 </style>
 </head>
