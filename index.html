@@ -7,6 +7,21 @@
 <meta name="theme-color" content="#091321">
 <meta name="description" content="نظام إدارة ومتابعة خدمة العملاء Pizza King & Morin">
 <link rel="manifest" href="/manifest.webmanifest">
+<script>
+(() => {
+  const deliveryMode = new URLSearchParams(location.search).get('app') === 'delivery';
+  window.DELIVERY_APP_MODE = deliveryMode;
+  if (!deliveryMode) return;
+  document.documentElement.classList.add('delivery-app-mode');
+  document.title = 'Pizza King Delivery';
+  const manifest = document.querySelector('link[rel="manifest"]');
+  if (manifest) manifest.href = '/manifest-delivery.webmanifest';
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#080b10');
+  document.querySelector('meta[name="description"]')?.setAttribute('content', 'تطبيق مستقل لمندوبي توصيل Pizza King');
+  document.querySelector('link[rel="icon"]')?.setAttribute('href', '/icons/delivery-icon.svg');
+  document.querySelector('link[rel="apple-touch-icon"]')?.setAttribute('href', '/icons/delivery-icon.svg');
+})();
+</script>
 <link rel="icon" type="image/svg+xml" href="/icons/app-icon.svg">
 <link rel="apple-touch-icon" href="/icons/app-icon.svg">
 <title>Pizza King & Morin - خدمة العملاء</title>
@@ -945,6 +960,29 @@ button.danger,.danger{background:#a93645!important;color:#fff!important;border-c
 #attendanceTimerBubble{background:linear-gradient(145deg,#111820,#0b1017)!important;border-color:#c49a3e!important;color:#f0d18a!important}
 #attendanceTimerDialog{background:#111820!important;border-color:#c49a3e!important}
 
+
+
+/* Standalone Pizza King Delivery app */
+html.delivery-app-mode,html.delivery-app-mode body{min-height:100%;background:#080b10!important;color:#f1eee7!important}
+html.delivery-app-mode body{font-family:Tahoma,Arial,sans-serif}
+html.delivery-app-mode #themeToggle,html.delivery-app-mode header,html.delivery-app-mode footer{display:none!important}
+html.delivery-app-mode main{width:min(100%,620px);min-height:100svh;margin:0 auto;padding:24px 14px 100px}
+html.delivery-app-mode main>*:not(#loginPanel):not(#deliveryRepPanel):not(#deliveryRepRegisterDialog):not(#deliveryRepRecoveryDialog){display:none!important}
+html.delivery-app-mode #loginPanel,html.delivery-app-mode #deliveryRepPanel{background:linear-gradient(155deg,#171b21,#0e1218)!important;border:1px solid #8f6a2b!important;border-radius:22px!important;box-shadow:0 18px 48px rgba(0,0,0,.4)!important;color:#f1eee7!important;padding:24px!important;margin-top:5vh}
+html.delivery-app-mode #loginPanel>h2{display:block!important;color:#f0d17f!important;text-align:center;font-size:25px;margin:0 0 18px}
+html.delivery-app-mode #loginPanel>p:not(#loginMsg){display:none!important}
+html.delivery-app-mode #loginChoices{display:none!important}
+html.delivery-app-mode #loginPanel .login-fields:not(#deliveryRepLoginFields){display:none!important}
+html.delivery-app-mode #deliveryRepLoginFields{display:block!important}
+html.delivery-app-mode #deliveryRepLoginFields h3{color:#f0d17f!important;text-align:center}
+html.delivery-app-mode #deliveryRepLoginFields label,html.delivery-app-mode #deliveryRepPanel label{color:#e7d8b5!important}
+html.delivery-app-mode #deliveryRepLoginFields input,html.delivery-app-mode #deliveryRepPanel input{background:#090d13!important;color:#fff!important;border:1px solid #55472f!important;border-radius:12px!important;min-height:48px}
+html.delivery-app-mode #deliveryRepLoginFields button,html.delivery-app-mode #deliveryRepPanel button{border-radius:12px!important;min-height:46px}
+html.delivery-app-mode #deliveryRepPanel h2,html.delivery-app-mode #deliveryRepPanel h3{color:#f0d17f!important}
+html.delivery-app-mode #deliveryRepPanel .panel{background:#10151c!important;border:1px solid #493d2a!important;border-radius:16px!important;color:#f1eee7!important}
+html.delivery-app-mode #deliveryRepRegisterDialog,html.delivery-app-mode #deliveryRepRecoveryDialog{background:#111820!important;color:#f1eee7!important;border:1px solid #b88732!important;border-radius:18px!important;max-width:min(94vw,520px)}
+html.delivery-app-mode #deliveryRepRegisterDialog input,html.delivery-app-mode #deliveryRepRegisterDialog select,html.delivery-app-mode #deliveryRepRecoveryDialog input{background:#090d13!important;color:#fff!important;border:1px solid #55472f!important}
+html.delivery-app-mode #pwaInstallBtn{background:linear-gradient(145deg,#f0d17f,#b88732)!important;color:#17130b!important;border:1px solid #f0d17f!important;box-shadow:0 8px 24px rgba(0,0,0,.45)!important}
 
 </style>
 </head>
@@ -3125,6 +3163,12 @@ $('customerProfileModal').addEventListener('click',event => {
   if(event.target === $('customerProfileModal')) closeCustomerProfile();
 });
 
+if (window.DELIVERY_APP_MODE) {
+  $('deliveryRepPanel').querySelector('h2').textContent = 'Pizza King Delivery';
+  showLoginChoice('deliveryRepLoginFields');
+  $('loginPanel').classList.remove('hidden');
+}
+
 </script>
 
 <button id="pwaInstallBtn" type="button" aria-label="تثبيت التطبيق">
@@ -3142,6 +3186,7 @@ $('customerProfileModal').addEventListener('click',event => {
   }
   const installButton = document.getElementById('pwaInstallBtn');
   if (!installButton) return;
+  if (window.DELIVERY_APP_MODE) installButton.innerHTML = installButton.innerHTML.replace('تثبيت التطبيق','تثبيت تطبيق المندوب');
   let installPrompt = null;
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
   if (isStandalone) return;
