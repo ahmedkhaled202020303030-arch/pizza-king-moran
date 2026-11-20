@@ -3208,17 +3208,27 @@ if (window.DELIVERY_APP_MODE) {
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
   if (isStandalone) return;
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  if (isIOS || /android/i.test(navigator.userAgent)) installButton.classList.add('visible');
+  const isAndroid = /android/i.test(navigator.userAgent);
+  const isMobileDevice = isIOS || isAndroid;
+  // The independent Delivery app is installable from desktop browsers only.
+  if (window.DELIVERY_APP_MODE) {
+    if (!isMobileDevice) installButton.classList.add('visible');
+  } else if (isMobileDevice) {
+    installButton.classList.add('visible');
+  }
   window.addEventListener('beforeinstallprompt', event => {
+    if (window.DELIVERY_APP_MODE && isMobileDevice) return;
     event.preventDefault();
     installPrompt = event;
     installButton.classList.add('visible');
   });
   installButton.addEventListener('click', async () => {
     if (!installPrompt) {
-      alert(isIOS
-        ? 'لتثبيت التطبيق: اضغط مشاركة في Safari ثم اختر «إضافة إلى الشاشة الرئيسية».'
-        : 'لتثبيت التطبيق: افتح قائمة المتصفح ⋮ ثم اختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية».');
+      alert(window.DELIVERY_APP_MODE
+        ? 'لتثبيت تطبيق المندوب على سطح المكتب: افتح قائمة Chrome أو Edge ثم اختر «تثبيت Pizza King Delivery» أو «تثبيت التطبيق».'
+        : isIOS
+          ? 'لتثبيت التطبيق: اضغط مشاركة في Safari ثم اختر «إضافة إلى الشاشة الرئيسية».'
+          : 'لتثبيت التطبيق: افتح قائمة المتصفح ⋮ ثم اختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية».');
       return;
     }
     installPrompt.prompt();
