@@ -709,6 +709,75 @@ html.light-theme #themeToggle{background:#fff;color:#203b5b;border-color:#d8e0e9
 .delivery-map-marker.available{background:#16a36a}.delivery-map-marker.busy{background:#e69a24}
 .leaflet-popup-content{font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;line-height:1.8}
 @media(max-width:600px){#deliveryRepsMap{height:58vh;min-height:330px}.delivery-map-toolbar>div,.delivery-map-toolbar button{width:100%;min-width:100%}}
+
+/* NEXORA-INSPIRED GOLD / BLACK / NAVY PALETTE */
+:root{
+  color-scheme:dark;
+  --navy:#e5c46f;
+  --navy-2:#24344d;
+  --orange:#d4af37;
+  --orange-dark:#a98220;
+  --ink:#f1eee5;
+  --muted:#a8adba;
+  --line:#30394a;
+  --surface:#111722;
+  --bg:#080b12;
+  --green:#42c995;
+  --red:#ef737b;
+  --shadow:0 16px 38px rgba(0,0,0,.38)
+}
+body{
+  background:
+    radial-gradient(ellipse at 88% 0%,rgba(212,175,55,.10),transparent 34%),
+    radial-gradient(ellipse at 0% 35%,rgba(35,52,77,.28),transparent 40%),
+    var(--bg);
+  color:var(--ink)
+}
+header{
+  background:linear-gradient(120deg,#07090e 0%,#101827 58%,#1b2b43 100%);
+  border-bottom:2px solid #d4af37
+}
+header:before,header:after{border-color:rgba(212,175,55,.18)}
+header p{color:#d6d1c4}
+.brand-logo{
+  border-color:rgba(212,175,55,.9);
+  box-shadow:0 12px 28px rgba(0,0,0,.45),0 0 0 4px rgba(212,175,55,.12)
+}
+.panel,.stat-card,.record,.upload-card,.complaint-card{
+  background:linear-gradient(145deg,#151d2b,#0e131d);
+  border-color:#30394a;
+  box-shadow:var(--shadow)
+}
+h2,h3,.stat-card strong,.branch-line-top strong,.month-bar-value,
+.monthly-kpis strong,.activity-item strong,.upload-copy strong{
+  color:#e5c46f
+}
+label{color:#d8d5cc}
+input,select,textarea{
+  color:#f1eee5;background:#0a101a;border-color:#3b4557;color-scheme:dark
+}
+input:focus,select:focus,textarea:focus{
+  background:#111b2a;border-color:#d4af37;
+  box-shadow:0 0 0 3px rgba(212,175,55,.17)
+}
+button{
+  background:linear-gradient(135deg,#e2c66f,#b58b25);
+  color:#17140b;
+  box-shadow:0 6px 18px rgba(181,139,37,.22)
+}
+button:hover{filter:brightness(1.08);box-shadow:0 9px 22px rgba(181,139,37,.3)}
+.secondary{background:linear-gradient(135deg,#31445f,#1c2a40);color:#f3e8c8}
+.light{background:#263143;color:#e9e6de}
+.record{border-top-color:#d4af37}
+.record a,a{color:#e5c46f}
+.tag,.report-total,.stat-icon,.upload-icon{
+  background:rgba(212,175,55,.14);color:#e5c46f;border-color:rgba(212,175,55,.3)
+}
+.ocr-progress span,.branch-fill{background:linear-gradient(90deg,#a98220,#e5c46f)}
+.month-bar-fill{background:linear-gradient(180deg,#f0d987,#a98220)}
+.upload-card:hover{border-color:#d4af37}
+:focus-visible{outline-color:#e5c46f}
+
 </style>
 </head>
 <body>
