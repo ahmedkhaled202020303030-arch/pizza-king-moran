@@ -778,6 +778,75 @@ button:hover{filter:brightness(1.08);box-shadow:0 9px 22px rgba(181,139,37,.3)}
 .upload-card:hover{border-color:#d4af37}
 :focus-visible{outline-color:#e5c46f}
 
+
+/* Premium Pizza King login landing page */
+body:has(#loginPanel:not(.hidden)){
+  min-height:100vh;
+  background:
+    linear-gradient(90deg,rgba(4,7,12,.98) 0%,rgba(4,7,12,.94) 34%,rgba(4,7,12,.66) 53%,rgba(4,7,12,.12) 100%),
+    linear-gradient(0deg,rgba(4,7,12,.36),rgba(4,7,12,.08)),
+    url("https://tb-static.uber.com/prod/image-proc/processed_images/735300c61a3f171339dc159f27f11c60/3ac2b39ad528f8c8c5dc77c59abb683d.jpeg") center right/cover fixed no-repeat,
+    #080b12;
+  color:#f1eee5;
+}
+body:has(#loginPanel:not(.hidden)) header,
+body:has(#loginPanel:not(.hidden)) #themeToggle{display:none}
+body:has(#loginPanel:not(.hidden)) main{
+  width:100%;min-height:100vh;margin:0;padding:36px clamp(18px,5vw,76px);
+  display:flex;align-items:center;justify-content:flex-start;
+}
+body:has(#loginPanel:not(.hidden)) #loginPanel{
+  width:min(100%,540px);max-width:540px;margin:0;padding:34px 38px;
+  background:linear-gradient(145deg,rgba(5,12,21,.97),rgba(5,10,17,.94));
+  border:1px solid rgba(212,175,55,.48);border-radius:24px;
+  box-shadow:0 24px 70px rgba(0,0,0,.58),inset 0 1px 0 rgba(255,255,255,.035);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+}
+body:has(#loginPanel:not(.hidden)) #loginPanel h2{
+  color:#e5c46f;font-size:27px;text-align:center;margin:0 0 10px
+}
+body:has(#loginPanel:not(.hidden)) #loginPanel>.muted{
+  color:#b9bdc6;text-align:center;margin-bottom:16px
+}
+body:has(#loginPanel:not(.hidden)) #loginPanel h3{color:#e5c46f}
+body:has(#loginPanel:not(.hidden)) #loginPanel label{color:#ded9ca}
+body:has(#loginPanel:not(.hidden)) #loginPanel input,
+body:has(#loginPanel:not(.hidden)) #loginPanel select{
+  color:#f5f0e4;background:rgba(8,15,25,.94);border-color:#3a4556;border-radius:12px
+}
+body:has(#loginPanel:not(.hidden)) #loginPanel input:focus,
+body:has(#loginPanel:not(.hidden)) #loginPanel select:focus{
+  border-color:#d4af37;box-shadow:0 0 0 3px rgba(212,175,55,.16)
+}
+body:has(#loginPanel:not(.hidden)) #loginPanel .login-choice{
+  min-height:52px;border:1px solid rgba(212,175,55,.56);
+  background:linear-gradient(135deg,#dfbf63,#ad8426);color:#17140b;
+  border-radius:12px;box-shadow:0 7px 20px rgba(181,139,37,.18)
+}
+body:has(#loginPanel:not(.hidden)) #loginPanel .login-choice.secondary,
+body:has(#loginPanel:not(.hidden)) #loginPanel .login-choice.light{
+  background:linear-gradient(135deg,#26364d,#121c2b);color:#f0d78f
+}
+body:has(#loginPanel:not(.hidden)) #loginPanel .login-fields .login-back,
+body:has(#loginPanel:not(.hidden)) #loginPanel .login-fields button.light{
+  background:#202b3b;color:#e7d8ad;border:1px solid #3a4556;box-shadow:none
+}
+body:has(#loginPanel:not(.hidden)) #loginPanel .msg{color:#f1eee5}
+@media(max-width:700px){
+  body:has(#loginPanel:not(.hidden)){
+    background:
+      linear-gradient(180deg,rgba(4,7,12,.44) 0%,rgba(4,7,12,.86) 35%,rgba(4,7,12,.98) 72%),
+      url("https://tb-static.uber.com/prod/image-proc/processed_images/735300c61a3f171339dc159f27f11c60/3ac2b39ad528f8c8c5dc77c59abb683d.jpeg") center top/auto 48vh no-repeat,
+      #080b12;
+  }
+  body:has(#loginPanel:not(.hidden)) main{min-height:100svh;padding:24px 14px;align-items:flex-end}
+  body:has(#loginPanel:not(.hidden)) #loginPanel{
+    width:100%;padding:24px 20px;margin:0;border-radius:20px;
+    background:linear-gradient(160deg,rgba(5,12,21,.96),rgba(5,10,17,.99))
+  }
+  body:has(#loginPanel:not(.hidden)) #loginPanel h2{font-size:23px}
+}
+
 </style>
 </head>
 <body>
