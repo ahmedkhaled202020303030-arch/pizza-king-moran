@@ -1135,8 +1135,7 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
   <input id="deliveryRepUsername" type="text" autocomplete="username" placeholder="اسم المستخدم المخصص لك">
   <label for="deliveryRepPassword">كلمة المرور</label>
   <input id="deliveryRepPassword" type="password" autocomplete="current-password" placeholder="كلمة المرور">
-  <label for="deliveryRepRecoveryEmail">البريد الإلكتروني المسجل بالحساب</label>
-  <input id="deliveryRepRecoveryEmail" type="email" autocomplete="email" placeholder="name@example.com">
+  <p class="muted">في حالة نسيان كلمة المرور، تواصل مع المدير الرئيسي أو مدير الفرع لإعادة تعيينها.</p>
   <button id="deliveryRepLogin" class="secondary">تسجيل الدخول</button>
   <button id="installDeliveryAppBtn" type="button" class="delivery-install-inline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5"/><path d="M5 17v3h14v-3"/></svg><span>تثبيت تطبيق المندوب</span></button>
   <button id="deliveryRepForgotPassword" type="button" class="light">نسيت كلمة المرور؟</button>
@@ -1180,14 +1179,7 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
       <button id="deliveryRepBusy" type="button" class="secondary">مشغول</button>
       <button id="deliveryRepUnavailable" type="button" class="light">غير متاح</button>
     </div>
-    <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line)">
-      <h3>إيميل استعادة كلمة المرور</h3>
-      <p class="muted">سجّل إيميلك الشخصي الذي تستطيع فتحه من هاتفك. سنرسل إليه رسالة تأكيد.</p>
-      <label for="deliveryRepEmail">البريد الإلكتروني</label>
-      <input id="deliveryRepEmail" type="email" autocomplete="email" placeholder="name@example.com">
-      <button id="deliveryRepSaveEmail" type="button" class="secondary">حفظ / تحديث الإيميل</button>
-      <p id="deliveryRepEmailMessage" class="muted"></p>
-      <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line)"><h3>طلباتي الحالية</h3><p class="muted">اقبل الطلب، حدّث حالته، وسجّل التحصيل عند التسليم.</p><div id="deliveryRepOrdersList" class="delivery-order-grid"><p class="muted">لا توجد طلبات مسندة إليك.</p></div></div>
+    <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line)"><h3>طلباتي الحالية</h3><p class="muted">اقبل الطلب، حدّث حالته، وسجّل التحصيل عند التسليم.</p><div id="deliveryRepOrdersList" class="delivery-order-grid"><p class="muted">لا توجد طلبات مسندة إليك.</p></div></div>
     </div>
   </div>
 </section>
@@ -1197,8 +1189,6 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
 <label for="deliveryRepRegisterName">الاسم بالكامل</label><input id="deliveryRepRegisterName" maxlength="100">
 <label for="deliveryRepRegisterPhone">رقم الهاتف</label><input id="deliveryRepRegisterPhone" type="tel" maxlength="20">
 <label for="deliveryRepRegisterUsername">اسم المستخدم</label><input id="deliveryRepRegisterUsername" maxlength="40" placeholder="إنجليزي وأرقام">
-<label for="deliveryRepRegisterEmail">البريد الإلكتروني الشخصي</label><input id="deliveryRepRegisterEmail" type="email" maxlength="254" autocomplete="email" placeholder="name@example.com">
-<p class="muted">سنرسل رسالة تأكيد إلى هذا البريد. يجب تأكيده قبل تفعيل الحساب.</p>
 <label for="deliveryRepRegisterBranch">الفرع المطلوب</label><select id="deliveryRepRegisterBranch"><option value="">اختر الفرع</option></select>
 <label for="deliveryRepRegisterPassword">كلمة المرور</label><input id="deliveryRepRegisterPassword" type="password" minlength="8" maxlength="128" placeholder="8 أحرف على الأقل">
 <button id="deliveryRepRegisterSubmit" type="button">إرسال طلب التسجيل</button><button id="deliveryRepRegisterClose" type="button" class="light">إغلاق</button><p id="deliveryRepRegisterMessage" class="muted"></p>
@@ -1805,21 +1795,7 @@ async function callDeliveryRepAuth(payload){
 }
 
 async function requestDeliveryRepPasswordReset(){
- hideMessage('loginMsg');
- const username=$('deliveryRepUsername').value.trim().toLowerCase();
- const email=$('deliveryRepRecoveryEmail').value.trim().toLowerCase();
- if(!/^[a-z0-9._-]{3,40}$/.test(username)){
-  showMessage('loginMsg','اكتب اسم المستخدم أولاً.',true);return;
- }
- if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
-  showMessage('loginMsg','اكتب البريد الإلكتروني المسجل بالحساب بشكل صحيح.',true);return;
- }
- try{
-  await callDeliveryRepAuth({action:'forgot',username,email});
-  showMessage('loginMsg','إذا كان اسم المستخدم والبريد متطابقين والبريد مؤكدًا، ستصلك رسالة إعادة تعيين كلمة المرور. راجع الوارد والرسائل غير المرغوب فيها.');
- }catch(error){
-  showMessage('loginMsg','تعذر إرسال رسالة الاستعادة حالياً. حاول لاحقاً أو تواصل مع المدير.',true);
- }
+ showMessage('loginMsg','لإعادة تعيين كلمة المرور، تواصل مع المدير الرئيسي أو مدير الفرع. يمكنه تعيين كلمة مرور جديدة من قائمة المندوبين.',true);
 }
 
 async function saveDeliveryRepEmail(){
@@ -1888,8 +1864,6 @@ async function loginDeliveryRep(){
  $('deliveryRepPanel').classList.remove('hidden');
  $('deliveryRepWelcome').textContent='مرحباً '+rep.full_name;
  $('deliveryRepBranch').textContent=rep.branch;
- $('deliveryRepEmail').value=rep.email||'';
- $('deliveryRepEmailMessage').textContent=rep.email?'الإيميل المسجل: '+rep.email:'لم يتم تسجيل إيميل استعادة حتى الآن.';
  renderDeliveryRepStatus(rep.availability_status);
  await loadMyDeliveryOrders();
  if(rep.availability_status==='available'||rep.availability_status==='busy')startDeliveryRepTracking();
@@ -2227,18 +2201,18 @@ function openDeliveryRepsMap(){
 
 async function submitDeliveryRepRegistration(){
  const full_name=$('deliveryRepRegisterName').value.trim(),phone=$('deliveryRepRegisterPhone').value.trim();
- const username=$('deliveryRepRegisterUsername').value.trim().toLowerCase(),email=$('deliveryRepRegisterEmail').value.trim().toLowerCase(),branch=$('deliveryRepRegisterBranch').value;
+ const username=$('deliveryRepRegisterUsername').value.trim().toLowerCase(),branch=$('deliveryRepRegisterBranch').value;
  const password=$('deliveryRepRegisterPassword').value;
  if(full_name.length<3||phone.length<5||!/^[a-z0-9._-]{3,40}$/.test(username)||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||!branch||password.length<8){
-  $('deliveryRepRegisterMessage').textContent='راجع البيانات، واكتب بريدًا صحيحًا وكلمة مرور لا تقل عن 8 أحرف.';return;
+  $('deliveryRepRegisterMessage').textContent='راجع البيانات، وكلمة المرور يجب ألا تقل عن 8 أحرف.';return;
  }
  const button=$('deliveryRepRegisterSubmit');button.disabled=true;button.textContent='جارٍ إرسال الطلب...';
  try{
-  const response=await fetch(SUPABASE_URL+'/functions/v1/delivery-rep-registration',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY},body:JSON.stringify({action:'submit',full_name,phone,username,email,branch,password})});
+  const response=await fetch(SUPABASE_URL+'/functions/v1/delivery-rep-registration',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY},body:JSON.stringify({action:'submit',full_name,phone,username,branch,password})});
   const result=await response.json().catch(()=>({}));
   if(!response.ok||result.error)throw new Error(result.error||'تعذر إرسال الطلب.');
   $('deliveryRepRegisterMessage').textContent=result.message||'تم استلام طلبك.';
-  $('deliveryRepRegisterName').value='';$('deliveryRepRegisterPhone').value='';$('deliveryRepRegisterUsername').value='';$('deliveryRepRegisterEmail').value='';$('deliveryRepRegisterPassword').value='';
+  $('deliveryRepRegisterName').value='';$('deliveryRepRegisterPhone').value='';$('deliveryRepRegisterUsername').value='';$('deliveryRepRegisterPassword').value='';
  }catch(error){$('deliveryRepRegisterMessage').textContent=error.message||'حدث خطأ أثناء إرسال الطلب.';}
  finally{button.disabled=false;button.textContent='إرسال طلب التسجيل';}
 }
@@ -2252,7 +2226,7 @@ async function loadDeliveryRepRequests(){
   const result=await response.json().catch(()=>({}));if(!response.ok||result.error)throw new Error(result.error||'تعذر تحميل الطلبات.');
   const requests=result.requests||[];
   if(!requests.length){host.innerHTML='<p class="muted">لا توجد طلبات معلقة حالياً.</p>';return;}
-  host.innerHTML=requests.map(item=>'<article class="complaint-card"><h3>'+escapeHTML(item.full_name)+'</h3><p>اسم المستخدم: <b>'+escapeHTML(item.username)+'</b></p><p>البريد الإلكتروني: '+escapeHTML(item.email||'—')+'</p><p>حالة البريد: <b>لا يتطلب تأكيدًا</b></p><p>الهاتف: '+escapeHTML(item.phone)+'</p><p>الفرع: <b>'+escapeHTML(item.branch)+'</b></p><p>تاريخ الطلب: '+new Date(item.created_at).toLocaleString('ar-EG')+'</p><div class="row"><button type="button" class="delivery-rep-approve-btn" data-user-id="'+escapeHTML(item.user_id)+'">موافقة وتفعيل</button><button type="button" class="delivery-rep-reject-btn secondary" data-user-id="'+escapeHTML(item.user_id)+'">رفض الطلب</button></div></article>').join('');
+  host.innerHTML=requests.map(item=>'<article class="complaint-card"><h3>'+escapeHTML(item.full_name)+'</h3><p>اسم المستخدم: <b>'+escapeHTML(item.username)+'</b></p><p>الهاتف: '+escapeHTML(item.phone)+'</p><p>الفرع: <b>'+escapeHTML(item.branch)+'</b></p><p>تاريخ الطلب: '+new Date(item.created_at).toLocaleString('ar-EG')+'</p><div class="row"><button type="button" class="delivery-rep-approve-btn" data-user-id="'+escapeHTML(item.user_id)+'">موافقة وتفعيل</button><button type="button" class="delivery-rep-reject-btn secondary" data-user-id="'+escapeHTML(item.user_id)+'">رفض الطلب</button></div></article>').join('');
  }catch(error){host.innerHTML='<p>'+escapeHTML(error.message||'تعذر تحميل الطلبات.')+'</p>';}
 }
 async function reviewDeliveryRepRequest(userId,decision){
@@ -2333,12 +2307,27 @@ async function loadDeliveryRepPerformance(){
 async function loadDeliveryReps(){
  const host=$('deliveryRepsList');const message=$('deliveryRepsMessage');
  host.innerHTML='<p class="muted">جارٍ تحميل قائمة المندوبين...</p>';message.classList.add('hidden');
- const {data,error}=await db.from('delivery_rep_profiles').select('user_id,full_name,phone,email,username,branch,is_active,availability_status,created_at').order('created_at',{ascending:false});
+ const {data,error}=await db.from('delivery_rep_profiles').select('user_id,full_name,phone,username,branch,is_active,availability_status,created_at').order('created_at',{ascending:false});
  if(error){host.innerHTML='';showMessage('deliveryRepsMessage','تعذر تحميل المندوبين: '+error.message,true);return;}
  deliveryRepRows=data||[];
  if(!deliveryRepRows.length)host.innerHTML='<p class="muted">لا يوجد مندوبون مسجلون حتى الآن.</p>';
- else{const statusLabels={available:'متاح',busy:'مشغول',unavailable:'غير متاح'};host.innerHTML=deliveryRepRows.map(rep=>'<article class="complaint-card"><h3>'+escapeHTML(rep.full_name||'مندوب بدون اسم')+'</h3><p>اسم المستخدم: <b>'+escapeHTML(rep.username||'—')+'</b></p><p>الفرع: '+escapeHTML(rep.branch||'—')+'</p><p>الهاتف: '+escapeHTML(rep.phone||'—')+'</p><p>الإيميل: '+escapeHTML(rep.email||'غير مسجل')+'</p><p>الحالة: <b>'+escapeHTML(statusLabels[rep.availability_status]||'غير معروف')+'</b></p><p>الحساب: '+(rep.is_active?'نشط':'موقوف')+'</p></article>').join('');}
+ else{const statusLabels={available:'متاح',busy:'مشغول',unavailable:'غير متاح'};host.innerHTML=deliveryRepRows.map(rep=>'<article class="complaint-card"><h3>'+escapeHTML(rep.full_name||'مندوب بدون اسم')+'</h3><p>اسم المستخدم: <b>'+escapeHTML(rep.username||'—')+'</b></p><p>الفرع: '+escapeHTML(rep.branch||'—')+'</p><p>الهاتف: '+escapeHTML(rep.phone||'—')+'</p><p>الإيميل: '+escapeHTML(rep.email||'غير مسجل')+'</p><p>الحالة: <b>'+escapeHTML(statusLabels[rep.availability_status]||'غير معروف')+'</b></p><p>الحساب: '+(rep.is_active?'نشط':'موقوف')+'</p><button type="button" class="delivery-rep-reset-password secondary" data-user-id="'+escapeHTML(rep.user_id)+'">إعادة تعيين كلمة المرور</button></article>').join('');}
  await loadDeliveryRepPerformance();
+}
+async function resetDeliveryRepPassword(userId){
+ if(!userId||(!isAdmin&&!isBranchManager))return;
+ const password=prompt('اكتب كلمة المرور الجديدة للمندوب (8 أحرف على الأقل):');
+ if(password===null)return;
+ if(password.length<8||password.length>128){showMessage('deliveryRepsMessage','كلمة المرور يجب ألا تقل عن 8 أحرف.',true);return;}
+ const confirmPassword=prompt('أعد كتابة كلمة المرور للتأكيد:');
+ if(confirmPassword===null)return;
+ if(password!==confirmPassword){showMessage('deliveryRepsMessage','كلمتا المرور غير متطابقتين.',true);return;}
+ try{
+  const {data:{session}}=await db.auth.getSession();if(!session?.access_token)throw new Error('انتهت جلسة المدير.');
+  const response=await fetch(SUPABASE_URL+'/functions/v1/delivery-rep-registration',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+session.access_token},body:JSON.stringify({action:'reset-password',user_id:userId,password})});
+  const result=await response.json().catch(()=>({}));if(!response.ok||result.error)throw new Error(result.error||'تعذر تحديث كلمة المرور.');
+  showMessage('deliveryRepsMessage',result.message||'تم تحديث كلمة المرور.');
+ }catch(error){showMessage('deliveryRepsMessage',error.message||'تعذر تحديث كلمة المرور.',true);}
 }
 async function createDeliveryRepAccount(){
  if(!isAdmin&&!isBranchManager)return;
@@ -3398,7 +3387,8 @@ $('checkOutBtn').addEventListener('click',()=>submitAttendance('out'));
 $('attendanceRefreshBtn').addEventListener('click',()=>isBranchManager?loadMyAttendance():loadAdminAttendance());
 $('attendanceNavBtn').addEventListener('click',()=>{stopDeliveryRepsMapRefresh();$('deliveryRepsMapView').classList.add('hidden');$('deliveryRepsMapNavBtn').classList.remove('active');$('deliveryOrdersView').classList.add('hidden');$('deliveryOrdersNavBtn').classList.remove('active');$('customersView').classList.add('hidden');$('staffDirectoryView').classList.add('hidden');$('deliveryRepsView').classList.add('hidden');$('attendanceView').classList.remove('hidden');$('customersNavBtn').classList.remove('active');$('staffNavBtn').classList.remove('active');$('deliveryRepsNavBtn').classList.remove('active');$('attendanceNavBtn').classList.add('active');if(isAdmin||isOperationsManager)loadAdminAttendance();else loadMyAttendance();});
 $('deliveryRepsNavBtn').addEventListener('click',()=>{stopDeliveryRepsMapRefresh();$('deliveryRepsMapView').classList.add('hidden');$('deliveryRepsMapNavBtn').classList.remove('active');$('deliveryOrdersView').classList.add('hidden');$('deliveryOrdersNavBtn').classList.remove('active');$('customersView').classList.add('hidden');$('staffDirectoryView').classList.add('hidden');$('attendanceView').classList.add('hidden');$('deliveryRepsView').classList.remove('hidden');$('customersNavBtn').classList.remove('active');$('staffNavBtn').classList.remove('active');$('attendanceNavBtn').classList.remove('active');$('deliveryRepsNavBtn').classList.add('active');loadDeliveryReps();loadDeliveryRepRequests();});
-$('deliveryRepsRefreshBtn').addEventListener('click',loadDeliveryReps);$('deliveryPerformancePeriod').addEventListener('change',loadDeliveryRepPerformance);
+$('deliveryRepsRefreshBtn').addEventListener('click',loadDeliveryReps);
+$('deliveryRepsList').addEventListener('click',e=>{const btn=e.target.closest('.delivery-rep-reset-password');if(btn)resetDeliveryRepPassword(btn.dataset.userId);});$('deliveryPerformancePeriod').addEventListener('change',loadDeliveryRepPerformance);
 $('deliveryRepRequestsRefresh').addEventListener('click',loadDeliveryRepRequests);
 $('deliveryRepRequestsList').addEventListener('click',e=>{
  const approve=e.target.closest('.delivery-rep-approve-btn'),reject=e.target.closest('.delivery-rep-reject-btn');
