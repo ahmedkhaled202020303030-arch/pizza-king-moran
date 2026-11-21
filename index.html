@@ -1016,6 +1016,8 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
 .delivery-average-order-chart{display:grid;gap:11px}.delivery-average-order-row{display:grid;grid-template-columns:minmax(90px,150px) minmax(70px,1fr) auto;align-items:center;gap:10px}.delivery-average-order-name{overflow:hidden;color:#d8cba9;font-size:11px;text-overflow:ellipsis;white-space:nowrap}.delivery-average-order-track{height:12px;overflow:hidden;border:1px solid rgba(212,175,55,.15);border-radius:9px;background:#29251c}.delivery-average-order-fill{height:100%;border-radius:9px;background:linear-gradient(90deg,#806020,#d4af37,#f5dda0)}.delivery-average-order-value{color:#f0d68e;font-size:11px;font-weight:800;white-space:nowrap}.delivery-average-order-meta{grid-column:1/-1;margin-top:-8px;color:#938873;font-size:9px}.delivery-average-order-row.is-best .delivery-average-order-name:before{content:'★ ';color:#e6c66f}@media(max-width:520px){.delivery-average-order-row{grid-template-columns:82px minmax(45px,1fr) auto;gap:7px}.delivery-average-order-name,.delivery-average-order-value{font-size:10px}}
 
 .delivery-auto-assign-btn{background:linear-gradient(135deg,#d4af37,#f2d98b)!important;color:#17130a!important;border:1px solid #f3df9b!important;font-weight:800!important;box-shadow:0 3px 10px rgba(212,175,55,.22)}.delivery-auto-assign-btn:disabled{opacity:.6;cursor:wait}
+
+#deliveryBulkAutoAssignBtn{background:linear-gradient(135deg,#d4af37,#f3df9b);color:#17130a;border:1px solid #f3df9b;font-weight:800;box-shadow:0 3px 12px rgba(212,175,55,.2)}#deliveryBulkAutoAssignBtn:disabled{opacity:.65;cursor:wait}
 </style>
 </head>
 <body>
@@ -1203,7 +1205,7 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
  <div id="deliveryRepsMap" role="application" aria-label="خريطة مواقع مندوبي المطاعم"></div>
 </section>
 <section id="deliveryOrdersView" class="panel hidden">
- <div class="report-heading"><div><h2>إدارة طلبات الدليفري</h2><p class="muted">إدخال طلبات الفروع، توزيع المندوبين، ومتابعة التحصيل.</p></div><button type="button" id="deliveryOrdersRefreshBtn" class="light">تحديث الطلبات</button></div>
+ <div class="report-heading"><div><h2>إدارة طلبات الدليفري</h2><p class="muted">إدخال طلبات الفروع، توزيع المندوبين، ومتابعة التحصيل.</p></div><div class="row"><button type="button" id="deliveryBulkAutoAssignBtn" class="primary-btn hidden">توزيع الطلبات الجديدة تلقائيًا</button><button type="button" id="deliveryOrdersRefreshBtn" class="light">تحديث الطلبات</button></div></div>
  <div id="deliveryOrderCreatePanel" class="panel hidden"><h3>إضافة طلب دليفري جديد</h3><p class="muted">مدير الفرع يدخل الطلب يدويًا، وبعد الحفظ يظهر في لوحة التشغيل.</p>
  <div class="delivery-order-form-grid">
  <div><label for="deliveryOrderCustomer">اسم العميل</label><input id="deliveryOrderCustomer" maxlength="120"></div><div><label for="deliveryOrderPhone">رقم الهاتف</label><input id="deliveryOrderPhone" type="tel" maxlength="30"></div>
@@ -2324,6 +2326,7 @@ function renderDeliveryOrders(){
 }
 async function loadDeliveryOrders(){
  if(!currentUser||(!isAdmin&&!isOperationsManager&&!isBranchManager))return;
+ $('deliveryBulkAutoAssignBtn').classList.toggle('hidden',!isAdmin&&!isOperationsManager);
  const host=$('deliveryOrdersList');host.innerHTML='<p class="muted">جارٍ تحميل الطلبات...</p>';
  try{const q=await db.from('delivery_orders').select('*').order('created_at',{ascending:false});if(q.error)throw q.error;deliveryOrderRows=q.data||[];if(isAdmin||isOperationsManager)await loadDeliveryOrderRepChoices();else deliveryOrderRepChoices=[];renderDeliveryOrders();$('deliveryOrdersMessage').classList.add('hidden');}
  catch(e){host.innerHTML='';showMessage('deliveryOrdersMessage','تعذر تحميل الطلبات. نفّذ ملف delivery_orders_migration.sql في Supabase. '+(e.message||''),true);}
@@ -2339,6 +2342,35 @@ async function createDeliveryOrder(){
  finally{b.disabled=false;b.textContent='حفظ وإرسال الطلب للتشغيل';}
 }
 async function assignDeliveryOrder(id){if(!isAdmin&&!isOperationsManager)return;const rep=$('assignRep_'+id)?.value;if(!rep){showMessage('deliveryOrdersMessage','اختر المندوب أولاً.',true);return;}try{const q=await db.rpc('assign_delivery_order',{p_order_id:id,p_rep_user_id:rep});if(q.error)throw q.error;await loadDeliveryOrders();}catch(e){showMessage('deliveryOrdersMessage','تعذر إسناد الطلب: '+e.message,true);}}
+async function autoAssignDeliveryOrdersBatch(){
+ if(!isAdmin&&!isOperationsManager)return;
+ const button=$('deliveryBulkAutoAssignBtn');
+ const pending=deliveryOrderRows.filter(order=>order.status==='new').sort((a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0));
+ if(!pending.length){showMessage('deliveryOrdersMessage','لا توجد طلبات جديدة غير مسندة حاليًا.');return;}
+ const now=Date.now(),activeCounts=new Map();
+ deliveryOrderRows.filter(order=>['assigned','accepted','picked_up'].includes(order.status)&&order.assigned_rep_user_id).forEach(order=>activeCounts.set(order.assigned_rep_user_id,(activeCounts.get(order.assigned_rep_user_id)||0)+1));
+ const candidates=deliveryOrderRepChoices.filter(rep=>['available','busy'].includes(rep.availability_status)&&rep.loc).map(rep=>{
+  const lat=Number(rep.loc.latitude),lng=Number(rep.loc.longitude),recorded=rep.loc.recorded_at?new Date(rep.loc.recorded_at).getTime():NaN;
+  return {...rep,lat,lng,load:activeCounts.get(rep.user_id)||0,fresh:Number.isFinite(recorded)&&now-recorded>=-60000&&now-recorded<=15*60*1000};
+ });
+ if(button){button.disabled=true;button.textContent='جارٍ توزيع الطلبات...';}
+ let assigned=0,skippedNoCustomerLocation=0,skippedNoRep=0,failed=0;
+ try{
+  for(const order of pending){
+   if(order.latitude==null||order.longitude==null){skippedNoCustomerLocation++;continue;}
+   const options=candidates.filter(rep=>rep.branch===order.branch&&rep.fresh&&Number.isFinite(rep.lat)&&Number.isFinite(rep.lng)).map(rep=>({...rep,distance:distanceKm(Number(order.latitude),Number(order.longitude),rep.lat,rep.lng),score:distanceKm(Number(order.latitude),Number(order.longitude),rep.lat,rep.lng)+(rep.load*3.5)})).sort((a,b)=>a.score-b.score);
+   if(!options.length){skippedNoRep++;continue;}
+   const chosen=options[0];
+   try{
+    const result=await db.rpc('assign_delivery_order',{p_order_id:order.id,p_rep_user_id:chosen.user_id});
+    if(result.error)throw result.error;
+    chosen.load++;chosen.availability_status='busy';activeCounts.set(chosen.user_id,chosen.load);assigned++;
+   }catch(error){failed++;}
+  }
+  await loadDeliveryOrders();
+  showMessage('deliveryOrdersMessage','انتهى التوزيع الذكي: تم إسناد '+assigned+' طلب، وتعذر توزيع '+(skippedNoCustomerLocation+skippedNoRep+failed)+' طلب. بدون موقع العميل: '+skippedNoCustomerLocation+'، بدون مندوب مناسب: '+skippedNoRep+'، أخطاء إسناد: '+failed+'.');
+ }finally{if(button){button.disabled=false;button.textContent='توزيع الطلبات الجديدة تلقائيًا';}}
+}
 async function autoAssignDeliveryOrder(id){
  if(!isAdmin&&!isOperationsManager)return;
  const order=deliveryOrderRows.find(x=>String(x.id)===String(id));
@@ -3279,6 +3311,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')setAppMenu(false);})
 $('deliveryOrdersRefreshBtn').addEventListener('click',loadDeliveryOrders);
 $('deliveryOrdersBranchFilter').addEventListener('change',renderDeliveryOrders);$('deliveryOrdersStatusFilter').addEventListener('change',renderDeliveryOrders);$('deliveryOrdersSearch').addEventListener('input',renderDeliveryOrders);
 $('deliveryOrderCreateBtn').addEventListener('click',createDeliveryOrder);
+$('deliveryBulkAutoAssignBtn').addEventListener('click',autoAssignDeliveryOrdersBatch);
 $('deliveryOrdersList').addEventListener('click',e=>{const smart=e.target.closest('[data-auto-assign-order]'),a=e.target.closest('[data-assign-order]'),c=e.target.closest('[data-cancel-order]');if(smart)autoAssignDeliveryOrder(smart.dataset.autoAssignOrder);if(a)assignDeliveryOrder(a.dataset.assignOrder);if(c)cancelDeliveryOrder(c.dataset.cancelOrder);});
 $('deliveryRepOrdersList').addEventListener('click',e=>{const b=e.target.closest('[data-rep-order-action]');if(b)updateMyDeliveryOrder(b.dataset.orderId,b.dataset.repOrderAction);});
 $('deliveryMapRefreshBtn').addEventListener('click',loadDeliveryRepsMap);
