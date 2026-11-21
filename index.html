@@ -995,6 +995,19 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
 
 
 .delivery-order-grid{display:grid;gap:12px;margin-top:16px}.delivery-order-card{background:linear-gradient(145deg,#171b21,#0e1218);border:1px solid #55472f;border-right:4px solid #c49a3e;border-radius:14px;padding:15px;color:#f1eee7}.delivery-order-card h3{color:#f0d17f;margin:0 0 8px}.delivery-order-meta{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.delivery-order-meta span{background:#222a34;border:1px solid #55472f;border-radius:8px;padding:4px 8px;font-size:12px}.delivery-order-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.delivery-order-actions select{min-width:180px;flex:1}.delivery-order-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.delivery-order-form-grid .full{grid-column:1/-1}.delivery-order-form-grid label{margin-top:5px}@media(max-width:620px){.delivery-order-form-grid{grid-template-columns:1fr}.delivery-order-form-grid .full{grid-column:auto}}
+
+/* Right-side three-line application navigation */
+#appMenuToggle{position:fixed;z-index:1200;top:calc(14px + env(safe-area-inset-top));right:14px;width:52px;height:52px;margin:0;padding:0;border:1px solid rgba(212,175,55,.72);border-radius:14px;background:linear-gradient(145deg,#252525,#080808);color:#d4af37;box-shadow:0 8px 24px rgba(0,0,0,.28);display:none;align-items:center;justify-content:center;flex-direction:column;gap:5px}
+#appMenuToggle span{display:block;width:23px;height:2.5px;border-radius:5px;background:#d4af37;transition:transform .2s,opacity .2s}
+#appMenuBackdrop{position:fixed;inset:0;z-index:1190;background:rgba(0,0,0,.56);opacity:0;visibility:hidden;transition:opacity .22s,visibility .22s}
+#appMenuBackdrop.open{opacity:1;visibility:visible}
+.app-nav{position:fixed;z-index:1195;top:0;right:0;bottom:0;width:min(310px,86vw);margin:0;padding:86px 16px 24px;background:linear-gradient(160deg,#171717,#080808 72%);border-left:1px solid rgba(212,175,55,.48);box-shadow:-14px 0 38px rgba(0,0,0,.36);display:flex;flex-direction:column;align-items:stretch;gap:9px;overflow-y:auto;transform:translateX(110%);visibility:hidden;transition:transform .24s ease,visibility .24s}
+.app-nav.open{transform:translateX(0);visibility:visible}
+.app-nav:before{content:'القائمة الرئيسية';position:absolute;top:25px;right:20px;color:#d4af37;font-size:18px;font-weight:900;letter-spacing:.2px}
+.app-nav button,.app-nav button.secondary{display:block;width:100%;min-width:0;flex:0 0 auto;margin:0;padding:13px 15px;text-align:right;border:1px solid rgba(212,175,55,.2);border-radius:11px;background:linear-gradient(145deg,#222,#111);color:#f2e8cd;box-shadow:none}
+.app-nav button.active{background:linear-gradient(135deg,#e0bd7b,#b8893f);color:#171717;border-color:#e0bd7b;box-shadow:0 5px 15px rgba(184,137,63,.2)}
+#appPanel.menu-open #appMenuToggle{right:calc(min(310px,86vw) + 14px)}
+@media(max-width:680px){.app-nav{width:min(290px,84vw);padding-top:82px}.app-nav button,.app-nav button.secondary{padding:13px 14px;font-size:14px}}
 </style>
 </head>
 <body>
@@ -1165,7 +1178,9 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
   </div>
 </dialog>
 
-<nav class="app-nav" aria-label="أقسام النظام">
+<button type="button" id="appMenuToggle" aria-label="فتح القائمة" aria-expanded="false" aria-controls="appMainNav"><span></span><span></span><span></span></button>
+<div id="appMenuBackdrop" aria-hidden="true"></div>
+<nav id="appMainNav" class="app-nav" aria-label="أقسام النظام">
   <button type="button" id="customersNavBtn" class="active">إدارة العملاء</button>
   <button type="button" id="staffNavBtn" class="secondary">دليل عمالة الفروع</button><button type="button" id="attendanceNavBtn" class="secondary hidden">الحضور والانصراف</button><button type="button" id="deliveryRepsNavBtn" class="secondary hidden">مندوبي المطاعم</button><button type="button" id="deliveryRepsMapNavBtn" class="secondary hidden">خريطة المندوبين</button><button type="button" id="deliveryOrdersNavBtn" class="secondary hidden">طلبات الدليفري</button>
 </nav>
@@ -2192,6 +2207,8 @@ async function createDeliveryRepAccount(){
 }
 
 
+
+function setAppMenu(open){const nav=$('appMainNav'),toggle=$('appMenuToggle'),backdrop=$('appMenuBackdrop');if(!nav||!toggle||!backdrop)return;nav.classList.toggle('open',open);backdrop.classList.toggle('open',open);$('appPanel').classList.toggle('menu-open',open);toggle.setAttribute('aria-expanded',String(open));toggle.setAttribute('aria-label',open?'إغلاق القائمة':'فتح القائمة');document.body.style.overflow=open?'hidden':'';}
 function deliveryStatusLabel(s){return ({new:'جديد - بانتظار التوزيع',assigned:'تم إسناده للمندوب',accepted:'المندوب قبل الطلب',picked_up:'تم استلام الطلب من الفرع',delivered:'تم التسليم',cancelled:'ملغي'})[s]||s;}
 function deliveryPaymentLabel(s){return ({cash:'نقدي',card:'بطاقة / مدفوع',wallet:'محفظة إلكترونية'})[s]||s;}
 function distanceKm(a,b,c,d){const r=x=>x*Math.PI/180,x=Math.sin(r(c-a)/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(r(d-b)/2)**2;return 6371*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
@@ -3137,6 +3154,10 @@ $('deliveryRepRequestsList').addEventListener('click',e=>{
 });
 $('deliveryRepsMapNavBtn').addEventListener('click',openDeliveryRepsMap);
 $('deliveryOrdersNavBtn').addEventListener('click',openDeliveryOrders);
+$('appMenuToggle').addEventListener('click',()=>setAppMenu(!$('appMainNav').classList.contains('open')));
+$('appMenuBackdrop').addEventListener('click',()=>setAppMenu(false));
+$('appMainNav').addEventListener('click',e=>{if(e.target.closest('button'))setAppMenu(false);});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')setAppMenu(false);});
 $('deliveryOrdersRefreshBtn').addEventListener('click',loadDeliveryOrders);
 $('deliveryOrdersBranchFilter').addEventListener('change',loadDeliveryOrders);
 $('deliveryOrderCreateBtn').addEventListener('click',createDeliveryOrder);
