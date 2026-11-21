@@ -49,25 +49,20 @@ Deno.serve(async (req) => {
       const full_name = String(body?.full_name || "").trim();
       const phone = String(body?.phone || "").trim();
       const username = String(body?.username || "").trim().toLowerCase();
-      const email = String(body?.email || "").trim().toLowerCase();
       const branch = String(body?.branch || "").trim();
       const password = String(body?.password || "");
       if (full_name.length < 3 || full_name.length > 100 ||
           phone.length < 5 || phone.length > 20 ||
           !validUsername(username) || !allowedBranches.includes(branch) ||
-          !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254 ||
           password.length < 8 || password.length > 128) {
-        return reply({ error: "راجع البيانات، واكتب بريدًا إلكترونيًا صحيحًا وكلمة مرور لا تقل عن 8 أحرف." }, 400);
+        return reply({ error: "راجع الاسم والهاتف واسم المستخدم والفرع، وكلمة المرور يجب ألا تقل عن 8 أحرف." }, 400);
       }
+      // Supabase Auth requires an email identifier; this internal address is never shown to the rep.
+      const email = username + "@delivery-login.internal;
       const { data: existing, error: existingError } = await admin
         .from("delivery_rep_profiles").select("id").ilike("username", username).maybeSingle();
       if (existingError) throw existingError;
       if (existing) return reply({ error: "اسم المستخدم مستخدم بالفعل. اختر اسمًا آخر." }, 409);
-      const { data: emailExisting, error: emailCheckError } = await admin
-        .from("delivery_rep_profiles").select("id").ilike("email", email).maybeSingle();
-      if (emailCheckError) throw emailCheckError;
-      if (emailExisting) return reply({ error: "هذا البريد الإلكتروني مسجل بالفعل." }, 409);
-
       // Create the account administratively: no confirmation email is sent.
       const { data: created, error: createError } = await admin.auth.admin.createUser({
         email,
@@ -98,7 +93,7 @@ Deno.serve(async (req) => {
         if (repError.code === "23505") return reply({ error: "اسم المستخدم أو البريد الإلكتروني مستخدم بالفعل." }, 409);
         throw repError;
       }
-      return reply({ message: "تم إنشاء طلبك بنجاح. لا تحتاج إلى تأكيد البريد؛ انتظر موافقة المدير الرئيسي أو مدير الفرع قبل تسجيل الدخول." });
+      return reply({ message: "تم استلام طلبك بنجاح. انتظر موافقة المدير الرئيسي أو مدير الفرع قبل تسجيل الدخول." });
     }
 
     const { user, profile } = await managerFromRequest(req);
@@ -107,18 +102,27 @@ Deno.serve(async (req) => {
 
     if (action === "list") {
       let query = admin.from("delivery_rep_profiles")
-        .select("user_id,full_name,phone,email,username,branch,approval_status,created_at")
+        .select("user_id,full_name,phone,username,branch,approval_status,created_at")
         .eq("approval_status", "pending").order("created_at", { ascending: false });
       if (!isAdmin) query = query.eq("branch", branch);
       const { data, error } = await query;
       if (error) throw error;
-      const requests = await Promise.all((data || []).map(async (item) => {
-        const { data: authResult } = await admin.auth.admin.getUserById(item.user_id);
-        return { ...item, email_confirmed: true };
-      }));
-      return reply({ requests });
+      return reply({ requests: data || [] });
     }
 
+    if (action === "reset-password") {
+      const user_id = String(body?.user_id || "");
+      const password = String(body?.password || "");
+      if (!user_id || password.length < 8 || password.length > 128) return reply({ error: "كلمة المرور يجب ألا تقل عن 8 أحرف." }, 400);
+      let query = admin.from("delivery_rep_profiles").select("user_id,branch").eq("user_id", user_id);
+      if (!isAdmin) query = query.eq("branch", branch);
+      const { data: rep, error: repError } = await query.maybeSingle();
+      if (repError) throw repError;
+      if (!rep) return reply({ error: "المندوب غير موجود أو خارج نطاق فرعك." }, 404);
+      const { error: passwordError } = await admin.auth.admin.updateUserById(user_id, { password });
+      if (passwordError) throw passwordError;
+      return reply({ message: "تم تحديث كلمة مرور المندوب بنجاح." });
+    }
     if (action === "review") {
       const user_id = String(body?.user_id || "");
       const decision = String(body?.decision || "");
