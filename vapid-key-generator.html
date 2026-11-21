@@ -11,7 +11,7 @@
 <div id="status" class="status" role="status"></div><small>إذا أنشأت مجموعة جديدة، استخدم المفتاحين الجديدين معًا ولا تخلطهما مع مفاتيح قديمة.</small>
 </main>
 <script>
-const b64url = bytes => { let binary=''; for(const byte of bytes) binary+=String.fromCharCode(byte); return btoa(binary).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,''); };
+const b64url = bytes => { let binary=''; for(const byte of bytes) binary+=String.fromCharCode(byte); return btoa(binary).split('+').join('-').split('/').join('_').replace(/=+$/,''); };
 document.getElementById('generate').addEventListener('click',async()=>{
  const btn=document.getElementById('generate'),status=document.getElementById('status');btn.disabled=true;status.textContent='جارٍ إنشاء المفاتيح محليًا...';
  try{
