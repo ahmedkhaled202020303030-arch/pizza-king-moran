@@ -7,7 +7,7 @@ Deno.serve(async(req)=>{
  if(req.method==="OPTIONS")return new Response("ok",{headers:cors});
  if(req.method!=="POST")return json({error:"Method not allowed"},405);
  const url=Deno.env.get("SUPABASE_URL")??"",service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")??"";
- const pub=Deno.env.get("VAPID_PUBLIC_KEY")??"",priv=Deno.env.get("VAPID_PRIVATE_KEY")??"",subject=Deno.env.get("VAPID_SUBJECT")??"mailto:admin@example.com";
+ const pub=Deno.env.get("VAPID_PUBLIC_KEY")??"",priv=Deno.env.get("VAPID_PRIVATE_KEY")??"",subject=Deno.env.get("VAPID_SUBJECT")??"https://pizza-king-moran.pages.dev";
  if(!url||!service)return json({error:"Supabase server settings are incomplete."},500);
  const admin=createClient(url,service,{auth:{autoRefreshToken:false,persistSession:false}});
  let body:any={};try{body=await req.json()}catch{return json({error:"Invalid JSON"},400)}
