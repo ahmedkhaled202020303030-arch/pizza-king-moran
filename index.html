@@ -708,6 +708,16 @@ html.light-theme #themeToggle{background:linear-gradient(145deg,#fff,#e9edf2);co
 .delivery-map-legend{display:flex;gap:14px;flex-wrap:wrap;margin:10px 0;color:var(--muted);font-size:12px}
 .delivery-map-dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-left:5px;vertical-align:middle}
 .delivery-map-dot.available{background:#16a36a}.delivery-map-dot.busy{background:#e69a24}
+.delivery-map-dot.order-new{background:#e0b52f}.delivery-map-dot.order-active{background:#d96b35}
+.delivery-order-map-marker{width:27px;height:27px;border:2px solid #fff;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#17130a;font:bold 15px Tahoma;box-shadow:0 2px 9px rgba(0,0,0,.45)}
+.delivery-order-map-marker.new{background:#e0b52f}.delivery-order-map-marker.active{background:#d96b35;color:#fff}
+.delivery-map-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:12px 0}
+.delivery-map-stat,.delivery-branch-card{background:linear-gradient(145deg,#191919,#101010);border:1px solid #39352a;border-radius:12px;padding:12px}
+.delivery-map-stat small,.delivery-branch-card small{display:block;color:var(--muted);font-size:12px}
+.delivery-map-stat strong,.delivery-branch-card strong{display:block;color:#e2c15d;font-size:20px;margin-top:4px}
+.delivery-branch-workload{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin:10px 0 14px}
+.delivery-branch-card span{font-size:12px;color:var(--muted);display:block;margin-top:5px}
+@media(max-width:600px){.delivery-map-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .delivery-map-marker{width:30px;height:30px;border:3px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 9px rgba(0,0,0,.35)}
 .delivery-map-marker.available{background:#16a36a}.delivery-map-marker.busy{background:#e69a24}
 .leaflet-popup-content{font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;line-height:1.8}
@@ -1200,9 +1210,10 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
 <section id="deliveryRepsMapView" class="panel hidden">
  <div class="report-heading"><div><h2>خريطة المندوبين</h2><p class="muted">متابعة مواقع المندوبين المتاحين والمشغولين أثناء العمل.</p></div><span id="deliveryMapCount" class="tag">0 مندوب</span></div>
  <div class="delivery-map-toolbar"><div><label for="deliveryMapBranchFilter">تصفية حسب الفرع</label><select id="deliveryMapBranchFilter"><option value="">كل الفروع</option></select></div><button type="button" id="deliveryMapRefreshBtn" class="light">تحديث الخريطة</button></div>
- <div class="delivery-map-legend"><span><i class="delivery-map-dot available"></i>متاح</span><span><i class="delivery-map-dot busy"></i>مشغول</span><span id="deliveryMapUpdatedAt">لم يتم التحديث بعد</span></div>
- <div id="deliveryMapMessage" class="msg">يتم عرض المندوبين الذين يشاركون موقعهم وحالتهم متاح أو مشغول فقط.</div>
- <div id="deliveryRepsMap" role="application" aria-label="خريطة مواقع مندوبي المطاعم"></div>
+ <div class="delivery-map-legend"><span><i class="delivery-map-dot available"></i>مندوب متاح</span><span><i class="delivery-map-dot busy"></i>مندوب مشغول</span><span><i class="delivery-map-dot order-new"></i>طلب جديد</span><span><i class="delivery-map-dot order-active"></i>طلب جارٍ</span><span id="deliveryMapUpdatedAt">لم يتم التحديث بعد</span></div>
+ <div id="deliveryMapStats" class="delivery-map-stats"></div><div id="deliveryBranchWorkload" class="delivery-branch-workload"></div>
+ <div id="deliveryMapMessage" class="msg">الخريطة تعرض مواقع المندوبين والطلبات المسجلة بإحداثيات.</div>
+ <div id="deliveryRepsMap" role="application" aria-label="خريطة مواقع المندوبين وطلبات التوصيل"></div>
 </section>
 <section id="deliveryOrdersView" class="panel hidden">
  <div class="report-heading"><div><h2>إدارة طلبات الدليفري</h2><p class="muted">إدخال طلبات الفروع، توزيع المندوبين، ومتابعة التحصيل.</p></div><div class="row"><button type="button" id="deliveryBulkAutoAssignBtn" class="primary-btn hidden">توزيع الطلبات الجديدة تلقائيًا</button><button type="button" id="deliveryOrdersRefreshBtn" class="light">تحديث الطلبات</button></div></div>
@@ -2110,7 +2121,7 @@ async function loginGuest() {
 }
 
 
-let deliveryRepsLeafletMap=null,deliveryRepsMapMarkers=[],deliveryRepsMapInterval=null,deliveryRepsMapLoading=false;
+let deliveryRepsLeafletMap=null,deliveryRepsMapMarkers=[],deliveryRepsMapInterval=null,deliveryRepsMapLoading=false,deliveryMapHasInitialFit=false;
 function stopDeliveryRepsMapRefresh(){if(deliveryRepsMapInterval){clearInterval(deliveryRepsMapInterval);deliveryRepsMapInterval=null;}}
 function clearDeliveryRepsMapMarkers(){deliveryRepsMapMarkers.forEach(marker=>marker.remove());deliveryRepsMapMarkers=[];}
 function initDeliveryRepsMap(){
@@ -2120,33 +2131,38 @@ function initDeliveryRepsMap(){
  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(deliveryRepsLeafletMap);
 }
 async function loadDeliveryRepsMap(){
- if(deliveryRepsMapLoading||!currentUser)return;
- deliveryRepsMapLoading=true;
+ if(deliveryRepsMapLoading||!currentUser)return;deliveryRepsMapLoading=true;
  try{
   initDeliveryRepsMap();if(!deliveryRepsLeafletMap)return;
-  const {data:reps,error:repError}=await db.from('delivery_rep_profiles').select('user_id,full_name,branch,availability_status,is_active').eq('is_active',true).in('availability_status',['available','busy']);
-  if(repError)throw repError;
-  let activeReps=reps||[];const selectedBranch=$('deliveryMapBranchFilter').value;
-  if(selectedBranch)activeReps=activeReps.filter(rep=>rep.branch===selectedBranch);
-  const ids=activeReps.map(rep=>rep.user_id);let locations=[];
-  if(ids.length){const result=await db.from('delivery_rep_locations').select('user_id,latitude,longitude,accuracy_m,recorded_at').in('user_id',ids);if(result.error)throw result.error;locations=result.data||[];}
-  const byUser=new Map(locations.map(item=>[item.user_id,item]));clearDeliveryRepsMapMarkers();
-  const bounds=[];let plotted=0;
-  activeReps.forEach(rep=>{
-   const loc=byUser.get(rep.user_id);if(!loc)return;
-   const lat=Number(loc.latitude),lng=Number(loc.longitude);if(!Number.isFinite(lat)||!Number.isFinite(lng))return;
-   const status=rep.availability_status==='busy'?'busy':'available';
-   const marker=L.marker([lat,lng],{icon:L.divIcon({className:'',html:'<div class="delivery-map-marker '+status+'"></div>',iconSize:[30,30],iconAnchor:[15,30],popupAnchor:[0,-28]})});
-   const when=loc.recorded_at?new Date(loc.recorded_at).toLocaleString('ar-EG'):'غير معروف';
-   const popup='<b>'+escapeHTML(rep.full_name||'مندوب')+'</b><br>الفرع: '+escapeHTML(rep.branch||'—')+'<br>الحالة: '+(status==='busy'?'مشغول':'متاح')+'<br>آخر تحديث: '+escapeHTML(when);
-   marker.bindPopup(popup).addTo(deliveryRepsLeafletMap);deliveryRepsMapMarkers.push(marker);bounds.push([lat,lng]);plotted++;
+  const branch=$('deliveryMapBranchFilter').value;
+  const rq=await db.from('delivery_rep_profiles').select('user_id,full_name,branch,availability_status,is_active').eq('is_active',true).in('availability_status',['available','busy']);if(rq.error)throw rq.error;
+  let reps=rq.data||[];if(branch)reps=reps.filter(x=>x.branch===branch);
+  const ids=reps.map(x=>x.user_id);let locs=[];
+  if(ids.length){const q=await db.from('delivery_rep_locations').select('user_id,latitude,longitude,recorded_at').in('user_id',ids);if(q.error)throw q.error;locs=q.data||[];}
+  const oq=await db.from('delivery_orders').select('id,order_no,customer_name,branch,latitude,longitude,status,total_amount').in('status',['new','assigned','accepted','picked_up']).order('created_at',{ascending:false});if(oq.error)throw oq.error;
+  let orders=oq.data||[];if(branch)orders=orders.filter(x=>x.branch===branch);
+  const byUser=new Map(locs.map(x=>[x.user_id,x]));clearDeliveryRepsMapMarkers();const bounds=[];let repPins=0,orderPins=0;
+  reps.forEach(rep=>{const loc=byUser.get(rep.user_id);if(!loc)return;const lat=Number(loc.latitude),lng=Number(loc.longitude);if(!Number.isFinite(lat)||!Number.isFinite(lng))return;
+   const status=rep.availability_status==='busy'?'busy':'available',marker=L.marker([lat,lng],{icon:L.divIcon({className:'',html:'<div class="delivery-map-marker '+status+'"></div>',iconSize:[30,30],iconAnchor:[15,30]})});
+   marker.bindPopup('<b>'+escapeHTML(rep.full_name||'مندوب')+'</b><br>الفرع: '+escapeHTML(rep.branch||'—')+'<br>الحالة: '+(status==='busy'?'مشغول':'متاح')+'<br>آخر تحديث: '+escapeHTML(loc.recorded_at?new Date(loc.recorded_at).toLocaleString('ar-EG'):'غير معروف')).addTo(deliveryRepsLeafletMap);
+   deliveryRepsMapMarkers.push(marker);bounds.push([lat,lng]);repPins++;
   });
-  $('deliveryMapCount').textContent=plotted.toLocaleString('ar-EG')+' مندوب على الخريطة';
+  orders.forEach(order=>{if(order.latitude==null||order.longitude==null)return;const lat=Number(order.latitude),lng=Number(order.longitude);if(!Number.isFinite(lat)||!Number.isFinite(lng))return;
+   const fresh=order.status==='new',kind=fresh?'new':'active',marker=L.marker([lat,lng],{icon:L.divIcon({className:'',html:'<div class="delivery-order-map-marker '+kind+'">'+(fresh?'!':'↗')+'</div>',iconSize:[27,27],iconAnchor:[13,13]})});
+   marker.bindPopup('<b>طلب #'+escapeHTML(order.order_no||String(order.id).slice(0,8))+'</b><br>العميل: '+escapeHTML(order.customer_name||'—')+'<br>الفرع: '+escapeHTML(order.branch||'—')+'<br>الحالة: '+escapeHTML(deliveryStatusLabel(order.status))+'<br>الإجمالي: '+Number(order.total_amount||0).toLocaleString('ar-EG')+' ج.م<br><a target="_blank" rel="noopener" href="https://www.google.com/maps?q='+encodeURIComponent(lat+','+lng)+'">فتح الاتجاهات</a>').addTo(deliveryRepsLeafletMap);
+   deliveryRepsMapMarkers.push(marker);bounds.push([lat,lng]);orderPins++;
+  });
+  const available=reps.filter(x=>x.availability_status==='available').length,busy=reps.filter(x=>x.availability_status==='busy').length,fresh=orders.filter(x=>x.status==='new').length,active=orders.length-fresh;
+  $('deliveryMapCount').textContent=(repPins+orderPins).toLocaleString('ar-EG')+' عناصر على الخريطة';
+  $('deliveryMapStats').innerHTML='<div class="delivery-map-stat"><small>المندوبون على الخريطة</small><strong>'+repPins+'</strong></div><div class="delivery-map-stat"><small>متاح / مشغول</small><strong>'+available+' / '+busy+'</strong></div><div class="delivery-map-stat"><small>طلبات جديدة</small><strong>'+fresh+'</strong></div><div class="delivery-map-stat"><small>طلبات قيد التوصيل</small><strong>'+active+'</strong></div>';
+  const groups=new Map();orders.forEach(o=>{const key=o.branch||'فرع غير محدد',v=groups.get(key)||{new:0,active:0,total:0};v.total++;if(o.status==='new')v.new++;else v.active++;groups.set(key,v);});
+  $('deliveryBranchWorkload').innerHTML=[...groups.entries()].sort((a,b)=>b[1].total-a[1].total).map(([name,v])=>'<div class="delivery-branch-card"><strong>'+escapeHTML(name)+'</strong><span>الإجمالي: '+v.total+' | جديد: '+v.new+' | جارٍ: '+v.active+'</span></div>').join('')||'<div class="delivery-branch-card"><strong>لا توجد طلبات نشطة</strong></div>';
   $('deliveryMapUpdatedAt').textContent='آخر تحديث: '+new Date().toLocaleTimeString('ar-EG');
-  if(!plotted){deliveryRepsLeafletMap.setView([30.0444,31.2357],10);showMessage('deliveryMapMessage',activeReps.length?'لا توجد مواقع مستلمة للمندوبين حتى الآن. تأكد أن المندوب سمح بمشاركة الموقع.':'لا يوجد مندوبون بحالة متاح أو مشغول في هذا النطاق.');}
-  else{hideMessage('deliveryMapMessage');if(bounds.length===1)deliveryRepsLeafletMap.setView(bounds[0],15);else deliveryRepsLeafletMap.fitBounds(bounds,{padding:[35,35],maxZoom:15});}
+  if(!repPins&&!orderPins)showMessage('deliveryMapMessage','لا توجد مواقع مسجلة للمندوبين أو الطلبات النشطة حاليًا.');else hideMessage('deliveryMapMessage');
+  if(bounds.length&&!deliveryMapHasInitialFit){if(bounds.length===1)deliveryRepsLeafletMap.setView(bounds[0],15);else deliveryRepsLeafletMap.fitBounds(bounds,{padding:[35,35],maxZoom:15});deliveryMapHasInitialFit=true;}
+  if(!bounds.length&&!deliveryMapHasInitialFit)deliveryRepsLeafletMap.setView([30.0444,31.2357],10);
   setTimeout(()=>deliveryRepsLeafletMap&&deliveryRepsLeafletMap.invalidateSize(),120);
- }catch(error){showMessage('deliveryMapMessage','تعذر تحميل مواقع المندوبين: '+(error.message||'خطأ غير معروف'),true);}
+ }catch(error){showMessage('deliveryMapMessage','تعذر تحميل بيانات الخريطة: '+(error.message||'خطأ غير معروف'),true);}
  finally{deliveryRepsMapLoading=false;}
 }
 function openDeliveryRepsMap(){
