@@ -68,19 +68,15 @@ Deno.serve(async (req) => {
       if (emailCheckError) throw emailCheckError;
       if (emailExisting) return reply({ error: "هذا البريد الإلكتروني مسجل بالفعل." }, 409);
 
-      const { data: created, error: createError } = await publicAuth.auth.signUp({
+      // Create the account administratively: no confirmation email is sent.
+      const { data: created, error: createError } = await admin.auth.admin.createUser({
         email,
         password,
-        options: {
-          emailRedirectTo: SITE_URL,
-          data: { display_name: full_name, account_type: "delivery_rep_pending" },
-        },
+        email_confirm: true,
+        user_metadata: { display_name: full_name, account_type: "delivery_rep_pending" },
       });
       if (createError || !created.user) {
         return reply({ error: createError?.message || "تعذر إنشاء طلب التسجيل." }, 400);
-      }
-      if (created.user.identities && created.user.identities.length === 0) {
-        return reply({ error: "هذا البريد الإلكتروني مستخدم بالفعل." }, 409);
       }
 
       const userId = created.user.id;
@@ -102,7 +98,7 @@ Deno.serve(async (req) => {
         if (repError.code === "23505") return reply({ error: "اسم المستخدم أو البريد الإلكتروني مستخدم بالفعل." }, 409);
         throw repError;
       }
-      return reply({ message: "تم استلام طلبك. أرسلنا رسالة تأكيد إلى بريدك الإلكتروني؛ افتحها لتأكيد البريد، ثم انتظر موافقة المدير قبل تسجيل الدخول." });
+      return reply({ message: "تم إنشاء طلبك بنجاح. لا تحتاج إلى تأكيد البريد؛ انتظر موافقة المدير الرئيسي أو مدير الفرع قبل تسجيل الدخول." });
     }
 
     const { user, profile } = await managerFromRequest(req);
@@ -118,7 +114,7 @@ Deno.serve(async (req) => {
       if (error) throw error;
       const requests = await Promise.all((data || []).map(async (item) => {
         const { data: authResult } = await admin.auth.admin.getUserById(item.user_id);
-        return { ...item, email_confirmed: !!authResult?.user?.email_confirmed_at };
+        return { ...item, email_confirmed: true };
       }));
       return reply({ requests });
     }
@@ -137,13 +133,6 @@ Deno.serve(async (req) => {
       const { data: requestRow, error: requestError } = await query.maybeSingle();
       if (requestError) throw requestError;
       if (!requestRow) return reply({ error: "الطلب غير موجود أو خارج نطاق فرعك." }, 404);
-
-      if (decision === "approved") {
-        const { data: authResult, error: authLookupError } = await admin.auth.admin.getUserById(user_id);
-        if (authLookupError || !authResult?.user?.email_confirmed_at) {
-          return reply({ error: "لا يمكن تفعيل الحساب قبل أن يؤكد المندوب بريده الإلكتروني من الرسالة المرسلة إليه." }, 400);
-        }
-      }
 
       const { error: updateError } = await admin.from("delivery_rep_profiles").update({
         approval_status: decision, is_active: decision === "approved",
