@@ -1811,7 +1811,7 @@ async function requestDeliveryRepPasswordReset(){
  if(!/^[a-z0-9._-]{3,40}$/.test(username)){
   showMessage('loginMsg','اكتب اسم المستخدم أولاً.',true);return;
  }
- if(!/^[^\s@]+@[^\s@]+\\.[^\s@]+$/.test(email)){
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
   showMessage('loginMsg','اكتب البريد الإلكتروني المسجل بالحساب بشكل صحيح.',true);return;
  }
  try{
