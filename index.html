@@ -2110,7 +2110,7 @@ async function loadDeliveryRepsMap(){
 }
 function openDeliveryRepsMap(){
  stopDeliveryRepsMapRefresh();
- $('customersView').classList.add('hidden');$('staffDirectoryView').classList.add('hidden');$('attendanceView').classList.add('hidden');$('deliveryRepsView').classList.add('hidden');$('deliveryRepsMapView').classList.remove('hidden');
+ $('customersView').classList.add('hidden');$('staffDirectoryView').classList.add('hidden');$('attendanceView').classList.add('hidden');$('deliveryRepsView').classList.add('hidden');$('deliveryOrdersView').classList.add('hidden');$('deliveryOrdersNavBtn').classList.remove('active');$('deliveryRepsMapView').classList.remove('hidden');
  ['customersNavBtn','staffNavBtn','attendanceNavBtn','deliveryRepsNavBtn'].forEach(id=>$(id).classList.remove('active'));
  $('deliveryRepsMapNavBtn').classList.add('active');loadDeliveryRepsMap();
  deliveryRepsMapInterval=setInterval(loadDeliveryRepsMap,12000);
@@ -2900,7 +2900,7 @@ async function deleteRecord(id) {
 let allBranchStaff = [];
 
 function showDirectoryView(view) {
-  stopDeliveryRepsMapRefresh();$('deliveryRepsMapView').classList.add('hidden');$('deliveryRepsMapNavBtn').classList.remove('active');
+  stopDeliveryRepsMapRefresh();$('deliveryRepsMapView').classList.add('hidden');$('deliveryRepsMapNavBtn').classList.remove('active');$('deliveryOrdersView').classList.add('hidden');$('deliveryOrdersNavBtn').classList.remove('active');
   const staff = view === 'staff';
   $('attendanceView').classList.add('hidden');
   $('attendanceNavBtn').classList.remove('active');
@@ -3126,8 +3126,8 @@ $('attendanceTimerDialog').addEventListener('click',event=>{if(event.target===$(
 $('checkInBtn').addEventListener('click',()=>submitAttendance('in'));
 $('checkOutBtn').addEventListener('click',()=>submitAttendance('out'));
 $('attendanceRefreshBtn').addEventListener('click',()=>isBranchManager?loadMyAttendance():loadAdminAttendance());
-$('attendanceNavBtn').addEventListener('click',()=>{stopDeliveryRepsMapRefresh();$('deliveryRepsMapView').classList.add('hidden');$('deliveryRepsMapNavBtn').classList.remove('active');$('customersView').classList.add('hidden');$('staffDirectoryView').classList.add('hidden');$('deliveryRepsView').classList.add('hidden');$('attendanceView').classList.remove('hidden');$('customersNavBtn').classList.remove('active');$('staffNavBtn').classList.remove('active');$('deliveryRepsNavBtn').classList.remove('active');$('attendanceNavBtn').classList.add('active');if(isAdmin||isOperationsManager)loadAdminAttendance();else loadMyAttendance();});
-$('deliveryRepsNavBtn').addEventListener('click',()=>{stopDeliveryRepsMapRefresh();$('deliveryRepsMapView').classList.add('hidden');$('deliveryRepsMapNavBtn').classList.remove('active');$('customersView').classList.add('hidden');$('staffDirectoryView').classList.add('hidden');$('attendanceView').classList.add('hidden');$('deliveryRepsView').classList.remove('hidden');$('customersNavBtn').classList.remove('active');$('staffNavBtn').classList.remove('active');$('attendanceNavBtn').classList.remove('active');$('deliveryRepsNavBtn').classList.add('active');loadDeliveryReps();loadDeliveryRepRequests();});
+$('attendanceNavBtn').addEventListener('click',()=>{stopDeliveryRepsMapRefresh();$('deliveryRepsMapView').classList.add('hidden');$('deliveryRepsMapNavBtn').classList.remove('active');$('deliveryOrdersView').classList.add('hidden');$('deliveryOrdersNavBtn').classList.remove('active');$('customersView').classList.add('hidden');$('staffDirectoryView').classList.add('hidden');$('deliveryRepsView').classList.add('hidden');$('attendanceView').classList.remove('hidden');$('customersNavBtn').classList.remove('active');$('staffNavBtn').classList.remove('active');$('deliveryRepsNavBtn').classList.remove('active');$('attendanceNavBtn').classList.add('active');if(isAdmin||isOperationsManager)loadAdminAttendance();else loadMyAttendance();});
+$('deliveryRepsNavBtn').addEventListener('click',()=>{stopDeliveryRepsMapRefresh();$('deliveryRepsMapView').classList.add('hidden');$('deliveryRepsMapNavBtn').classList.remove('active');$('deliveryOrdersView').classList.add('hidden');$('deliveryOrdersNavBtn').classList.remove('active');$('customersView').classList.add('hidden');$('staffDirectoryView').classList.add('hidden');$('attendanceView').classList.add('hidden');$('deliveryRepsView').classList.remove('hidden');$('customersNavBtn').classList.remove('active');$('staffNavBtn').classList.remove('active');$('attendanceNavBtn').classList.remove('active');$('deliveryRepsNavBtn').classList.add('active');loadDeliveryReps();loadDeliveryRepRequests();});
 $('deliveryRepsRefreshBtn').addEventListener('click',loadDeliveryReps);
 $('deliveryRepRequestsRefresh').addEventListener('click',loadDeliveryRepRequests);
 $('deliveryRepRequestsList').addEventListener('click',e=>{
