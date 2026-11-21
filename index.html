@@ -1798,21 +1798,6 @@ async function requestDeliveryRepPasswordReset(){
  showMessage('loginMsg','لإعادة تعيين كلمة المرور، تواصل مع المدير الرئيسي أو مدير الفرع. يمكنه تعيين كلمة مرور جديدة من قائمة المندوبين.',true);
 }
 
-async function saveDeliveryRepEmail(){
- if(!currentDeliveryRep)return;
- const email=$('deliveryRepEmail').value.trim().toLowerCase();
- if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
-  $('deliveryRepEmailMessage').textContent='اكتب بريدًا إلكترونيًا صحيحًا.';return;
- }
- $('deliveryRepSaveEmail').disabled=true;
- $('deliveryRepEmailMessage').textContent='جارٍ حفظ الإيميل وإرسال رسالة التأكيد...';
- try{
-  const result=await callDeliveryRepAuth({action:'set-email',email});
-  $('deliveryRepEmailMessage').textContent=result.message||'تم إرسال رسالة تأكيد إلى الإيميل الجديد. افتح الرسالة واضغط رابط التأكيد قبل تسجيل الخروج.';
- }catch(error){
-  $('deliveryRepEmailMessage').textContent='تعذر حفظ الإيميل: '+error.message;
- }finally{$('deliveryRepSaveEmail').disabled=false;}
-}
 
 async function saveDeliveryRepNewPassword(){
  const password=$('deliveryRepNewPassword').value;
@@ -2311,7 +2296,7 @@ async function loadDeliveryReps(){
  if(error){host.innerHTML='';showMessage('deliveryRepsMessage','تعذر تحميل المندوبين: '+error.message,true);return;}
  deliveryRepRows=data||[];
  if(!deliveryRepRows.length)host.innerHTML='<p class="muted">لا يوجد مندوبون مسجلون حتى الآن.</p>';
- else{const statusLabels={available:'متاح',busy:'مشغول',unavailable:'غير متاح'};host.innerHTML=deliveryRepRows.map(rep=>'<article class="complaint-card"><h3>'+escapeHTML(rep.full_name||'مندوب بدون اسم')+'</h3><p>اسم المستخدم: <b>'+escapeHTML(rep.username||'—')+'</b></p><p>الفرع: '+escapeHTML(rep.branch||'—')+'</p><p>الهاتف: '+escapeHTML(rep.phone||'—')+'</p><p>الإيميل: '+escapeHTML(rep.email||'غير مسجل')+'</p><p>الحالة: <b>'+escapeHTML(statusLabels[rep.availability_status]||'غير معروف')+'</b></p><p>الحساب: '+(rep.is_active?'نشط':'موقوف')+'</p><button type="button" class="delivery-rep-reset-password secondary" data-user-id="'+escapeHTML(rep.user_id)+'">إعادة تعيين كلمة المرور</button></article>').join('');}
+ else{const statusLabels={available:'متاح',busy:'مشغول',unavailable:'غير متاح'};host.innerHTML=deliveryRepRows.map(rep=>'<article class="complaint-card"><h3>'+escapeHTML(rep.full_name||'مندوب بدون اسم')+'</h3><p>اسم المستخدم: <b>'+escapeHTML(rep.username||'—')+'</b></p><p>الفرع: '+escapeHTML(rep.branch||'—')+'</p><p>الهاتف: '+escapeHTML(rep.phone||'—')+'</p><p>الحالة: <b>'+escapeHTML(statusLabels[rep.availability_status]||'غير معروف')+'</b></p><p>الحساب: '+(rep.is_active?'نشط':'موقوف')+'</p><button type="button" class="delivery-rep-reset-password secondary" data-user-id="'+escapeHTML(rep.user_id)+'">إعادة تعيين كلمة المرور</button></article>').join('');}
  await loadDeliveryRepPerformance();
 }
 async function resetDeliveryRepPassword(userId){
@@ -3344,7 +3329,7 @@ $('deliveryRepRegisterBtn').addEventListener('click',()=>{
 $('deliveryRepRegisterClose').addEventListener('click',()=>$('deliveryRepRegisterDialog').close());
 $('deliveryRepRegisterSubmit').addEventListener('click',submitDeliveryRepRegistration);
 $('deliveryRepForgotPassword').addEventListener('click',requestDeliveryRepPasswordReset);
-$('deliveryRepSaveEmail').addEventListener('click',saveDeliveryRepEmail);
+
 $('deliveryRepUpdatePassword').addEventListener('click',saveDeliveryRepNewPassword);
 $('deliveryRepCancelRecovery').addEventListener('click',()=>$('deliveryRepRecoveryDialog').close());
 function openDeliveryRepRecovery(){
