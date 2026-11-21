@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
         return reply({ error: "راجع الاسم والهاتف واسم المستخدم والفرع، وكلمة المرور يجب ألا تقل عن 8 أحرف." }, 400);
       }
       // Supabase Auth requires an email identifier; this internal address is never shown to the rep.
-      const email = username + "@delivery-login.internal;
+      const email = username + "@delivery-login.internal";
       const { data: existing, error: existingError } = await admin
         .from("delivery_rep_profiles").select("id").ilike("username", username).maybeSingle();
       if (existingError) throw existingError;
