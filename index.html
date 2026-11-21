@@ -2203,7 +2203,7 @@ async function submitDeliveryRepRegistration(){
  const full_name=$('deliveryRepRegisterName').value.trim(),phone=$('deliveryRepRegisterPhone').value.trim();
  const username=$('deliveryRepRegisterUsername').value.trim().toLowerCase(),branch=$('deliveryRepRegisterBranch').value;
  const password=$('deliveryRepRegisterPassword').value;
- if(full_name.length<3||phone.length<5||!/^[a-z0-9._-]{3,40}$/.test(username)||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||!branch||password.length<8){
+ if(full_name.length<3||phone.length<5||!/^[a-z0-9._-]{3,40}$/.test(username)||!branch||password.length<8){
   $('deliveryRepRegisterMessage').textContent='راجع البيانات، وكلمة المرور يجب ألا تقل عن 8 أحرف.';return;
  }
  const button=$('deliveryRepRegisterSubmit');button.disabled=true;button.textContent='جارٍ إرسال الطلب...';
