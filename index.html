@@ -1032,6 +1032,22 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
 
 .delivery-performance-leaders{grid-template-columns:repeat(2,minmax(0,1fr))}
 @media(max-width:680px){.delivery-performance-leaders{grid-template-columns:1fr}}
+
+/* Dispatch center kanban board */
+.delivery-dispatch-board{display:grid;grid-template-columns:repeat(4,minmax(270px,1fr));gap:12px;align-items:start;overflow-x:auto;padding:4px 2px 12px;scroll-snap-type:x proximity}
+.delivery-dispatch-lane{min-width:270px;border:1px solid rgba(212,175,55,.22);border-radius:14px;background:rgba(20,18,14,.72);padding:10px;scroll-snap-align:start}
+.delivery-dispatch-lane-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 3px 10px;border-bottom:1px solid rgba(212,175,55,.2);margin-bottom:10px}
+.delivery-dispatch-lane-head>div{display:flex;align-items:center;gap:8px;color:#f1d88d;font-weight:800}
+.delivery-dispatch-lane-head>b{min-width:28px;text-align:center;padding:4px 8px;border-radius:20px;background:rgba(212,175,55,.16);color:#f5d77d}
+.delivery-dispatch-lane-body{display:grid;gap:10px;max-height:72vh;overflow-y:auto;padding:1px 2px 4px}
+.delivery-dispatch-lane .delivery-order-card{margin:0;min-width:0}
+.delivery-dispatch-lane .delivery-card-details{grid-template-columns:1fr 1fr}
+.delivery-dispatch-empty{padding:22px 8px;text-align:center;color:#8e887b;border:1px dashed rgba(212,175,55,.18);border-radius:10px;font-size:12px}
+.lane-new .delivery-dispatch-lane-head{border-color:rgba(212,175,55,.5)}
+.lane-picked .delivery-dispatch-lane-head{border-color:rgba(235,151,54,.45)}
+.lane-done .delivery-dispatch-lane-head{border-color:rgba(68,170,112,.4)}
+@media(max-width:900px){.delivery-dispatch-board{grid-template-columns:repeat(4,minmax(285px,82vw))}.delivery-dispatch-lane-body{max-height:none}}
+
 </style>
 </head>
 <body>
@@ -2355,7 +2371,11 @@ function renderDeliveryOrders(){
  if(summary)summary.innerHTML='<div class="delivery-summary-card"><small>إجمالي الطلبات</small><strong>'+branchRows.length+'</strong></div><div class="delivery-summary-card"><small>طلبات جديدة</small><strong>'+count('new')+'</strong></div><div class="delivery-summary-card"><small>قيد التوصيل</small><strong>'+branchRows.filter(x=>['assigned','accepted','picked_up'].includes(x.status)).length+'</strong></div><div class="delivery-summary-card"><small>تم التسليم</small><strong>'+count('delivered')+'</strong></div>';
  const rows=branchRows.filter(x=>(!status||x.status===status)&&(!term||[x.order_no,x.customer_name,x.customer_phone,x.delivery_address,x.items,x.branch].some(v=>String(v||'').toLocaleLowerCase().includes(term))));
  const host=$('deliveryOrdersList');
- host.innerHTML=rows.length?rows.map(x=>deliveryOrderCard(x)).join(''):'<div class="delivery-orders-empty"><strong>لا توجد طلبات مطابقة</strong><span>جرّب تغيير حالة الطلب أو كلمة البحث.</span></div>';
+ const lanes=[{key:'new',title:'طلبات جديدة',icon:'🆕',tone:'new'},{key:'assigned',title:'تم إسنادها',icon:'📋',tone:'assigned'},{key:'accepted',title:'قبلها المندوب',icon:'🙋',tone:'accepted'},{key:'picked_up',title:'قيد التوصيل',icon:'🛵',tone:'picked'},{key:'delivered',title:'تم التسليم',icon:'✓',tone:'done'},{key:'cancelled',title:'ملغاة',icon:'×',tone:'cancelled'}];
+ const visibleLanes=lanes.filter(lane=>!status||lane.key===status);
+ host.classList.add('delivery-dispatch-board');
+ host.innerHTML=visibleLanes.map(lane=>{const laneRows=rows.filter(order=>order.status===lane.key);return '<section class="delivery-dispatch-lane lane-'+lane.tone+'"><header class="delivery-dispatch-lane-head"><div><span>'+lane.icon+'</span><strong>'+lane.title+'</strong></div><b>'+laneRows.length+'</b></header><div class="delivery-dispatch-lane-body">'+(laneRows.length?laneRows.map(order=>deliveryOrderCard(order)).join(''):'<div class="delivery-dispatch-empty">لا توجد طلبات</div>')+'</div></section>';}).join('');
+ if(!rows.length)host.innerHTML='<div class="delivery-orders-empty"><strong>لا توجد طلبات مطابقة</strong><span>جرّب تغيير حالة الطلب أو كلمة البحث.</span></div>';
 }
 async function loadDeliveryOrders(){
  if(!currentUser||(!isAdmin&&!isOperationsManager&&!isBranchManager))return;
