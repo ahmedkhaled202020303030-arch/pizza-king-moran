@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>مولد مفاتيح إشعارات Pizza King & Morin</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#080b10;color:#f5edda;font-family:Arial,sans-serif;padding:24px;min-height:100vh;display:grid;place-items:center}.card{width:min(680px,100%);background:#111722;border:1px solid #806c32;border-radius:18px;padding:24px;box-shadow:0 18px 50px #0008}h1{color:#d4af37;font-size:22px;margin-top:0}p{line-height:1.8;color:#c9c1ad}.warning{border-right:4px solid #d4af37;background:#211d13;padding:12px;border-radius:8px}.field{margin:18px 0}label{display:block;margin-bottom:8px;color:#e4cc83}textarea{width:100%;min-height:76px;direction:ltr;text-align:left;background:#080b10;color:#f5edda;border:1px solid #554a2b;border-radius:8px;padding:12px;resize:vertical}button{background:linear-gradient(145deg,#f0d77e,#b18b25);color:#17130a;border:0;border-radius:10px;padding:13px 20px;font-weight:bold;font-size:15px;cursor:pointer}button:disabled{opacity:.5}small{color:#aaa18d}.status{margin-top:12px;color:#e8ce7c}
+</style></head><body><main class="card"><h1>مولّد مفاتيح إشعارات التطبيق</h1>
+<p>الأداة تنشئ مفاتيح VAPID محليًا داخل متصفحك باستخدام Web Crypto. المفاتيح لا يتم إرسالها إلى أي خادم.</p>
+<p class="warning">احتفظ بالمفتاح الخاص سريًا، ولا تضعه في GitHub أو داخل كود التطبيق. سنضيفه فقط في Secrets داخل Supabase.</p>
+<button id="generate">إنشاء مفاتيح جديدة</button>
+<div class="field"><label for="public">VAPID_PUBLIC_KEY — المفتاح العام</label><textarea id="public" readonly placeholder="سيظهر هنا بعد الإنشاء"></textarea><button data-copy="public">نسخ المفتاح العام</button></div>
+<div class="field"><label for="private">VAPID_PRIVATE_KEY — المفتاح الخاص السري</label><textarea id="private" readonly placeholder="سيظهر هنا بعد الإنشاء"></textarea><button data-copy="private">نسخ المفتاح الخاص</button></div>
+<div id="status" class="status" role="status"></div><small>إذا أنشأت مجموعة جديدة، استخدم المفتاحين الجديدين معًا ولا تخلطهما مع مفاتيح قديمة.</small>
+</main>
+<script>
+const b64url = bytes => { let binary=''; for(const byte of bytes) binary+=String.fromCharCode(byte); return btoa(binary).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,''); };
+document.getElementById('generate').addEventListener('click',async()=>{
+ const btn=document.getElementById('generate'),status=document.getElementById('status');btn.disabled=true;status.textContent='جارٍ إنشاء المفاتيح محليًا...';
+ try{
+  const pair=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},true,['deriveBits']);
+  const publicRaw=new Uint8Array(await crypto.subtle.exportKey('raw',pair.publicKey));
+  const privateJwk=await crypto.subtle.exportKey('jwk',pair.privateKey);
+  if(publicRaw.length!==65||!privateJwk.d)throw new Error('تعذر استخراج المفاتيح بالصورة المطلوبة.');
+  document.getElementById('public').value=b64url(publicRaw);
+  document.getElementById('private').value=privateJwk.d;
+  status.textContent='تم إنشاء المفاتيح بنجاح على هذا الجهاز.';
+ }catch(e){status.textContent='تعذر إنشاء المفاتيح: '+e.message;}
+ finally{btn.disabled=false;}
+});
+document.querySelectorAll('[data-copy]').forEach(btn=>btn.addEventListener('click',async()=>{
+ const el=document.getElementById(btn.dataset.copy);if(!el.value)return;
+ try{await navigator.clipboard.writeText(el.value);document.getElementById('status').textContent='تم النسخ.';}
+ catch{el.focus();el.select();document.execCommand('copy');document.getElementById('status').textContent='تم النسخ.';}
+}));
+</script></body></html>
