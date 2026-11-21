@@ -1014,6 +1014,8 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
 .delivery-weekday-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}.delivery-weekday-card{padding:12px;border:1px solid rgba(212,175,55,.2);border-radius:12px;background:rgba(255,255,255,.018);min-width:0}.delivery-weekday-card h4{margin:0 0 9px;color:#e6cb82;font-size:13px}.delivery-weekday-branch{margin:8px 0}.delivery-weekday-branch-head{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:10px;color:#d4c9ae}.delivery-weekday-branch-head b{color:#f0d68e;white-space:nowrap}.delivery-weekday-track{height:7px;margin-top:5px;overflow:hidden;border-radius:8px;background:#29251c}.delivery-weekday-fill{height:100%;border-radius:8px;background:linear-gradient(90deg,#806020,#d4af37,#f5dda0)}.delivery-weekday-meta{margin-top:3px;color:#938873;font-size:9px}.delivery-weekday-empty{color:#948a77;font-size:11px}@media(max-width:520px){.delivery-weekday-grid{grid-template-columns:1fr}}
 
 .delivery-average-order-chart{display:grid;gap:11px}.delivery-average-order-row{display:grid;grid-template-columns:minmax(90px,150px) minmax(70px,1fr) auto;align-items:center;gap:10px}.delivery-average-order-name{overflow:hidden;color:#d8cba9;font-size:11px;text-overflow:ellipsis;white-space:nowrap}.delivery-average-order-track{height:12px;overflow:hidden;border:1px solid rgba(212,175,55,.15);border-radius:9px;background:#29251c}.delivery-average-order-fill{height:100%;border-radius:9px;background:linear-gradient(90deg,#806020,#d4af37,#f5dda0)}.delivery-average-order-value{color:#f0d68e;font-size:11px;font-weight:800;white-space:nowrap}.delivery-average-order-meta{grid-column:1/-1;margin-top:-8px;color:#938873;font-size:9px}.delivery-average-order-row.is-best .delivery-average-order-name:before{content:'★ ';color:#e6c66f}@media(max-width:520px){.delivery-average-order-row{grid-template-columns:82px minmax(45px,1fr) auto;gap:7px}.delivery-average-order-name,.delivery-average-order-value{font-size:10px}}
+
+.delivery-auto-assign-btn{background:linear-gradient(135deg,#d4af37,#f2d98b)!important;color:#17130a!important;border:1px solid #f3df9b!important;font-weight:800!important;box-shadow:0 3px 10px rgba(212,175,55,.22)}.delivery-auto-assign-btn:disabled{opacity:.6;cursor:wait}
 </style>
 </head>
 <body>
@@ -2296,7 +2298,7 @@ function setAppMenu(open){const nav=$('appMainNav'),toggle=$('appMenuToggle'),ba
 function deliveryStatusLabel(s){return ({new:'جديد - بانتظار التوزيع',assigned:'تم إسناده للمندوب',accepted:'المندوب قبل الطلب',picked_up:'تم استلام الطلب من الفرع',delivered:'تم التسليم',cancelled:'ملغي'})[s]||s;}
 function deliveryPaymentLabel(s){return ({cash:'نقدي',card:'بطاقة / مدفوع',wallet:'محفظة إلكترونية'})[s]||s;}
 function distanceKm(a,b,c,d){const r=x=>x*Math.PI/180,x=Math.sin(r(c-a)/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(r(d-b)/2)**2;return 6371*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
-async function loadDeliveryOrderRepChoices(){const {data,error}=await db.from('delivery_rep_profiles').select('user_id,full_name,branch,availability_status,is_active').eq('is_active',true).in('availability_status',['available','busy']);if(error)throw error;const reps=data||[],ids=reps.map(x=>x.user_id);let locs=[];if(ids.length){const q=await db.from('delivery_rep_locations').select('user_id,latitude,longitude').in('user_id',ids);if(q.error)throw q.error;locs=q.data||[];}const map=new Map(locs.map(x=>[x.user_id,x]));deliveryOrderRepChoices=reps.map(x=>({...x,loc:map.get(x.user_id)}));}
+async function loadDeliveryOrderRepChoices(){const {data,error}=await db.from('delivery_rep_profiles').select('user_id,full_name,branch,availability_status,is_active').eq('is_active',true).in('availability_status',['available','busy']);if(error)throw error;const reps=data||[],ids=reps.map(x=>x.user_id);let locs=[];if(ids.length){const q=await db.from('delivery_rep_locations').select('user_id,latitude,longitude,recorded_at').in('user_id',ids);if(q.error)throw q.error;locs=q.data||[];}const map=new Map(locs.map(x=>[x.user_id,x]));deliveryOrderRepChoices=reps.map(x=>({...x,loc:map.get(x.user_id)}));}
 function deliveryOrderCard(o,repView=false){
  const rep=deliveryOrderRepChoices.find(x=>x.user_id===o.assigned_rep_user_id),coords=o.latitude!=null&&o.longitude!=null;
  const map=coords?'<a target="_blank" rel="noopener" href="https://www.google.com/maps?q='+encodeURIComponent(o.latitude+','+o.longitude)+'">عرض موقع العميل على الخريطة</a>':'';
@@ -2305,7 +2307,7 @@ function deliveryOrderCard(o,repView=false){
  if(repView){if(o.status==='assigned')actions='<button data-rep-order-action="accepted" data-order-id="'+o.id+'">قبول الطلب</button>';else if(o.status==='accepted')actions='<button data-rep-order-action="picked_up" data-order-id="'+o.id+'">تأكيد استلام الطلب</button>';else if(o.status==='picked_up')actions='<button data-rep-order-action="delivered" data-order-id="'+o.id+'">تأكيد التسليم والتحصيل</button>';}
  else if((isAdmin||isOperationsManager)&&['new','assigned'].includes(o.status)){
   const list=deliveryOrderRepChoices.filter(x=>x.branch===o.branch).map(x=>({...x,km:x.loc&&coords?distanceKm(+o.latitude,+o.longitude,+x.loc.latitude,+x.loc.longitude):null})).sort((a,b)=>a.km==null?(b.km==null?0:1):b.km==null?-1:a.km-b.km);
-  actions='<div class="delivery-assign-row"><select id="assignRep_'+o.id+'"><option value="">اختيار المندوب</option>'+list.map(x=>'<option value="'+x.user_id+'">'+escapeHTML(x.full_name)+' — '+(x.availability_status==='busy'?'مشغول':'متاح')+(x.km==null?'':' — '+x.km.toFixed(1)+' كم')+'</option>').join('')+'</select><button data-assign-order="'+o.id+'">إسناد الطلب</button><button class="danger" data-cancel-order="'+o.id+'">إلغاء الطلب</button></div>';
+  actions='<div class="delivery-assign-row"><select id="assignRep_'+o.id+'"><option value="">اختيار المندوب يدويًا</option>'+list.map(x=>'<option value="'+x.user_id+'">'+escapeHTML(x.full_name)+' — '+(x.availability_status==='busy'?'مشغول':'متاح')+(x.km==null?'':' — '+x.km.toFixed(1)+' كم')+'</option>').join('')+'</select><button data-assign-order="'+o.id+'">إسناد يدوي</button><button data-auto-assign-order="'+o.id+'" class="delivery-auto-assign-btn">توزيع تلقائي ذكي</button><button class="danger" data-cancel-order="'+o.id+'">إلغاء الطلب</button></div>';
  }
  const amount=Number(o.total_amount||0).toLocaleString('ar-EG',{minimumFractionDigits:2,maximumFractionDigits:2});
  const collection=o.collection_status==='collected'?'تم التحصيل':o.collection_status==='not_applicable'?'مدفوع إلكترونيًا':'بانتظار التحصيل';
@@ -2337,6 +2339,26 @@ async function createDeliveryOrder(){
  finally{b.disabled=false;b.textContent='حفظ وإرسال الطلب للتشغيل';}
 }
 async function assignDeliveryOrder(id){if(!isAdmin&&!isOperationsManager)return;const rep=$('assignRep_'+id)?.value;if(!rep){showMessage('deliveryOrdersMessage','اختر المندوب أولاً.',true);return;}try{const q=await db.rpc('assign_delivery_order',{p_order_id:id,p_rep_user_id:rep});if(q.error)throw q.error;await loadDeliveryOrders();}catch(e){showMessage('deliveryOrdersMessage','تعذر إسناد الطلب: '+e.message,true);}}
+async function autoAssignDeliveryOrder(id){
+ if(!isAdmin&&!isOperationsManager)return;
+ const order=deliveryOrderRows.find(x=>String(x.id)===String(id));
+ if(!order||!['new','assigned'].includes(order.status)){showMessage('deliveryOrdersMessage','هذا الطلب لم يعد متاحًا للتوزيع.',true);return;}
+ if(order.latitude==null||order.longitude==null){showMessage('deliveryOrdersMessage','لا يمكن التوزيع حسب الأقرب قبل تسجيل موقع العميل (خط العرض والطول). استخدم الإسناد اليدوي أو أضف موقع العميل.',true);return;}
+ const now=Date.now(),candidates=deliveryOrderRepChoices.filter(rep=>{
+  if(rep.branch!==order.branch||rep.availability_status!=='available'||!rep.loc)return false;
+  const lat=Number(rep.loc.latitude),lng=Number(rep.loc.longitude),recorded=rep.loc.recorded_at?new Date(rep.loc.recorded_at).getTime():NaN;
+  return Number.isFinite(lat)&&Number.isFinite(lng)&&Number.isFinite(recorded)&&now-recorded>=-60000&&now-recorded<=15*60*1000;
+ }).map(rep=>({...rep,km:distanceKm(Number(order.latitude),Number(order.longitude),Number(rep.loc.latitude),Number(rep.loc.longitude))})).sort((a,b)=>a.km-b.km);
+ if(!candidates.length){showMessage('deliveryOrdersMessage','لا يوجد مندوب متاح بآخر موقع محدّث خلال 15 دقيقة في نفس الفرع. حدّث موقع المندوب أو استخدم الإسناد اليدوي.',true);return;}
+ const chosen=candidates[0],button=document.querySelector('[data-auto-assign-order="'+id+'"]');
+ if(button){button.disabled=true;button.textContent='جارٍ اختيار الأقرب...';}
+ try{
+  const result=await db.rpc('assign_delivery_order',{p_order_id:id,p_rep_user_id:chosen.user_id});
+  if(result.error)throw result.error;
+  showMessage('deliveryOrdersMessage','تم إسناد الطلب إلى '+(chosen.full_name||'المندوب')+' — الأقرب بمسافة تقريبية '+chosen.km.toFixed(1)+' كم.');
+  await loadDeliveryOrders();
+ }catch(error){showMessage('deliveryOrdersMessage','تعذر التوزيع التلقائي: '+(error.message||'خطأ غير معروف'),true);if(button){button.disabled=false;button.textContent='توزيع تلقائي ذكي';}}
+}
 async function cancelDeliveryOrder(id){if((!isAdmin&&!isOperationsManager)||!confirm('هل تريد إلغاء هذا الطلب؟'))return;try{const q=await db.rpc('update_delivery_order_status',{p_order_id:id,p_status:'cancelled',p_collected_amount:null});if(q.error)throw q.error;await loadDeliveryOrders();}catch(e){showMessage('deliveryOrdersMessage','تعذر إلغاء الطلب: '+e.message,true);}}
 async function loadMyDeliveryOrders(){if(!currentDeliveryRep)return;const host=$('deliveryRepOrdersList');const q=await db.from('delivery_orders').select('*').eq('assigned_rep_user_id',currentDeliveryRep.user_id).in('status',['assigned','accepted','picked_up']).order('created_at',{ascending:true});if(q.error){host.textContent='تعذر تحميل الطلبات: '+q.error.message;return;}host.innerHTML=q.data?.length?q.data.map(o=>deliveryOrderCard(o,true)).join(''):'<p class="muted">لا توجد طلبات مسندة إليك حاليًا.</p>';}
 async function updateMyDeliveryOrder(id,status){if(!currentDeliveryRep)return;let amount=null;if(status==='delivered'){const q=await db.from('delivery_orders').select('payment_method,total_amount').eq('id',id).maybeSingle();if(q.data?.payment_method==='cash'){const raw=prompt('اكتب المبلغ النقدي الذي تم تحصيله بالجنيه:',String(q.data.total_amount||0));if(raw===null)return;amount=Number(raw);if(!Number.isFinite(amount)||amount<0){alert('المبلغ غير صحيح.');return;}}}try{const q=await db.rpc('update_delivery_order_status',{p_order_id:id,p_status:status,p_collected_amount:amount});if(q.error)throw q.error;await loadMyDeliveryOrders();}catch(e){alert('تعذر تحديث الطلب: '+e.message);}}
@@ -3257,7 +3279,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')setAppMenu(false);})
 $('deliveryOrdersRefreshBtn').addEventListener('click',loadDeliveryOrders);
 $('deliveryOrdersBranchFilter').addEventListener('change',renderDeliveryOrders);$('deliveryOrdersStatusFilter').addEventListener('change',renderDeliveryOrders);$('deliveryOrdersSearch').addEventListener('input',renderDeliveryOrders);
 $('deliveryOrderCreateBtn').addEventListener('click',createDeliveryOrder);
-$('deliveryOrdersList').addEventListener('click',e=>{const a=e.target.closest('[data-assign-order]'),c=e.target.closest('[data-cancel-order]');if(a)assignDeliveryOrder(a.dataset.assignOrder);if(c)cancelDeliveryOrder(c.dataset.cancelOrder);});
+$('deliveryOrdersList').addEventListener('click',e=>{const smart=e.target.closest('[data-auto-assign-order]'),a=e.target.closest('[data-assign-order]'),c=e.target.closest('[data-cancel-order]');if(smart)autoAssignDeliveryOrder(smart.dataset.autoAssignOrder);if(a)assignDeliveryOrder(a.dataset.assignOrder);if(c)cancelDeliveryOrder(c.dataset.cancelOrder);});
 $('deliveryRepOrdersList').addEventListener('click',e=>{const b=e.target.closest('[data-rep-order-action]');if(b)updateMyDeliveryOrder(b.dataset.orderId,b.dataset.repOrderAction);});
 $('deliveryMapRefreshBtn').addEventListener('click',loadDeliveryRepsMap);
 $('deliveryMapBranchFilter').addEventListener('change',loadDeliveryRepsMap);
