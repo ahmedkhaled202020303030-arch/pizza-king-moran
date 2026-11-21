@@ -105,6 +105,9 @@ begin
  if not found or v_rep.branch<>v_order.branch then raise exception 'اختر مندوباً نشطاً من نفس فرع الطلب'; end if;
  if v_rep.availability_status='unavailable' then raise exception 'المندوب غير متاح حالياً'; end if;
  update public.delivery_orders set assigned_rep_user_id=p_rep_user_id,assigned_by=auth.uid(),assigned_at=now(),status='assigned',updated_at=now() where id=p_order_id;
+ if v_order.assigned_rep_user_id is not null and v_order.assigned_rep_user_id<>p_rep_user_id and not exists(select 1 from public.delivery_orders where assigned_rep_user_id=v_order.assigned_rep_user_id and id<>p_order_id and status in ('assigned','accepted','picked_up')) then
+  update public.delivery_rep_profiles set availability_status='available',updated_at=now() where user_id=v_order.assigned_rep_user_id and is_active=true;
+ end if;
  update public.delivery_rep_profiles set availability_status='busy',updated_at=now() where user_id=p_rep_user_id;
 end; $$;
 
@@ -118,7 +121,11 @@ begin
  if not found then raise exception 'الطلب غير موجود'; end if;
  if p_status='cancelled' and v_role in ('admin','operations_manager') then
   if v_order.status in ('delivered','cancelled') then raise exception 'لا يمكن إلغاء هذا الطلب'; end if;
-  update public.delivery_orders set status='cancelled',updated_at=now() where id=p_order_id; return;
+  update public.delivery_orders set status='cancelled',updated_at=now() where id=p_order_id;
+  if v_order.assigned_rep_user_id is not null and not exists(select 1 from public.delivery_orders where assigned_rep_user_id=v_order.assigned_rep_user_id and id<>p_order_id and status in ('assigned','accepted','picked_up')) then
+   update public.delivery_rep_profiles set availability_status='available',updated_at=now() where user_id=v_order.assigned_rep_user_id and is_active=true;
+  end if;
+  return;
  end if;
  if v_role<>'delivery_rep' or v_order.assigned_rep_user_id<>auth.uid() then raise exception 'غير مصرح بتحديث هذا الطلب'; end if;
  if (v_order.status='assigned' and p_status<>'accepted') or (v_order.status='accepted' and p_status<>'picked_up') or (v_order.status='picked_up' and p_status<>'delivered') then raise exception 'حالة الطلب لا تسمح بهذه الخطوة'; end if;
