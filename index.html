@@ -1255,7 +1255,7 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
  <div id="deliveryRepsMap" role="application" aria-label="خريطة مواقع المندوبين وطلبات التوصيل"></div>
 </section>
 <section id="deliveryOrdersView" class="panel hidden">
- <div class="report-heading"><div><h2>إدارة طلبات الدليفري</h2><p class="muted">إدخال طلبات الفروع، توزيع المندوبين، ومتابعة التحصيل.</p></div><div class="row"><button type="button" id="deliveryBulkAutoAssignBtn" class="primary-btn hidden">توزيع الطلبات الجديدة تلقائيًا</button><button type="button" id="deliveryOrdersRefreshBtn" class="light">تحديث الطلبات</button></div></div>
+ <div class="report-heading"><div><h2>إدارة طلبات الدليفري</h2><p class="muted">إدخال طلبات الفروع، توزيع المندوبين، ومتابعة التحصيل.</p></div><div class="row"><button type="button" id="deliveryPushEnableBtn" class="light hidden">تفعيل إشعارات الطلبات</button><button type="button" id="deliveryBulkAutoAssignBtn" class="primary-btn hidden">توزيع الطلبات الجديدة تلقائيًا</button><button type="button" id="deliveryOrdersRefreshBtn" class="light">تحديث الطلبات</button></div></div>
  <div id="deliveryOrderCreatePanel" class="panel hidden"><h3>إضافة طلب دليفري جديد</h3><p class="muted">مدير الفرع يدخل الطلب يدويًا، وبعد الحفظ يظهر في لوحة التشغيل.</p>
  <div class="delivery-order-form-grid">
  <div><label for="deliveryOrderCustomer">اسم العميل</label><input id="deliveryOrderCustomer" maxlength="120"></div><div><label for="deliveryOrderPhone">رقم الهاتف</label><input id="deliveryOrderPhone" type="tel" maxlength="30"></div>
@@ -2402,6 +2402,30 @@ function renderDeliveryOrders(){
  host.innerHTML=visibleLanes.map(lane=>{const laneRows=rows.filter(order=>order.status===lane.key);return '<section class="delivery-dispatch-lane lane-'+lane.tone+'"><header class="delivery-dispatch-lane-head"><div><span>'+lane.icon+'</span><strong>'+lane.title+'</strong></div><b>'+laneRows.length+'</b></header><div class="delivery-dispatch-lane-body">'+(laneRows.length?laneRows.map(order=>deliveryOrderCard(order)).join(''):'<div class="delivery-dispatch-empty">لا توجد طلبات</div>')+'</div></section>';}).join('');
  if(!rows.length)host.innerHTML='<div class="delivery-orders-empty"><strong>لا توجد طلبات مطابقة</strong><span>جرّب تغيير حالة الطلب أو كلمة البحث.</span></div>';
 }
+async function enableDeliveryPushNotifications(){
+ const btn=$('deliveryPushEnableBtn');if(!btn)return;
+ if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window)){showMessage('deliveryOrdersMessage','هذا الجهاز أو المتصفح لا يدعم إشعارات التطبيق.',true);return;}
+ if(!currentUser||(!isAdmin&&!isBranchManager)){showMessage('deliveryOrdersMessage','الإشعارات متاحة للمدير الرئيسي ومدير الفرع فقط.',true);return;}
+ btn.disabled=true;btn.textContent='جارٍ تفعيل الإشعارات...';
+ try{
+  const permission=await Notification.requestPermission();if(permission!=='granted')throw new Error('لم تسمح بإرسال الإشعارات. فعّلها من إعدادات المتصفح.');
+  const registration=await navigator.serviceWorker.ready;
+  const keyResponse=await fetch(SUPABASE_URL+'/functions/v1/delivery-push',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY},body:JSON.stringify({action:'get_public_key'})});
+  const keyData=await keyResponse.json();if(!keyResponse.ok||!keyData.publicKey)throw new Error(keyData.error||'إعداد مفتاح الإشعارات غير مكتمل على الخادم.');
+  const decodeKey=value=>{const padding='='.repeat((4-value.length%4)%4);const base=(value+padding).replace(/-/g,'+').replace(/_/g,'/');return Uint8Array.from(atob(base),ch=>ch.charCodeAt(0));};
+  let subscription=await registration.pushManager.getSubscription();
+  if(!subscription)subscription=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:decodeKey(keyData.publicKey)});
+  const {data:sessionData}=await db.auth.getSession();const token=sessionData?.session?.access_token;if(!token)throw new Error('انتهت جلسة الدخول. سجل الدخول مرة أخرى.');
+  const response=await fetch(SUPABASE_URL+'/functions/v1/delivery-push',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+token},body:JSON.stringify({action:'subscribe',subscription:subscription.toJSON()})});
+  const result=await response.json();if(!response.ok)throw new Error(result.error||'تعذر حفظ اشتراك الإشعارات.');
+  btn.textContent='الإشعارات مفعّلة ✓';btn.disabled=false;showMessage('deliveryOrdersMessage','تم تفعيل إشعارات الطلبات والتأخير على هذا الجهاز.');
+ }catch(e){btn.disabled=false;btn.textContent='تفعيل إشعارات الطلبات';showMessage('deliveryOrdersMessage',e.message||'تعذر تفعيل الإشعارات.',true);}
+}
+async function sendDeliveryPushEvent(orderId){
+ try{const {data}=await db.auth.getSession();const token=data?.session?.access_token;if(!token)return;
+  await fetch(SUPABASE_URL+'/functions/v1/delivery-push',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+token},body:JSON.stringify({action:'new_order',order_id:orderId})});
+ }catch(e){console.warn('Delivery push notification failed:',e);}
+}
 async function loadDeliveryOrders(){
  if(!currentUser||(!isAdmin&&!isOperationsManager&&!isBranchManager))return;
  $('deliveryBulkAutoAssignBtn').classList.toggle('hidden',!isAdmin&&!isOperationsManager);
@@ -2415,7 +2439,7 @@ async function createDeliveryOrder(){
  if(!p.p_customer_name||!p.p_customer_phone||!p.p_delivery_address||!Number.isFinite(p.p_total_amount)||p.p_total_amount<0){$('deliveryOrderCreateMessage').textContent='أكمل اسم العميل والهاتف والعنوان والإجمالي بشكل صحيح.';return;}
  if((p.p_latitude==null)!==(p.p_longitude==null)||[p.p_latitude,p.p_longitude].some(x=>x!=null&&!Number.isFinite(x))){$('deliveryOrderCreateMessage').textContent='أدخل خط العرض والطول معًا أو اتركهما فارغين.';return;}
  const b=$('deliveryOrderCreateBtn');b.disabled=true;b.textContent='جارٍ حفظ الطلب...';
- try{const q=await db.rpc('create_delivery_order',p);if(q.error)throw q.error;$('deliveryOrderCreateMessage').textContent='تم تسجيل الطلب وإرساله إلى لوحة التشغيل.';['deliveryOrderCustomer','deliveryOrderPhone','deliveryOrderAddress','deliveryOrderLat','deliveryOrderLng','deliveryOrderItems','deliveryOrderTotal','deliveryOrderNotes'].forEach(id=>$(id).value='');await loadDeliveryOrders();}
+ try{const q=await db.rpc('create_delivery_order',p);if(q.error)throw q.error;await sendDeliveryPushEvent(q.data);$('deliveryOrderCreateMessage').textContent='تم تسجيل الطلب وإرساله إلى لوحة التشغيل.';['deliveryOrderCustomer','deliveryOrderPhone','deliveryOrderAddress','deliveryOrderLat','deliveryOrderLng','deliveryOrderItems','deliveryOrderTotal','deliveryOrderNotes'].forEach(id=>$(id).value='');await loadDeliveryOrders();}
  catch(e){$('deliveryOrderCreateMessage').textContent='تعذر حفظ الطلب: '+(e.message||'راجع قاعدة البيانات.');}
  finally{b.disabled=false;b.textContent='حفظ وإرسال الطلب للتشغيل';}
 }
@@ -3386,7 +3410,8 @@ $('appMenuToggle').addEventListener('click',()=>setAppMenu(!$('appMainNav').clas
 $('appMenuBackdrop').addEventListener('click',()=>setAppMenu(false));
 $('appMainNav').addEventListener('click',e=>{if(e.target.closest('button'))setAppMenu(false);});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')setAppMenu(false);});
-$('deliveryOrdersRefreshBtn').addEventListener('click',loadDeliveryOrders);
+$('deliveryPushEnableBtn').addEventListener('click',enableDeliveryPushNotifications);
+ $('deliveryOrdersRefreshBtn').addEventListener('click',loadDeliveryOrders);
 $('deliveryOrdersBranchFilter').addEventListener('change',renderDeliveryOrders);$('deliveryOrdersStatusFilter').addEventListener('change',renderDeliveryOrders);$('deliveryOrdersSearch').addEventListener('input',renderDeliveryOrders);
 $('deliveryOrderCreateBtn').addEventListener('click',createDeliveryOrder);
 $('deliveryBulkAutoAssignBtn').addEventListener('click',autoAssignDeliveryOrdersBatch);
