@@ -2425,7 +2425,7 @@ async function loadDeliveryOrders(silent=false){
  if(!currentUser||(!isAdmin&&!isOperationsManager&&!isBranchManager))return;
  $('deliveryBulkAutoAssignBtn').classList.toggle('hidden',!isAdmin&&!isOperationsManager);
  const host=$('deliveryOrdersList');if(!silent)host.innerHTML='<p class="muted">جارٍ تحميل الطلبات...</p>';
- try{const q=await db.from('delivery_orders').select('*').order('created_at',{ascending:false});if(q.error)throw q.error;deliveryOrderRows=q.data||[];if(isAdmin||isOperationsManager)await loadDeliveryOrderRepChoices();else deliveryOrderRepChoices=[];renderDeliveryOrders();await loadDeliveryCashHandovers();$('deliveryOrdersMessage').classList.add('hidden');}
+ try{const q=await db.from('delivery_orders').select('*').order('created_at',{ascending:false});if(q.error)throw q.error;deliveryOrderRows=q.data||[];if(isAdmin||isOperationsManager)await loadDeliveryOrderRepChoices();else deliveryOrderRepChoices=[];renderDeliveryOrders();await loadDeliveryCashHandovers();await loadDeliveryCashReport();$('deliveryOrdersMessage').classList.add('hidden');}
  catch(e){if(!silent)host.innerHTML='';showMessage('deliveryOrdersMessage','تعذر تحميل الطلبات. '+(e.message||''),true);}
 }
 function startDeliveryOrdersRealtime(){
@@ -2517,7 +2517,7 @@ async function loadDeliveryCashReport(){
  try{
   const from=$('deliveryCashReportFrom').value,to=$('deliveryCashReportTo').value,branch=$('deliveryCashReportBranch').value;
   if(from&&to&&from>to)throw new Error('تاريخ البداية يجب أن يسبق تاريخ النهاية.');
-  let oq=db.from('delivery_orders').select('id,assigned_rep_user_id,branch,customer_name,order_number,collected_amount,collection_status,delivered_at,payment_method,status').eq('status','delivered').eq('payment_method','cash').in('collection_status',['collected','handed_over']).order('delivered_at',{ascending:false}).limit(10000);
+  let oq=db.from('delivery_orders').select('id,assigned_rep_user_id,branch,collected_amount,collection_status,delivered_at,payment_method,status').eq('status','delivered').eq('payment_method','cash').in('collection_status',['collected','handed_over']).order('delivered_at',{ascending:false}).limit(10000);
   let hq=db.from('delivery_cash_handovers').select('id,rep_user_id,branch,amount,order_count,status,submitted_at,manager_note').order('submitted_at',{ascending:false}).limit(10000);
   if(branch){oq=oq.eq('branch',branch);hq=hq.eq('branch',branch);}
   if(isBranchManager){oq=oq.eq('branch',currentManagerProfile.branch);hq=hq.eq('branch',currentManagerProfile.branch);}
@@ -2545,7 +2545,7 @@ async function exportDeliveryCashReport(){
  try{
   const from=$('deliveryCashReportFrom').value,to=$('deliveryCashReportTo').value,branch=$('deliveryCashReportBranch').value;
   if(from&&to&&from>to)throw new Error('تاريخ البداية يجب أن يسبق تاريخ النهاية.');
-  let oq=db.from('delivery_orders').select('id,assigned_rep_user_id,branch,customer_name,order_number,collected_amount,collection_status,delivered_at,payment_method,status').eq('status','delivered').eq('payment_method','cash').in('collection_status',['collected','handed_over']).order('delivered_at',{ascending:false}).limit(10000);
+  let oq=db.from('delivery_orders').select('id,assigned_rep_user_id,branch,collected_amount,collection_status,delivered_at,payment_method,status').eq('status','delivered').eq('payment_method','cash').in('collection_status',['collected','handed_over']).order('delivered_at',{ascending:false}).limit(10000);
   let hq=db.from('delivery_cash_handovers').select('id,rep_user_id,branch,amount,order_count,status,submitted_at,manager_note').order('submitted_at',{ascending:false}).limit(10000);
   if(branch){oq=oq.eq('branch',branch);hq=hq.eq('branch',branch);}if(isBranchManager){oq=oq.eq('branch',currentManagerProfile.branch);hq=hq.eq('branch',currentManagerProfile.branch);}
   const [or,hr]=await Promise.all([oq,hq]);if(or.error)throw or.error;if(hr.error)throw hr.error;
@@ -3120,6 +3120,7 @@ function resetForm() {
   $('phone').value = '';
   $('branch').value = '';
   $('visitDate').value = today();
+$('deliveryCashReportFrom').value=today();$('deliveryCashReportTo').value=today();
   $('comments').value = '';
   $('audioFile').value = '';
   $('formTitle').textContent = 'إضافة سجل عميل';
