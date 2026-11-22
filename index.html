@@ -2490,19 +2490,24 @@ async function autoAssignDeliveryOrder(id){
  if(!isAdmin&&!isOperationsManager)return;
  const order=deliveryOrderRows.find(x=>String(x.id)===String(id));
  if(!order||!['new','assigned'].includes(order.status)){showMessage('deliveryOrdersMessage','هذا الطلب لم يعد متاحًا للتوزيع.',true);return;}
- if(order.latitude==null||order.longitude==null){showMessage('deliveryOrdersMessage','لا يمكن التوزيع حسب الأقرب قبل تسجيل موقع العميل (خط العرض والطول). استخدم الإسناد اليدوي أو أضف موقع العميل.',true);return;}
- const now=Date.now(),candidates=deliveryOrderRepChoices.filter(rep=>{
-  if(rep.branch!==order.branch||rep.availability_status!=='available'||!rep.loc)return false;
-  const lat=Number(rep.loc.latitude),lng=Number(rep.loc.longitude),recorded=rep.loc.recorded_at?new Date(rep.loc.recorded_at).getTime():NaN;
-  return Number.isFinite(lat)&&Number.isFinite(lng)&&Number.isFinite(recorded)&&now-recorded>=-60000&&now-recorded<=15*60*1000;
- }).map(rep=>({...rep,km:distanceKm(Number(order.latitude),Number(order.longitude),Number(rep.loc.latitude),Number(rep.loc.longitude))})).sort((a,b)=>a.km-b.km);
- if(!candidates.length){showMessage('deliveryOrdersMessage','لا يوجد مندوب متاح بآخر موقع محدّث خلال 15 دقيقة في نفس الفرع. حدّث موقع المندوب أو استخدم الإسناد اليدوي.',true);return;}
+ if(order.latitude==null||order.longitude==null){showMessage('deliveryOrdersMessage','لا يمكن التوزيع الذكي قبل تسجيل موقع العميل. استخدم الإسناد اليدوي أو أضف موقع العميل.',true);return;}
+ const now=Date.now(),activeCounts=new Map();
+ deliveryOrderRows.filter(x=>['assigned','accepted','picked_up'].includes(x.status)&&x.assigned_rep_user_id&&String(x.id)!==String(id)).forEach(x=>activeCounts.set(x.assigned_rep_user_id,(activeCounts.get(x.assigned_rep_user_id)||0)+1));
+ const candidates=deliveryOrderRepChoices.filter(rep=>{
+  if(rep.branch!==order.branch||!['available','busy'].includes(rep.availability_status)||!rep.loc)return false;
+  const lat=Number(rep.loc.latitude),lng=Number(rep.loc.longitude),recorded=rep.loc.recorded_at?new Date(rep.loc.recorded_at).getTime():NaN,load=activeCounts.get(rep.user_id)||0;
+  return load<3&&Number.isFinite(lat)&&Number.isFinite(lng)&&Number.isFinite(recorded)&&now-recorded>=-60000&&now-recorded<=15*60*1000;
+ }).map(rep=>{
+  const load=activeCounts.get(rep.user_id)||0,km=distanceKm(Number(order.latitude),Number(order.longitude),Number(rep.loc.latitude),Number(rep.loc.longitude));
+  return {...rep,load,km,score:km+(load*3.5)};
+ }).sort((a,b)=>a.score-b.score);
+ if(!candidates.length){showMessage('deliveryOrdersMessage','لا يوجد مندوب مناسب حاليًا في نفس الفرع: تأكد من تحديث موقعه، أو أن لديه أقل من 3 طلبات نشطة.',true);return;}
  const chosen=candidates[0],button=document.querySelector('[data-auto-assign-order="'+id+'"]');
- if(button){button.disabled=true;button.textContent='جارٍ اختيار الأقرب...';}
+ if(button){button.disabled=true;button.textContent='جارٍ اختيار الأنسب...';}
  try{
   const result=await db.rpc('assign_delivery_order',{p_order_id:id,p_rep_user_id:chosen.user_id});
   if(result.error)throw result.error;
-  showMessage('deliveryOrdersMessage','تم إسناد الطلب إلى '+(chosen.full_name||'المندوب')+' — الأقرب بمسافة تقريبية '+chosen.km.toFixed(1)+' كم.');
+  showMessage('deliveryOrdersMessage','تم إسناد الطلب إلى '+(chosen.full_name||'المندوب')+' — '+chosen.km.toFixed(1)+' كم تقريبًا، ولديه '+chosen.load+' طلب نشط قبل الإسناد.');
   await loadDeliveryOrders();
  }catch(error){showMessage('deliveryOrdersMessage','تعذر التوزيع التلقائي: '+(error.message||'خطأ غير معروف'),true);if(button){button.disabled=false;button.textContent='توزيع تلقائي ذكي';}}
 }
