@@ -1837,7 +1837,7 @@ async function loginDeliveryRep(){
  if(!user){showMessage('loginMsg','تعذر تسجيل الدخول. راجع اسم المستخدم وكلمة المرور مع المدير.',true);return;}
  const [{data:profile,error:profileError},{data:rep,error:repError}]=await Promise.all([
   db.from('profiles').select('role,username').eq('user_id',user.id).maybeSingle(),
-  db.from('delivery_rep_profiles').select('full_name,phone,email,username,branch,is_active,availability_status').eq('user_id',user.id).maybeSingle()
+  db.from('delivery_rep_profiles').select('full_name,phone,username,branch,is_active,approval_status,availability_status').eq('user_id',user.id).maybeSingle()
  ]);
  if(profileError||repError||profile?.role!=='delivery_rep'||String(profile?.username||'').toLowerCase()!==username||!rep||!rep.is_active||String(rep.username||'').toLowerCase()!==username){
   await db.auth.signOut();
