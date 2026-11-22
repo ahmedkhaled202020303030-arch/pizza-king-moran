@@ -2526,6 +2526,7 @@ async function showApp(user,admin,managerProfile=null,operationsManager=false) {
 }
 
 async function logout() {
+  stopDeliveryOrdersRealtime();
   stopDeliveryRepsMapRefresh();
   stopAttendanceTimer();
   if(branchManagersTimerInterval){clearInterval(branchManagersTimerInterval);branchManagersTimerInterval=null;}
