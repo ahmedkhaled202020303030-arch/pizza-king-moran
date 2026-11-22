@@ -1590,6 +1590,10 @@ function escapeHTML(value) {
   })[c]);
 }
 
+function money(value) {
+  return (Number(value)||0).toLocaleString('ar-EG',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
 async function loginAdmin() {
   hideMessage('loginMsg');
   const email = $('email').value.trim();
