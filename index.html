@@ -1537,6 +1537,7 @@ let allRecords = [];
 let deliveryRepRows = [];
 let deliveryOrderRows=[];
 let deliveryOrderRepChoices=[];
+let deliveryOrdersRealtimeChannel=null,deliveryOrdersRealtimeTimer=null;
 let compactRecordsView = true;
 
 function showMessage(id, text, error=false) {
@@ -2400,12 +2401,29 @@ async function sendDeliveryPushEvent(orderId){
   await fetch(SUPABASE_URL+'/functions/v1/delivery-push',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+token},body:JSON.stringify({action:'new_order',order_id:orderId})});
  }catch(e){console.warn('Delivery push notification failed:',e);}
 }
-async function loadDeliveryOrders(){
+async function loadDeliveryOrders(silent=false){
  if(!currentUser||(!isAdmin&&!isOperationsManager&&!isBranchManager))return;
  $('deliveryBulkAutoAssignBtn').classList.toggle('hidden',!isAdmin&&!isOperationsManager);
- const host=$('deliveryOrdersList');host.innerHTML='<p class="muted">جارٍ تحميل الطلبات...</p>';
+ const host=$('deliveryOrdersList');if(!silent)host.innerHTML='<p class="muted">جارٍ تحميل الطلبات...</p>';
  try{const q=await db.from('delivery_orders').select('*').order('created_at',{ascending:false});if(q.error)throw q.error;deliveryOrderRows=q.data||[];if(isAdmin||isOperationsManager)await loadDeliveryOrderRepChoices();else deliveryOrderRepChoices=[];renderDeliveryOrders();$('deliveryOrdersMessage').classList.add('hidden');}
- catch(e){host.innerHTML='';showMessage('deliveryOrdersMessage','تعذر تحميل الطلبات. نفّذ ملف delivery_orders_migration.sql في Supabase. '+(e.message||''),true);}
+ catch(e){if(!silent)host.innerHTML='';showMessage('deliveryOrdersMessage','تعذر تحميل الطلبات. '+(e.message||''),true);}
+}
+function startDeliveryOrdersRealtime(){
+ if(deliveryOrdersRealtimeChannel||!currentUser||(!isAdmin&&!isOperationsManager&&!isBranchManager))return;
+ deliveryOrdersRealtimeChannel=db.channel('delivery-orders-live')
+  .on('postgres_changes',{event:'*',schema:'public',table:'delivery_orders'},()=>{
+   if(deliveryOrdersRealtimeTimer)clearTimeout(deliveryOrdersRealtimeTimer);
+   deliveryOrdersRealtimeTimer=setTimeout(()=>{if(!$('deliveryOrdersView').classList.contains('hidden'))loadDeliveryOrders(true);},850);
+  })
+  .subscribe(status=>{
+   if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){
+    showMessage('deliveryOrdersMessage','التحديث اللحظي غير متاح حاليًا؛ استخدم زر تحديث الطلبات.',true);
+   }
+  });
+}
+function stopDeliveryOrdersRealtime(){
+ if(deliveryOrdersRealtimeTimer){clearTimeout(deliveryOrdersRealtimeTimer);deliveryOrdersRealtimeTimer=null;}
+ if(deliveryOrdersRealtimeChannel){db.removeChannel(deliveryOrdersRealtimeChannel);deliveryOrdersRealtimeChannel=null;}
 }
 async function createDeliveryOrder(){
  if(!isBranchManager)return;
@@ -2470,7 +2488,7 @@ async function autoAssignDeliveryOrder(id){
 async function cancelDeliveryOrder(id){if((!isAdmin&&!isOperationsManager)||!confirm('هل تريد إلغاء هذا الطلب؟'))return;try{const q=await db.rpc('update_delivery_order_status',{p_order_id:id,p_status:'cancelled',p_collected_amount:null});if(q.error)throw q.error;await loadDeliveryOrders();}catch(e){showMessage('deliveryOrdersMessage','تعذر إلغاء الطلب: '+e.message,true);}}
 async function loadMyDeliveryOrders(){if(!currentDeliveryRep)return;const host=$('deliveryRepOrdersList');const q=await db.from('delivery_orders').select('*').eq('assigned_rep_user_id',currentDeliveryRep.user_id).in('status',['assigned','accepted','picked_up']).order('created_at',{ascending:true});if(q.error){host.textContent='تعذر تحميل الطلبات: '+q.error.message;return;}host.innerHTML=q.data?.length?q.data.map(o=>deliveryOrderCard(o,true)).join(''):'<p class="muted">لا توجد طلبات مسندة إليك حاليًا.</p>';}
 async function updateMyDeliveryOrder(id,status){if(!currentDeliveryRep)return;let amount=null;if(status==='delivered'){const q=await db.from('delivery_orders').select('payment_method,total_amount').eq('id',id).maybeSingle();if(q.data?.payment_method==='cash'){const raw=prompt('اكتب المبلغ النقدي الذي تم تحصيله بالجنيه:',String(q.data.total_amount||0));if(raw===null)return;amount=Number(raw);if(!Number.isFinite(amount)||amount<0){alert('المبلغ غير صحيح.');return;}}}try{const q=await db.rpc('update_delivery_order_status',{p_order_id:id,p_status:status,p_collected_amount:amount});if(q.error)throw q.error;await loadMyDeliveryOrders();}catch(e){alert('تعذر تحديث الطلب: '+e.message);}}
-function openDeliveryOrders(){stopDeliveryRepsMapRefresh();['customersView','staffDirectoryView','attendanceView','deliveryRepsView','deliveryRepsMapView'].forEach(id=>$(id).classList.add('hidden'));$('deliveryOrdersView').classList.remove('hidden');['customersNavBtn','staffNavBtn','attendanceNavBtn','deliveryRepsNavBtn','deliveryRepsMapNavBtn'].forEach(id=>$(id).classList.remove('active'));$('deliveryOrdersNavBtn').classList.add('active');loadDeliveryOrders();}
+function openDeliveryOrders(){stopDeliveryRepsMapRefresh();['customersView','staffDirectoryView','attendanceView','deliveryRepsView','deliveryRepsMapView'].forEach(id=>$(id).classList.add('hidden'));$('deliveryOrdersView').classList.remove('hidden');['customersNavBtn','staffNavBtn','attendanceNavBtn','deliveryRepsNavBtn','deliveryRepsMapNavBtn'].forEach(id=>$(id).classList.remove('active'));$('deliveryOrdersNavBtn').classList.add('active');startDeliveryOrdersRealtime();loadDeliveryOrders();}
 
 async function showApp(user,admin,managerProfile=null,operationsManager=false) {
   currentUser=user; isAdmin=admin; isOperationsManager=operationsManager; isBranchManager=!!managerProfile; currentManagerProfile=managerProfile;
