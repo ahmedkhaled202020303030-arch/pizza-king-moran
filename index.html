@@ -1254,6 +1254,24 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
 #tripsView .delivery-card-extra .delivery-order-timeline{display:block!important}
 #tripsView .delivery-card-extra .delivery-card-details{margin-bottom:8px}
 #tripsView .delivery-order-actions [data-toggle-order-details]{background:linear-gradient(135deg,#d4af37,#f0d68e);color:#17130a;border:1px solid #e4c45e;font-weight:800}
+
+/* Live availability circles for delivery representatives */
+.delivery-rep-circle-panel{margin:14px 0 18px;padding:14px;border:1px solid rgba(212,175,55,.28);border-radius:14px;background:linear-gradient(145deg,#171717,#0c0c0c)}
+.delivery-rep-circle-legend{display:flex;gap:10px;flex-wrap:wrap;font-size:10px;color:#c9c1b1}
+.delivery-rep-circle-legend span{display:inline-flex;align-items:center;gap:4px}
+.delivery-rep-circle-legend i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.delivery-rep-circle-legend i.available{background:#27c477}.delivery-rep-circle-legend i.busy{background:#e5a52f}.delivery-rep-circle-legend i.unavailable{background:#777}
+.delivery-rep-circles{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:14px 8px;padding:12px 2px 4px}
+.delivery-rep-circle-item{min-width:0;display:flex;align-items:center;flex-direction:column;gap:4px;text-align:center}
+.delivery-rep-circle{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;position:relative;border:2px solid rgba(255,255,255,.75);box-shadow:0 4px 13px rgba(0,0,0,.3)}
+.delivery-rep-circle b{font-size:17px;color:#fff}.delivery-rep-circle span{position:absolute;width:13px;height:13px;bottom:0;right:0;border:2px solid #111;border-radius:50%}
+.delivery-rep-circle.available{background:linear-gradient(145deg,#20b96e,#087a43)}.delivery-rep-circle.available span{background:#36e58b}
+.delivery-rep-circle.busy{background:linear-gradient(145deg,#e9ad38,#9d5b12)}.delivery-rep-circle.busy span{background:#ffc14f}
+.delivery-rep-circle.unavailable{background:linear-gradient(145deg,#777,#393939)}.delivery-rep-circle.unavailable span{background:#999}
+.delivery-rep-circle-item strong{font-size:11px;color:#f1dfad;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.delivery-rep-circle-item small{font-size:9px;color:#aaa;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.delivery-rep-circle-item em{font-style:normal;font-size:9px;color:#c8c0af}
+@media(max-width:420px){.delivery-rep-circle-panel{padding:10px}.delivery-rep-circles{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px 4px}.delivery-rep-circle{width:48px;height:48px}.delivery-rep-circle b{font-size:14px}.delivery-rep-circle-item strong{font-size:9px}.delivery-rep-circle-item small,.delivery-rep-circle-item em{font-size:8px}.delivery-rep-circle-legend{gap:6px;font-size:9px}}
 </style>
 </head>
 <body>
@@ -1485,6 +1503,10 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
  <div class="report-heading"><div><h2>إدارة مندوبي المطاعم</h2><p class="muted">إدارة الحسابات ومتابعة حالة كل مندوب وفرعه</p></div><div class="row"><button type="button" id="deliveryRepAddBtn" class="primary-btn">إضافة مندوب</button><button type="button" id="deliveryRepsRefreshBtn" class="light">تحديث القائمة</button></div></div>
  <div id="deliveryRepRequestsPanel" class="panel"><div class="report-heading"><div><h3>طلبات تسجيل المندوبين</h3><p class="muted">المدير الرئيسي يرى كل الطلبات، ومدير الفرع يرى طلبات فرعه فقط.</p></div><button type="button" id="deliveryRepRequestsRefresh" class="light">تحديث الطلبات</button></div><div id="deliveryRepRequestsList"><p class="muted">لا توجد طلبات محملة.</p></div></div>
  <div id="deliveryRepsMessage" class="msg hidden"></div>
+ <section class="delivery-rep-circle-panel" aria-label="حالة مندوبي الدليفري">
+  <div class="report-heading"><div><h3>حالة المندوبين الآن</h3><p class="muted">كل مندوب في دائرة بلون يوضح حالة التوفر.</p></div><div class="delivery-rep-circle-legend"><span><i class="available"></i>متاح</span><span><i class="busy"></i>مشغول</span><span><i class="unavailable"></i>غير متاح</span></div></div>
+  <div id="deliveryRepCircles" class="delivery-rep-circles"><p class="muted">جارٍ تحميل المندوبين...</p></div>
+ </section>
  <div id="deliveryRepPerformance" class="delivery-performance panel">
   <div class="report-heading"><div><h3>أداء المندوبين والتحصيل</h3><p class="muted">ملخص الطلبات المسلّمة والمبالغ المحصّلة لكل مندوب.</p></div><div class="delivery-filter-field"><label for="deliveryPerformancePeriod">الفترة</label><select id="deliveryPerformancePeriod"><option value="7">آخر 7 أيام</option><option value="30" selected>آخر 30 يومًا</option><option value="90">آخر 90 يومًا</option><option value="all">كل الفترات</option></select></div></div>
   <div id="deliveryPerformanceSummary" class="delivery-orders-summary"></div>
@@ -2518,12 +2540,23 @@ async function loadDeliveryRepPerformance(){
   message.textContent='تم تحديث التقرير. الطلبات المسلّمة تُدرج حسب تاريخ التسليم، والطلبات النشطة حسب تاريخ تسجيلها. زمن التوصيل محسوب من استلام المندوب للطلب حتى تسليمه للعميل، وحد الالتزام 45 دقيقة.';
  }catch(e){summary.innerHTML='';leaders.innerHTML='';chart.innerHTML='<p class="muted">تعذر تحميل مقارنة مبيعات الفروع.</p>';body.innerHTML='<tr><td colspan="6">تعذر تحميل تقرير الأداء.</td></tr>';branchBody.innerHTML='<tr><td colspan="5">تعذر تحميل إحصائيات الفروع.</td></tr>';message.textContent='تعذر تحميل التقرير: '+(e.message||'خطأ غير معروف');}
 }
+function renderDeliveryRepCircles(){
+ const host=$('deliveryRepCircles');if(!host)return;
+ if(!deliveryRepRows.length){host.innerHTML='<p class="muted">لا يوجد مندوبون لعرضهم.</p>';return;}
+ const statusInfo={available:{label:'متاح',cls:'available'},busy:{label:'مشغول',cls:'busy'},unavailable:{label:'غير متاح',cls:'unavailable'}};
+ host.innerHTML=deliveryRepRows.map(rep=>{
+  const active=rep.is_active!==false,info=active?(statusInfo[rep.availability_status]||statusInfo.unavailable):{label:'الحساب موقوف',cls:'unavailable'};
+  const initials=(rep.full_name||'م').trim().split(/\\s+/).slice(0,2).map(x=>x[0]||'').join('');
+  return '<div class="delivery-rep-circle-item" title="'+escapeHTML((rep.full_name||'مندوب')+' — '+info.label)+'"><div class="delivery-rep-circle '+info.cls+'"><b>'+escapeHTML(initials)+'</b><span></span></div><strong>'+escapeHTML(rep.full_name||'مندوب')+'</strong><small>'+escapeHTML(rep.branch||'بدون فرع')+'</small><em>'+info.label+'</em></div>';
+ }).join('');
+}
 async function loadDeliveryReps(){
  const host=$('deliveryRepsList');const message=$('deliveryRepsMessage');
  host.innerHTML='<p class="muted">جارٍ تحميل قائمة المندوبين...</p>';message.classList.add('hidden');
  const {data,error}=await db.from('delivery_rep_profiles').select('user_id,full_name,phone,username,branch,is_active,availability_status,created_at').order('created_at',{ascending:false});
  if(error){host.innerHTML='';showMessage('deliveryRepsMessage','تعذر تحميل المندوبين: '+error.message,true);return;}
  deliveryRepRows=data||[];
+ renderDeliveryRepCircles();
  if(!deliveryRepRows.length)host.innerHTML='<p class="muted">لا يوجد مندوبون مسجلون حتى الآن.</p>';
  else{const statusLabels={available:'متاح',busy:'مشغول',unavailable:'غير متاح'};host.innerHTML=deliveryRepRows.map(rep=>'<article class="complaint-card"><h3>'+escapeHTML(rep.full_name||'مندوب بدون اسم')+'</h3><p>اسم المستخدم: <b>'+escapeHTML(rep.username||'—')+'</b></p><p>الفرع: '+escapeHTML(rep.branch||'—')+'</p><p>الهاتف: '+escapeHTML(rep.phone||'—')+'</p><p>الحالة: <b>'+escapeHTML(statusLabels[rep.availability_status]||'غير معروف')+'</b></p><p>الحساب: '+(rep.is_active?'نشط':'موقوف')+'</p><button type="button" class="delivery-rep-reset-password secondary" data-user-id="'+escapeHTML(rep.user_id)+'">إعادة تعيين كلمة المرور</button></article>').join('');}
  await loadDeliveryRepPerformance();
