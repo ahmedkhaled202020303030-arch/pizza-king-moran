@@ -1489,7 +1489,7 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
  <button type="button" id="deliveryOrderCreateBtn">حفظ وإرسال الطلب للتشغيل</button><p id="deliveryOrderCreateMessage" class="muted"></p></div>
 </section>
 <section id="tripsView" class="panel hidden">
- <div class="report-heading"><div><h2>الرحلات</h2><p class="muted">كل الأوردرات المسجلة تظهر هنا تلقائيًا لمتابعة الإسناد والتوصيل والتحصيل.</p></div><div class="row"><button type="button" id="deliveryPushEnableBtn" class="light hidden">تفعيل إشعارات الطلبات</button><button type="button" id="deliveryBulkAutoAssignBtn" class="primary-btn hidden">توزيع الطلبات الجديدة تلقائيًا</button><button type="button" id="deliveryOrdersRefreshBtn" class="light">تحديث الرحلات</button></div></div>
+ <div class="report-heading"><div><h2>الرحلات</h2><p class="muted">كل الأوردرات المسجلة تظهر هنا تلقائيًا لمتابعة الإسناد والتوصيل والتحصيل.</p></div><div class="row"><button type="button" id="deliveryTripsViewToggle" class="light" aria-pressed="false">عرض لوحة الحالات</button><button type="button" id="deliveryPushEnableBtn" class="light hidden">تفعيل إشعارات الطلبات</button><button type="button" id="deliveryBulkAutoAssignBtn" class="primary-btn hidden">توزيع الطلبات الجديدة تلقائيًا</button><button type="button" id="deliveryOrdersRefreshBtn" class="light">تحديث الرحلات</button></div></div>
   <section id="deliveryCashManagement" class="panel" style="margin:14px 0;border:1px solid rgba(212,175,55,.35)"><div class="report-heading"><div><h3>خزنة المندوبين وتسليم العهدة</h3><p class="muted">راجع المبالغ المعلقة واعتمد الاستلام الفعلي أو ارفض التسليم.</p></div><button type="button" id="deliveryCashRefreshBtn" class="light">تحديث العهدة</button></div><div id="deliveryCashManagementList"><p class="muted">جارٍ تحميل سجلات العهدة...</p></div></section>
 <section id="deliveryCashReport" class="panel" style="margin:14px 0;border:1px solid rgba(212,175,55,.35)">
  <div class="report-heading"><div><h3>تقرير التحصيل اليومي وعهدة المندوبين</h3><p class="muted">قارن بين النقدية المحصلة، المبالغ مع المندوب، التسليمات المعلقة، وما تم استلامه فعليًا بالإدارة.</p></div><div class="row"><button type="button" id="deliveryCashReportRefresh" class="light">تحديث التقرير</button><button type="button" id="deliveryCashReportExport" class="primary-btn">تصدير Excel</button></div></div>
@@ -1797,6 +1797,7 @@ let deliveryRepRows = [];
 let deliveryOrderRows=[];
 let deliveryOrderRepChoices=[];
 let deliveryOrdersRealtimeChannel=null,deliveryOrdersRealtimeTimer=null;
+let deliveryTripsBoardView=false;
 let compactRecordsView = true;
 
 function showMessage(id, text, error=false) {
@@ -2702,11 +2703,22 @@ function renderDeliveryOrders(){
  const lanes=[{key:'new',title:'جديدة',icon:'＋'},{key:'assigned',title:'تم الإسناد',icon:'↗'},{key:'accepted',title:'قبلها المندوب',icon:'✓'},{key:'picked_up',title:'قيد التوصيل',icon:'🛵'},{key:'delivered',title:'تم التسليم',icon:'✓'},{key:'cancelled',title:'ملغاة',icon:'×'}];
  const tabs=$('deliveryTripsStatusTabs');
  if(tabs)tabs.innerHTML='<button type="button" class="'+(!status?'active':'')+'" data-trip-status="">كل الرحلات <b>'+branchRows.length+'</b></button>'+lanes.map(lane=>'<button type="button" class="'+(status===lane.key?'active':'')+'" data-trip-status="'+lane.key+'">'+lane.icon+' '+lane.title+' <b>'+count(lane.key)+'</b></button>').join('');
- host.classList.remove('delivery-dispatch-board');
  const priority={new:0,assigned:1,accepted:2,picked_up:3,delivered:4,cancelled:5};
  rows.sort((a,b)=>(priority[a.status]??9)-(priority[b.status]??9)||new Date(b.created_at||0)-new Date(a.created_at||0));
- host.classList.add('delivery-order-grid');
- host.innerHTML=rows.length?rows.map(order=>deliveryOrderCard(order)).join(''):'<div class="delivery-orders-empty"><strong>لا توجد رحلات مطابقة</strong><span>غيّر حالة الطلب أو كلمة البحث لعرض نتائج أخرى.</span></div>';
+ if(deliveryTripsBoardView){
+  host.classList.remove('delivery-order-grid');
+  host.classList.add('delivery-dispatch-board');
+  host.innerHTML=lanes.map(lane=>{
+   const laneRows=rows.filter(order=>order.status===lane.key);
+   return '<section class="delivery-dispatch-lane lane-'+lane.key.replace('picked_up','picked').replace('delivered','done')+'"><div class="delivery-dispatch-lane-head"><div><span>'+lane.icon+'</span><strong>'+lane.title+'</strong></div><b>'+laneRows.length+'</b></div><div class="delivery-dispatch-lane-body">'+(laneRows.length?laneRows.map(order=>deliveryOrderCard(order)).join(''):'<div class="delivery-dispatch-empty">لا توجد طلبات في هذه المرحلة</div>')+'</div></section>';
+  }).join('');
+ }else{
+  host.classList.remove('delivery-dispatch-board');
+  host.classList.add('delivery-order-grid');
+  host.innerHTML=rows.length?rows.map(order=>deliveryOrderCard(order)).join(''):'<div class="delivery-orders-empty"><strong>لا توجد رحلات مطابقة</strong><span>غيّر حالة الطلب أو كلمة البحث لعرض نتائج أخرى.</span></div>';
+ }
+ const viewBtn=$('deliveryTripsViewToggle');
+ if(viewBtn){viewBtn.textContent=deliveryTripsBoardView?'عرض البطاقات':'عرض لوحة الحالات';viewBtn.setAttribute('aria-pressed',String(deliveryTripsBoardView));}
 }
 async function enableDeliveryPushNotifications(){
  const btn=$('deliveryPushEnableBtn');if(!btn)return;
@@ -3926,6 +3938,7 @@ $('appMainNav').addEventListener('click',e=>{if(e.target.closest('button'))setAp
 document.addEventListener('keydown',e=>{if(e.key==='Escape')setAppMenu(false);});
 $('deliveryPushEnableBtn').addEventListener('click',enableDeliveryPushNotifications);
  $('deliveryOrdersRefreshBtn').addEventListener('click',loadDeliveryOrders);
+$('deliveryTripsViewToggle').addEventListener('click',()=>{deliveryTripsBoardView=!deliveryTripsBoardView;renderDeliveryOrders();});
 $('deliveryOrdersBranchFilter').addEventListener('change',renderDeliveryOrders);$('deliveryOrdersStatusFilter').addEventListener('change',renderDeliveryOrders);$('deliveryOrdersSearch').addEventListener('input',renderDeliveryOrders);
 $('deliveryTripsStatusTabs').addEventListener('click',e=>{const b=e.target.closest('[data-trip-status]');if(!b)return;$('deliveryOrdersStatusFilter').value=b.dataset.tripStatus;renderDeliveryOrders();});
 initDeliveryMenu();
