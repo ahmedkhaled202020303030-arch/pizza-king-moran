@@ -4142,6 +4142,32 @@ if (window.DELIVERY_APP_MODE) {
     if (msg) { msg.textContent = ''; msg.classList.add('hidden'); }
   }
   document.addEventListener('click', function (event) {
+    var loginButton = event.target.closest && event.target.closest('#adminLogin, #operationsLogin, #managerLogin, #deliveryRepLogin');
+    if (loginButton) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      var handlers = {
+        adminLogin: function () { return typeof loginAdmin === 'function' ? loginAdmin() : Promise.reject(new Error('تعذر تحميل وظيفة دخول المدير الرئيسي.')); },
+        operationsLogin: function () { return typeof loginOperationsManager === 'function' ? loginOperationsManager() : Promise.reject(new Error('تعذر تحميل وظيفة دخول مدير التشغيل.')); },
+        managerLogin: function () { return typeof loginBranchManager === 'function' ? loginBranchManager() : Promise.reject(new Error('تعذر تحميل وظيفة دخول مدير الفرع.')); },
+        deliveryRepLogin: function () { return typeof loginDeliveryRep === 'function' ? loginDeliveryRep() : Promise.reject(new Error('تعذر تحميل وظيفة دخول المندوب.')); }
+      };
+      var originalText = loginButton.textContent;
+      loginButton.disabled = true;
+      loginButton.textContent = 'جارٍ بدء تسجيل الدخول...';
+      Promise.resolve().then(handlers[loginButton.id]).catch(function (error) {
+        var msg = document.getElementById('loginMsg');
+        if (msg) {
+          msg.textContent = 'حدث خطأ أثناء محاولة الدخول: ' + (error && error.message ? error.message : 'خطأ غير معروف');
+          msg.classList.remove('hidden');
+        }
+        console.error('PKM login handler error:', error);
+      }).finally(function () {
+        loginButton.disabled = false;
+        if (loginButton.isConnected && loginButton.textContent === 'جارٍ بدء تسجيل الدخول...') loginButton.textContent = originalText;
+      });
+      return;
+    }
     var choice = event.target.closest && event.target.closest('[data-login-choice]');
     if (choice) {
       var id = choice.getAttribute('data-login-choice');
