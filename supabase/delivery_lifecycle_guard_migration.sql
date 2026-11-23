@@ -28,8 +28,11 @@ begin
   v_role := public.current_profile_role();
 
   -- A lifecycle timestamp is write-once: it cannot be cleared or rewritten.
-  if old.assigned_at is not null and new.assigned_at is distinct from old.assigned_at then
-    raise exception 'لا يمكن تعديل وقت إسناد الطلب بعد تسجيله';
+  if old.assigned_at is not null and new.assigned_at is distinct from old.assigned_at
+     and not (old.status = 'assigned' and new.status = 'assigned'
+              and old.assigned_rep_user_id is distinct from new.assigned_rep_user_id
+              and new.assigned_at is not null) then
+    raise exception 'لا يمكن تعديل وقت إسناد الطلب إلا عند إعادة تعيين المندوب';
   end if;
   if old.accepted_at is not null and new.accepted_at is distinct from old.accepted_at then
     raise exception 'لا يمكن تعديل وقت قبول الطلب بعد تسجيله';
