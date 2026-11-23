@@ -8,6 +8,18 @@
 <meta name="description" content="نظام إدارة ومتابعة خدمة العملاء Pizza King & Morin">
 <link rel="manifest" href="/manifest.webmanifest">
 <script>
+/* Capture early script errors so login can show the real startup failure. */
+window.PKM_BOOT_ERRORS = [];
+window.addEventListener('error', function (event) {
+  if (event && (event.message || event.filename)) {
+    window.PKM_BOOT_ERRORS.push({
+      message: event.message || 'Script load error',
+      file: event.filename || '',
+      line: event.lineno || 0,
+      column: event.colno || 0
+    });
+  }
+}, true);
 (() => {
   const deliveryMode = new URLSearchParams(location.search).get('app') === 'delivery';
   window.DELIVERY_APP_MODE = deliveryMode;
@@ -4172,7 +4184,10 @@ if (window.DELIVERY_APP_MODE) {
         // Top-level function declarations in the classic app script remain on window.
         if (typeof action !== 'function') action = window[globalNames[loginButton.id]];
         if (typeof action === 'function') return action();
-        return Promise.reject(new Error('وظيفة الدخول غير متاحة لأن التطبيق الأساسي لم يكتمل تحميله. تحقق من اتصال الإنترنت ثم أعد فتح التطبيق.'));
+        var bootErrors = window.PKM_BOOT_ERRORS || [];
+        var lastBootError = bootErrors.length ? bootErrors[bootErrors.length - 1] : null;
+        var detail = lastBootError ? (' سبب التوقف: ' + lastBootError.message + (lastBootError.file ? ' (' + lastBootError.file.split('/').pop() + ':' + lastBootError.line + ')': '')) : '';
+        return Promise.reject(new Error('وظيفة الدخول غير متاحة لأن التطبيق الأساسي لم يكتمل تحميله.' + detail + ' أعد تحميل الصفحة بعد التأكد من الاتصال بالإنترنت.'));
       };
       var originalText = loginButton.textContent;
       loginButton.disabled = true;
