@@ -1473,7 +1473,19 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
  </div>
  <div><label for="deliveryOrderTotal">إجمالي الطلب بالجنيه</label><input id="deliveryOrderTotal" type="number" min="0" step="0.01"></div><div><label for="deliveryOrderPayment">طريقة الدفع</label><select id="deliveryOrderPayment"><option value="cash">نقدي عند الاستلام</option><option value="card">بطاقة / مدفوع إلكترونيًا</option><option value="wallet">محفظة إلكترونية</option></select></div>
  <div class="full"><label for="deliveryOrderNotes">ملاحظات للمندوب</label><textarea id="deliveryOrderNotes"></textarea></div></div>
- <div class="full delivery-receipt-upload"><label for="deliveryOrderReceipt">صورة الريسيت أو ملف PDF (اختياري)</label><input id="deliveryOrderReceipt" type="file" accept="image/jpeg,image/png,image/webp,application/pdf"><small class="muted">ارفع الريسيت الأصلية؛ سيتم ربطها بالأوردر بعد الحفظ. الحد الأقصى 8 ميجابايت.</small></div>
+ <div class="full delivery-receipt-upload">
+ <label for="deliveryOrderReceipt">صورة الريسيت أو ملف PDF (اختياري)</label>
+ <input id="deliveryOrderReceipt" type="file" accept="image/jpeg,image/png,image/webp,application/pdf">
+ <input id="deliveryOrderReceiptCamera" type="file" accept="image/*" capture="environment" class="hidden" aria-label="تصوير الريسيت بالكاميرا">
+ <small class="muted">يمكنك تصوير الريسيت أو اختيار صورة من الهاتف. سيتم إرفاق الملف بالأوردر بعد الحفظ.</small>
+ <div class="ocr-actions">
+  <button type="button" id="receiptCameraBtn" class="secondary">📷 تصوير الريسيت واستخراج البيانات</button>
+  <button type="button" id="receiptScanBtn" class="light">🖼️ اختيار صورة واستخراج البيانات</button>
+ </div>
+ <div class="ocr-progress" aria-label="تقدم المسح"><span id="receiptScanProgress"></span></div>
+ <p id="receiptScanMessage" class="muted" aria-live="polite">اختر التصوير أو صورة محفوظة؛ سيتم ملء بيانات الأوردر تلقائيًا للمراجعة.</p>
+ <textarea id="receiptScanRaw" class="hidden" rows="5" readonly aria-label="النص المستخرج من الريسيت" placeholder="النص الذي تمت قراءته من الريسيت"></textarea>
+</div>
  <button type="button" id="deliveryOrderCreateBtn">حفظ وإرسال الطلب للتشغيل</button><p id="deliveryOrderCreateMessage" class="muted"></p></div>
 </section>
 <section id="tripsView" class="panel hidden">
@@ -4101,6 +4113,7 @@ if (window.DELIVERY_APP_MODE) {
 function setTheme(t){const light=t==='light';root.classList.toggle('light-theme',light);btn.innerHTML=light?'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 15.5A8.5 8.5 0 0 1 8.5 3.5 8.5 8.5 0 1 0 20.5 15.5Z"/></svg>':'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>';btn.title=light?'التحويل إلى الوضع الداكن':'التحويل إلى الوضع الفاتح';btn.setAttribute('aria-label',btn.title);try{localStorage.setItem('pkm-theme',t)}catch(e){}}
 setTheme(theme);btn.addEventListener('click',()=>setTheme(root.classList.contains('light-theme')?'dark':'light'));})();
 </script>
+<script src="/receipt-scanner.js" defer></script>
 </body>
   </html>
   
