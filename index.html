@@ -2592,16 +2592,23 @@ function initDeliveryMenu(){
  renderDeliveryMenuProducts();
 }
 function renderDeliveryMenuProducts(){
- const cat=$('deliveryMenuCategory').value,items=DELIVERY_MENU.filter(x=>x.category===cat);
- $('deliveryMenuProduct').innerHTML=items.map((x,i)=>'<option value="'+DELIVERY_MENU.indexOf(x)+'">'+escapeHTML(x.name)+'</option>').join('');
+ const cat=$('deliveryMenuCategory').value;
+ const items=DELIVERY_MENU.filter(x=>x.category===cat);
+ const productSelect=$('deliveryMenuProduct');
+ productSelect.innerHTML=items.map(x=>'<option value="'+DELIVERY_MENU.indexOf(x)+'">'+escapeHTML(x.name)+'</option>').join('');
+ productSelect.disabled=!items.length;
+ if(items.length)productSelect.selectedIndex=0;
  renderDeliveryMenuSizes();
 }
 function renderDeliveryMenuSizes(){
  const productSelect=$('deliveryMenuProduct'),sizeSelect=$('deliveryMenuSize');
- const item=productSelect.value!==''?DELIVERY_MENU[Number(productSelect.value)]:null;
- sizeSelect.innerHTML=(item?.sizes||[]).map((x,i)=>'<option value="'+i+'">'+escapeHTML(x[0])+' - '+x[1]+' جنيه</option>').join('');
- sizeSelect.disabled=!(item?.sizes?.length);
- if(item?.sizes?.length)sizeSelect.selectedIndex=0;
+ const index=Number(productSelect.value);
+ const item=productSelect.value!==''&&Number.isInteger(index)?DELIVERY_MENU[index]:null;
+ const sizes=Array.isArray(item?.sizes)?item.sizes:[];
+ sizeSelect.innerHTML=sizes.map((x,i)=>'<option value="'+i+'">'+escapeHTML(String(x[0]))+' - '+Number(x[1]).toFixed(2)+' جنيه</option>').join('');
+ sizeSelect.disabled=!sizes.length;
+ sizeSelect.value=sizes.length?'0':'';
+ if(!sizes.length)sizeSelect.innerHTML='<option value="">لا توجد أحجام</option>';
 }
 function renderDeliveryMenuCart(){
  const host=$('deliveryMenuCart');
@@ -2763,7 +2770,7 @@ async function showApp(user,admin,managerProfile=null,operationsManager=false) {
   $('attendanceNavBtn').classList.toggle('hidden',!admin&&!operationsManager&&!isBranchManager);
   $('deliveryRepsNavBtn').classList.toggle('hidden',!admin&&!operationsManager&&!isBranchManager);
   $('deliveryRepsMapNavBtn').classList.toggle('hidden',!admin&&!operationsManager&&!isBranchManager);
-  $('deliveryOrdersNavBtn').classList.toggle('hidden',!isBranchManager);
+  $('deliveryOrdersNavBtn').classList.toggle('hidden',!admin&&!isBranchManager);
   $('tripsNavBtn').classList.toggle('hidden',!admin&&!operationsManager&&!isBranchManager);
   $('deliveryOrderCreatePanel').classList.toggle('hidden',!isBranchManager);
   $('deliveryPushEnableBtn').classList.toggle('hidden',!admin&&!isBranchManager);
@@ -3673,6 +3680,7 @@ $('deliveryOrdersBranchFilter').addEventListener('change',renderDeliveryOrders);
 initDeliveryMenu();
 $('deliveryMenuCategory').addEventListener('change',renderDeliveryMenuProducts);
 $('deliveryMenuProduct').addEventListener('change',renderDeliveryMenuSizes);
+$('deliveryMenuCategory').addEventListener('change',renderDeliveryMenuProducts);
 $('deliveryMenuAddBtn').addEventListener('click',addDeliveryMenuItem);
 $('deliveryMenuCart').addEventListener('click',e=>{const b=e.target.closest('[data-menu-remove]');if(b){deliveryMenuCart.splice(Number(b.dataset.menuRemove),1);renderDeliveryMenuCart();}});
 $('deliveryOrderCreateBtn').addEventListener('click',createDeliveryOrder);
