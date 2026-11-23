@@ -4160,9 +4160,19 @@ if (window.DELIVERY_APP_MODE) {
         managerLogin: 'manager',
         deliveryRepLogin: 'deliveryRep'
       };
+      var globalNames = {
+        adminLogin: 'loginAdmin',
+        operationsLogin: 'loginOperationsManager',
+        managerLogin: 'loginBranchManager',
+        deliveryRepLogin: 'loginDeliveryRep'
+      };
       var handlers = function () {
         var action = window.PKM_LOGIN_ACTIONS && window.PKM_LOGIN_ACTIONS[actionNames[loginButton.id]];
-        return typeof action === 'function' ? action() : Promise.reject(new Error('لم يتم تحميل وظائف الدخول من التطبيق الأساسي. أعد تحميل الصفحة.'));
+        // The main script may stop before publishing PKM_LOGIN_ACTIONS.
+        // Top-level function declarations in the classic app script remain on window.
+        if (typeof action !== 'function') action = window[globalNames[loginButton.id]];
+        if (typeof action === 'function') return action();
+        return Promise.reject(new Error('وظيفة الدخول غير متاحة لأن التطبيق الأساسي لم يكتمل تحميله. تحقق من اتصال الإنترنت ثم أعد فتح التطبيق.'));
       };
       var originalText = loginButton.textContent;
       loginButton.disabled = true;
