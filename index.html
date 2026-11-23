@@ -1254,7 +1254,7 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
 <div id="appMenuBackdrop" aria-hidden="true"></div>
 <nav id="appMainNav" class="app-nav" aria-label="أقسام النظام">
   <button type="button" id="customersNavBtn" class="active">إدارة العملاء</button>
-  <button type="button" id="staffNavBtn" class="secondary">دليل عمالة الفروع</button><button type="button" id="attendanceNavBtn" class="secondary hidden">الحضور والانصراف</button><button type="button" id="deliveryRepsNavBtn" class="secondary hidden">مندوبي المطاعم</button><button type="button" id="deliveryRepsMapNavBtn" class="secondary hidden">خريطة المندوبين</button><button type="button" id="deliveryOrdersNavBtn" class="secondary hidden">الرحلات</button>
+  <button type="button" id="staffNavBtn" class="secondary">دليل عمالة الفروع</button><button type="button" id="attendanceNavBtn" class="secondary hidden">الحضور والانصراف</button><button type="button" id="deliveryRepsNavBtn" class="secondary hidden">مندوبي المطاعم</button><button type="button" id="deliveryRepsMapNavBtn" class="secondary hidden">خريطة المندوبين</button><button type="button" id="deliveryOrdersNavBtn" class="secondary hidden">أوردرات الدليفري</button><button type="button" id="tripsNavBtn" class="secondary hidden">الرحلات</button>
 </nav>
 
 <section id="deliveryRepsMapView" class="panel hidden">
@@ -1266,8 +1266,8 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
  <div id="deliveryRepsMap" role="application" aria-label="خريطة مواقع المندوبين وطلبات التوصيل"></div>
 </section>
 <section id="deliveryOrdersView" class="panel hidden">
- <div class="report-heading"><div><h2>إدارة الرحلات</h2><p class="muted">إنشاء رحلات التوصيل، توزيعها على المندوبين، ومتابعة التنفيذ والتحصيل.</p></div><div class="row"><button type="button" id="deliveryPushEnableBtn" class="light hidden">تفعيل إشعارات الطلبات</button><button type="button" id="deliveryBulkAutoAssignBtn" class="primary-btn hidden">توزيع الطلبات الجديدة تلقائيًا</button><button type="button" id="deliveryOrdersRefreshBtn" class="light">تحديث الطلبات</button></div></div>
- <div id="deliveryOrderCreatePanel" class="panel hidden"><h3>إضافة طلب دليفري جديد</h3><p class="muted">مدير الفرع يدخل الطلب يدويًا، وبعد الحفظ يظهر في لوحة التشغيل.</p>
+ <div class="report-heading"><div><h2>أوردرات الدليفري</h2><p class="muted">إدخال أوردرات التوصيل يدويًا بواسطة مدير الفرع.</p></div></div>
+  <div id="deliveryOrderCreatePanel" class="panel hidden"><h3>إضافة طلب دليفري جديد</h3><p class="muted">مدير الفرع يدخل الطلب يدويًا، وبعد الحفظ يظهر في لوحة التشغيل.</p>
  <div class="delivery-order-form-grid">
  <div><label for="deliveryOrderCustomer">اسم العميل</label><input id="deliveryOrderCustomer" maxlength="120"></div><div><label for="deliveryOrderPhone">رقم الهاتف</label><input id="deliveryOrderPhone" type="tel" maxlength="30"></div>
  <div class="full"><label for="deliveryOrderAddress">عنوان التوصيل بالتفصيل</label><textarea id="deliveryOrderAddress" maxlength="500" placeholder="الشارع والمنطقة ورقم العقار وعلامة مميزة"></textarea></div>
@@ -1276,7 +1276,10 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
  <div><label for="deliveryOrderTotal">إجمالي الطلب بالجنيه</label><input id="deliveryOrderTotal" type="number" min="0" step="0.01"></div><div><label for="deliveryOrderPayment">طريقة الدفع</label><select id="deliveryOrderPayment"><option value="cash">نقدي عند الاستلام</option><option value="card">بطاقة / مدفوع إلكترونيًا</option><option value="wallet">محفظة إلكترونية</option></select></div>
  <div class="full"><label for="deliveryOrderNotes">ملاحظات للمندوب</label><textarea id="deliveryOrderNotes"></textarea></div></div>
  <button type="button" id="deliveryOrderCreateBtn">حفظ وإرسال الطلب للتشغيل</button><p id="deliveryOrderCreateMessage" class="muted"></p></div>
- <section id="deliveryCashManagement" class="panel" style="margin:14px 0;border:1px solid rgba(212,175,55,.35)"><div class="report-heading"><div><h3>خزنة المندوبين وتسليم العهدة</h3><p class="muted">راجع المبالغ المعلقة واعتمد الاستلام الفعلي أو ارفض التسليم.</p></div><button type="button" id="deliveryCashRefreshBtn" class="light">تحديث العهدة</button></div><div id="deliveryCashManagementList"><p class="muted">جارٍ تحميل سجلات العهدة...</p></div></section>
+</section>
+<section id="tripsView" class="panel hidden">
+ <div class="report-heading"><div><h2>الرحلات</h2><p class="muted">كل الأوردرات المسجلة تظهر هنا تلقائيًا لمتابعة الإسناد والتوصيل والتحصيل.</p></div><div class="row"><button type="button" id="deliveryPushEnableBtn" class="light hidden">تفعيل إشعارات الطلبات</button><button type="button" id="deliveryBulkAutoAssignBtn" class="primary-btn hidden">توزيع الطلبات الجديدة تلقائيًا</button><button type="button" id="deliveryOrdersRefreshBtn" class="light">تحديث الرحلات</button></div></div>
+  <section id="deliveryCashManagement" class="panel" style="margin:14px 0;border:1px solid rgba(212,175,55,.35)"><div class="report-heading"><div><h3>خزنة المندوبين وتسليم العهدة</h3><p class="muted">راجع المبالغ المعلقة واعتمد الاستلام الفعلي أو ارفض التسليم.</p></div><button type="button" id="deliveryCashRefreshBtn" class="light">تحديث العهدة</button></div><div id="deliveryCashManagementList"><p class="muted">جارٍ تحميل سجلات العهدة...</p></div></section>
 <section id="deliveryCashReport" class="panel" style="margin:14px 0;border:1px solid rgba(212,175,55,.35)">
  <div class="report-heading"><div><h3>تقرير التحصيل اليومي وعهدة المندوبين</h3><p class="muted">قارن بين النقدية المحصلة، المبالغ مع المندوب، التسليمات المعلقة، وما تم استلامه فعليًا بالإدارة.</p></div><div class="row"><button type="button" id="deliveryCashReportRefresh" class="light">تحديث التقرير</button><button type="button" id="deliveryCashReportExport" class="primary-btn">تصدير Excel</button></div></div>
  <div class="delivery-orders-toolbar">
@@ -2223,7 +2226,7 @@ async function loadDeliveryRepsMap(){
 }
 function openDeliveryRepsMap(){
  stopDeliveryRepsMapRefresh();
- $('customersView').classList.add('hidden');$('staffDirectoryView').classList.add('hidden');$('attendanceView').classList.add('hidden');$('deliveryRepsView').classList.add('hidden');$('deliveryOrdersView').classList.add('hidden');$('deliveryOrdersNavBtn').classList.remove('active');$('deliveryRepsMapView').classList.remove('hidden');
+ $('customersView').classList.add('hidden');$('staffDirectoryView').classList.add('hidden');$('attendanceView').classList.add('hidden');$('deliveryRepsView').classList.add('hidden');$('deliveryOrdersView').classList.add('hidden');$('tripsView').classList.add('hidden');$('deliveryOrdersNavBtn').classList.remove('active');$('tripsNavBtn').classList.remove('active');$('deliveryRepsMapView').classList.remove('hidden');
  ['customersNavBtn','staffNavBtn','attendanceNavBtn','deliveryRepsNavBtn'].forEach(id=>$(id).classList.remove('active'));
  $('deliveryRepsMapNavBtn').classList.add('active');loadDeliveryRepsMap();
  deliveryRepsMapInterval=setInterval(loadDeliveryRepsMap,12000);
@@ -2505,7 +2508,7 @@ function startDeliveryOrdersRealtime(){
  deliveryOrdersRealtimeChannel=db.channel('delivery-orders-live')
   .on('postgres_changes',{event:'*',schema:'public',table:'delivery_orders'},()=>{
    if(deliveryOrdersRealtimeTimer)clearTimeout(deliveryOrdersRealtimeTimer);
-   deliveryOrdersRealtimeTimer=setTimeout(()=>{if(!$('deliveryOrdersView').classList.contains('hidden'))loadDeliveryOrders(true);},850);
+   deliveryOrdersRealtimeTimer=setTimeout(()=>{if(!$('tripsView').classList.contains('hidden'))loadDeliveryOrders(true);},850);
   })
   .subscribe(status=>{
    if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){
@@ -2645,7 +2648,8 @@ async function exportDeliveryCashReport(){
 async function decideDeliveryCashHandover(id,decision){const note=prompt(decision==='received'?'ملاحظة استلام (اختياري):':'سبب رفض التسليم:','');if(note===null)return;if(decision==='rejected'&&!note.trim()){alert('اكتب سبب الرفض.');return;}try{const q=await db.rpc('confirm_delivery_cash_handover',{p_handover_id:id,p_decision:decision,p_note:note});if(q.error)throw q.error;await loadDeliveryCashHandovers();alert(decision==='received'?'تم اعتماد استلام العهدة.':'تم رفض التسليم وإرجاع المبلغ إلى عهدة المندوب.');}catch(e){alert('تعذر معالجة العهدة: '+e.message);}}
 async function loadMyDeliveryOrders(){if(!currentDeliveryRep)return;const host=$('deliveryRepOrdersList');const q=await db.from('delivery_orders').select('*').eq('assigned_rep_user_id',currentDeliveryRep.user_id).in('status',['assigned','accepted','picked_up']).order('created_at',{ascending:true});if(q.error){host.textContent='تعذر تحميل الطلبات: '+q.error.message;return;}host.innerHTML=q.data?.length?q.data.map(o=>deliveryOrderCard(o,true)).join(''):'<p class="muted">لا توجد طلبات مسندة إليك حاليًا.</p>';await loadMyDeliveryCash();}
 async function updateMyDeliveryOrder(id,status){if(!currentDeliveryRep)return;let amount=null;if(status==='delivered'){const q=await db.from('delivery_orders').select('payment_method,total_amount').eq('id',id).maybeSingle();if(q.data?.payment_method==='cash'){const raw=prompt('اكتب المبلغ النقدي الذي تم تحصيله بالجنيه:',String(q.data.total_amount||0));if(raw===null)return;amount=Number(raw);if(!Number.isFinite(amount)||amount<0){alert('المبلغ غير صحيح.');return;}}}try{const q=await db.rpc('update_delivery_order_status',{p_order_id:id,p_status:status,p_collected_amount:amount});if(q.error)throw q.error;await loadMyDeliveryOrders();}catch(e){alert('تعذر تحديث الطلب: '+e.message);}}
-function openDeliveryOrders(){stopDeliveryRepsMapRefresh();['customersView','staffDirectoryView','attendanceView','deliveryRepsView','deliveryRepsMapView'].forEach(id=>$(id).classList.add('hidden'));$('deliveryOrdersView').classList.remove('hidden');['customersNavBtn','staffNavBtn','attendanceNavBtn','deliveryRepsNavBtn','deliveryRepsMapNavBtn'].forEach(id=>$(id).classList.remove('active'));$('deliveryOrdersNavBtn').classList.add('active');startDeliveryOrdersRealtime();loadDeliveryOrders();}
+function openDeliveryOrders(){stopDeliveryRepsMapRefresh();['customersView','staffDirectoryView','attendanceView','deliveryRepsView','deliveryRepsMapView','tripsView'].forEach(id=>$(id).classList.add('hidden'));$('deliveryOrdersView').classList.remove('hidden');['customersNavBtn','staffNavBtn','attendanceNavBtn','deliveryRepsNavBtn','deliveryRepsMapNavBtn','tripsNavBtn'].forEach(id=>$(id).classList.remove('active'));$('deliveryOrdersNavBtn').classList.add('active');}
+function openTrips(){stopDeliveryRepsMapRefresh();['customersView','staffDirectoryView','attendanceView','deliveryRepsView','deliveryRepsMapView','deliveryOrdersView'].forEach(id=>$(id).classList.add('hidden'));$('tripsView').classList.remove('hidden');['customersNavBtn','staffNavBtn','attendanceNavBtn','deliveryRepsNavBtn','deliveryRepsMapNavBtn','deliveryOrdersNavBtn'].forEach(id=>$(id).classList.remove('active'));$('tripsNavBtn').classList.add('active');startDeliveryOrdersRealtime();loadDeliveryOrders();}
 
 async function showApp(user,admin,managerProfile=null,operationsManager=false) {
   currentUser=user; isAdmin=admin; isOperationsManager=operationsManager; isBranchManager=!!managerProfile; currentManagerProfile=managerProfile;
@@ -2661,7 +2665,8 @@ async function showApp(user,admin,managerProfile=null,operationsManager=false) {
   $('attendanceNavBtn').classList.toggle('hidden',!admin&&!operationsManager&&!isBranchManager);
   $('deliveryRepsNavBtn').classList.toggle('hidden',!admin&&!operationsManager&&!isBranchManager);
   $('deliveryRepsMapNavBtn').classList.toggle('hidden',!admin&&!operationsManager&&!isBranchManager);
-  $('deliveryOrdersNavBtn').classList.toggle('hidden',!admin&&!operationsManager&&!isBranchManager);
+  $('deliveryOrdersNavBtn').classList.toggle('hidden',!isBranchManager);
+  $('tripsNavBtn').classList.toggle('hidden',!admin&&!operationsManager&&!isBranchManager);
   $('deliveryOrderCreatePanel').classList.toggle('hidden',!isBranchManager);
   $('deliveryPushEnableBtn').classList.toggle('hidden',!admin&&!isBranchManager);
   $('deliveryOrdersFilterPanel').classList.toggle('hidden',isBranchManager);
@@ -2673,7 +2678,7 @@ async function showApp(user,admin,managerProfile=null,operationsManager=false) {
   if(isBranchManager){$('newDeliveryRepBranch').innerHTML='<option value="'+escapeHTML(managerProfile.branch)+'">'+escapeHTML(managerProfile.branch)+'</option>';}
   $('customersView').classList.toggle('hidden',isBranchManager); $('staffDirectoryView').classList.toggle('hidden',isBranchManager);
   $('attendanceView').classList.toggle('hidden',!isBranchManager);
-  $('deliveryRepsView').classList.add('hidden'); $('deliveryRepsMapView').classList.add('hidden'); $('deliveryOrdersView').classList.add('hidden'); $('managerAttendanceControls').classList.toggle('hidden',!isBranchManager);
+  $('deliveryRepsView').classList.add('hidden'); $('deliveryRepsMapView').classList.add('hidden'); $('deliveryOrdersView').classList.add('hidden'); $('tripsView').classList.add('hidden'); $('managerAttendanceControls').classList.toggle('hidden',!isBranchManager);
   $('adminAttendanceControls').classList.toggle('hidden',!admin&&!operationsManager);
   $('attendanceBranchLabel').textContent=managerProfile?'الفرع: '+managerProfile.branch:'متابعة سجلات حضور وانصراف جميع الفروع';
   await loadDeliveryOrders();
@@ -3559,6 +3564,7 @@ $('deliveryRepRequestsList').addEventListener('click',e=>{
 });
 $('deliveryRepsMapNavBtn').addEventListener('click',openDeliveryRepsMap);
 $('deliveryOrdersNavBtn').addEventListener('click',openDeliveryOrders);
+$('tripsNavBtn').addEventListener('click',openTrips);
 $('appMenuToggle').addEventListener('click',()=>setAppMenu(!$('appMainNav').classList.contains('open')));
 $('appMenuBackdrop').addEventListener('click',()=>setAppMenu(false));
 $('appMainNav').addEventListener('click',e=>{if(e.target.closest('button'))setAppMenu(false);});
