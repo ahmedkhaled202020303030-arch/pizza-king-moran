@@ -45,7 +45,7 @@ Deno.serve(async(req)=>{
   const {data:order,error}=await admin.from("delivery_orders").select("id,order_no,branch,customer_name,status").eq("id",orderId).maybeSingle();
   if(error||!order)return json({error:"Order not found"},404);
   if(profile.role==="branch_manager"&&profile.branch!==order.branch)return json({error:"Wrong branch"},403);
-  const recipients=await admin.from("profiles").select("user_id,role,branch").or("role.eq.admin,and(role.eq.branch_manager,branch.eq."+order.branch+")");
+  const recipients=await admin.from("profiles").select("user_id,role,branch").or("role.eq.admin,role.eq.operations_manager,and(role.eq.branch_manager,branch.eq."+order.branch+")");
   if(recipients.error)return json({error:recipients.error.message},500);
   const ids=(recipients.data??[]).map(x=>x.user_id);
   const sent=await pushToUsers(admin,ids,{title:"طلب دليفري جديد #"+order.order_no,body:"فرع "+order.branch+" — "+order.customer_name,url:"/?view=delivery-orders",tag:"new-order-"+order.id},pub,priv,subject);
