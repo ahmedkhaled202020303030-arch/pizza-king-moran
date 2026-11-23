@@ -1087,6 +1087,15 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
 .delivery-timeline-step em{font-size:10px;color:#d8c17d;font-style:normal;white-space:nowrap}
 @media(max-width:420px){.delivery-order-timeline summary{align-items:flex-start;flex-direction:column}.delivery-timeline-step{grid-template-columns:14px minmax(0,1fr) auto}}
 
+
+.delivery-menu-builder{padding:16px;border:1px solid rgba(212,175,55,.35);border-radius:14px;background:rgba(212,175,55,.045)}
+.delivery-menu-controls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.delivery-menu-controls>div{min-width:0}.delivery-menu-controls label{margin-top:8px}
+.delivery-menu-cart{margin:12px 0;padding:10px;border:1px solid var(--line);border-radius:12px}
+.delivery-menu-line{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.delivery-menu-line:last-child{border-bottom:0}.delivery-menu-line button{width:auto;margin:0;padding:6px 10px}
+.delivery-menu-total{display:flex;justify-content:space-between;font-weight:900;color:#d4af37;padding-top:10px}
+@media(max-width:650px){.delivery-menu-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.delivery-menu-line{grid-template-columns:1fr auto}.delivery-menu-line button{grid-column:2}}
 </style>
 </head>
 <body>
@@ -1272,7 +1281,18 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
  <div><label for="deliveryOrderCustomer">اسم العميل</label><input id="deliveryOrderCustomer" maxlength="120"></div><div><label for="deliveryOrderPhone">رقم الهاتف</label><input id="deliveryOrderPhone" type="tel" maxlength="30"></div>
  <div class="full"><label for="deliveryOrderAddress">عنوان التوصيل بالتفصيل</label><textarea id="deliveryOrderAddress" maxlength="500" placeholder="الشارع والمنطقة ورقم العقار وعلامة مميزة"></textarea></div>
  <div><label for="deliveryOrderLat">خط العرض (اختياري)</label><input id="deliveryOrderLat" type="number" step="any"></div><div><label for="deliveryOrderLng">خط الطول (اختياري)</label><input id="deliveryOrderLng" type="number" step="any"></div>
- <div class="full"><label for="deliveryOrderItems">الأصناف والكميات</label><textarea id="deliveryOrderItems"></textarea></div>
+ <div class="full delivery-menu-builder">
+  <h3>منيو المطعم</h3><p class="muted">اختر الصنف والحجم والكمية، وسيتم حساب الإجمالي وتجهيز تفاصيل الأوردر تلقائيًا.</p>
+  <div class="delivery-menu-controls">
+   <div><label for="deliveryMenuCategory">القسم</label><select id="deliveryMenuCategory"></select></div>
+   <div><label for="deliveryMenuProduct">الصنف</label><select id="deliveryMenuProduct"></select></div>
+   <div><label for="deliveryMenuSize">الحجم</label><select id="deliveryMenuSize"></select></div>
+   <div><label for="deliveryMenuQty">الكمية</label><input id="deliveryMenuQty" type="number" min="1" max="50" value="1"></div>
+  </div>
+  <button type="button" id="deliveryMenuAddBtn" class="secondary">إضافة الصنف للطلب</button>
+  <div id="deliveryMenuCart" class="delivery-menu-cart"><p class="muted">لم تتم إضافة أصناف بعد.</p></div>
+  <div class="full"><label for="deliveryOrderItems">تفاصيل الأصناف</label><textarea id="deliveryOrderItems" readonly placeholder="الأصناف المختارة ستظهر هنا"></textarea></div>
+ </div>
  <div><label for="deliveryOrderTotal">إجمالي الطلب بالجنيه</label><input id="deliveryOrderTotal" type="number" min="0" step="0.01"></div><div><label for="deliveryOrderPayment">طريقة الدفع</label><select id="deliveryOrderPayment"><option value="cash">نقدي عند الاستلام</option><option value="card">بطاقة / مدفوع إلكترونيًا</option><option value="wallet">محفظة إلكترونية</option></select></div>
  <div class="full"><label for="deliveryOrderNotes">ملاحظات للمندوب</label><textarea id="deliveryOrderNotes"></textarea></div></div>
  <button type="button" id="deliveryOrderCreateBtn">حفظ وإرسال الطلب للتشغيل</button><p id="deliveryOrderCreateMessage" class="muted"></p></div>
@@ -2520,13 +2540,86 @@ function stopDeliveryOrdersRealtime(){
  if(deliveryOrdersRealtimeTimer){clearTimeout(deliveryOrdersRealtimeTimer);deliveryOrdersRealtimeTimer=null;}
  if(deliveryOrdersRealtimeChannel){db.removeChannel(deliveryOrdersRealtimeChannel);deliveryOrdersRealtimeChannel=null;}
 }
+
+const DELIVERY_MENU=[
+ {category:'بيتزا كلاسيك',name:'مارجريتا',sizes:[['عادي',110]]},
+ {category:'بيتزا كلاسيك',name:'خضروات',sizes:[['عادي',110]]},
+ {category:'بيتزا كلاسيك',name:'عشاق الجبنة',sizes:[['عادي',135]]},
+ {category:'بيتزا كلاسيك',name:'ميكسيكانو',sizes:[['عادي',135]]},
+ {category:'بيتزا كلاسيك',name:'هوت دوجز',sizes:[['عادي',135]]},
+ {category:'بيتزا كلاسيك',name:'بابريكا حارة',sizes:[['عادي',135]]},
+ {category:'بيتزا كلاسيك',name:'كينج سوبريم',sizes:[['عادي',135]]},
+ {category:'بيتزا كلاسيك',name:'كينج بيبروني',sizes:[['عادي',135]]},
+ {category:'بيتزا كلاسيك',name:'تشيكن سوبريم',sizes:[['عادي',150]]},
+ {category:'بيتزا كلاسيك',name:'تشيكن باربكيو',sizes:[['عادي',150]]},
+ {category:'بيتزا كلاسيك',name:'بافلو تشيكن رانش',sizes:[['عادي',150]]},
+ {category:'بيتزا كلاسيك',name:'تشيكن رانش',sizes:[['عادي',160]]},
+ {category:'بيتزا كلاسيك',name:'ناشفيل تشيكن',sizes:[['عادي',160]]},
+ {category:'بيتزا كلاسيك',name:'ويسترن تشيكن',sizes:[['عادي',160]]},
+ {category:'بيتزا كلاسيك',name:'زينجر سموكي',sizes:[['عادي',160]]},
+ {category:'بيتزا كلاسيك',name:'تشيكن رانش بيكون',sizes:[['عادي',160]]},
+ {category:'بيتزا كلاسيك',name:'تونة',sizes:[['عادي',150]]},
+ {category:'بيتزا كلاسيك',name:'جمبري',sizes:[['عادي',195]]},
+ {category:'بيتزا كلاسيك',name:'كريسبي جمبري',sizes:[['عادي',195]]},
+ {category:'بيتزا كلاسيك',name:'سي فود رانش',sizes:[['عادي',190]]},
+ {category:'بيتزا الممالك',name:'مملكة اليونان',sizes:[['وسط',235],['كبير',305]]},
+ {category:'بيتزا الممالك',name:'مملكة مصر',sizes:[['وسط',255],['كبير',345]]},
+ {category:'بيتزا الممالك',name:'مملكة المكسيك',sizes:[['وسط',250],['كبير',325]]},
+ {category:'بيتزا الممالك',name:'مملكة أوروبا',sizes:[['وسط',250],['كبير',345]]},
+ {category:'بيتزا الممالك',name:'مملكة آسيا',sizes:[['وسط',355],['كبير',445]]},
+ {category:'بيتزا الممالك',name:'مملكة إيطاليا',sizes:[['وسط',250],['كبير',345]]},
+ {category:'باستا إيطالية',name:'تشيكن باستا',sizes:[['عادي',130]]},
+ {category:'باستا إيطالية',name:'ميكس بيف باستا',sizes:[['عادي',130]]},
+ {category:'باستا إيطالية',name:'سي فود باستا',sizes:[['عادي',165]]},
+ {category:'مشروبات',name:'مياه معدنية صغيرة',sizes:[['عادي',11]]},
+ {category:'مشروبات',name:'مياه معدنية كبيرة',sizes:[['عادي',19]]},
+ {category:'مشروبات',name:'عصير صغير',sizes:[['عادي',24]]},
+ {category:'مشروبات',name:'كانز كولا',sizes:[['عادي',30]]},
+ {category:'مشروبات',name:'آيس تي كولا',sizes:[['عادي',49]]},
+ {category:'حلويات',name:'كوكيز',sizes:[['عادي',30]]},
+ {category:'حلويات',name:'تشيز كيك',sizes:[['عادي',65]]},
+ {category:'حلويات',name:'تشيز كيك شوكولاتة',sizes:[['عادي',75]]},
+ {category:'حلويات',name:'فونتان',sizes:[['عادي',75]]},
+ {category:'بيتزا فولد',name:'فولد بطاطس',sizes:[['عادي',120]]},
+ {category:'بيتزا فولد',name:'فولد ميكس لحوم',sizes:[['عادي',145]]},
+ {category:'كالزوني',name:'كالزوني بيبروني',sizes:[['عادي',90]]},
+ {category:'كالزوني',name:'كالزوني لحوم حارة',sizes:[['عادي',90]]}
+];
+let deliveryMenuCart=[];
+function initDeliveryMenu(){
+ const cats=[...new Set(DELIVERY_MENU.map(x=>x.category))];
+ $('deliveryMenuCategory').innerHTML=cats.map(x=>'<option>'+escapeHTML(x)+'</option>').join('');
+ renderDeliveryMenuProducts();
+}
+function renderDeliveryMenuProducts(){
+ const cat=$('deliveryMenuCategory').value,items=DELIVERY_MENU.filter(x=>x.category===cat);
+ $('deliveryMenuProduct').innerHTML=items.map((x,i)=>'<option value="'+DELIVERY_MENU.indexOf(x)+'">'+escapeHTML(x.name)+'</option>').join('');
+ renderDeliveryMenuSizes();
+}
+function renderDeliveryMenuSizes(){
+ const item=DELIVERY_MENU[Number($('deliveryMenuProduct').value)];
+ $('deliveryMenuSize').innerHTML=(item?.sizes||[]).map((x,i)=>'<option value="'+i+'">'+escapeHTML(x[0])+' - '+x[1]+' جنيه</option>').join('');
+}
+function renderDeliveryMenuCart(){
+ const host=$('deliveryMenuCart');
+ if(!deliveryMenuCart.length){host.innerHTML='<p class="muted">لم تتم إضافة أصناف بعد.</p>';$('deliveryOrderItems').value='';$('deliveryOrderTotal').value='';return;}
+ host.innerHTML=deliveryMenuCart.map((x,i)=>'<div class="delivery-menu-line"><span>'+escapeHTML(x.name+' - '+x.size)+' × '+x.qty+'</span><strong>'+((x.price*x.qty).toFixed(2))+' جنيه</strong><button type="button" class="danger" data-menu-remove="'+i+'">حذف</button></div>').join('')+'<div class="delivery-menu-total"><span>إجمالي الأصناف</span><span>'+deliveryMenuCart.reduce((a,x)=>a+x.price*x.qty,0).toFixed(2)+' جنيه</span></div>';
+ $('deliveryOrderItems').value=deliveryMenuCart.map(x=>x.name+' ('+x.size+') × '+x.qty+' = '+(x.price*x.qty)+' جنيه').join('\\n');
+ $('deliveryOrderTotal').value=deliveryMenuCart.reduce((a,x)=>a+x.price*x.qty,0).toFixed(2);
+}
+function addDeliveryMenuItem(){
+ const item=DELIVERY_MENU[Number($('deliveryMenuProduct').value)],size=item?.sizes[Number($('deliveryMenuSize').value)],qty=Number($('deliveryMenuQty').value);
+ if(!item||!size||!Number.isInteger(qty)||qty<1||qty>50){alert('اختر الصنف والحجم وأدخل كمية صحيحة.');return;}
+ deliveryMenuCart.push({name:item.name,size:size[0],price:size[1],qty});renderDeliveryMenuCart();$('deliveryMenuQty').value='1';
+}
+
 async function createDeliveryOrder(){
  if(!isBranchManager)return;
  const p={p_customer_name:$('deliveryOrderCustomer').value.trim(),p_customer_phone:$('deliveryOrderPhone').value.trim(),p_delivery_address:$('deliveryOrderAddress').value.trim(),p_latitude:$('deliveryOrderLat').value===''?null:Number($('deliveryOrderLat').value),p_longitude:$('deliveryOrderLng').value===''?null:Number($('deliveryOrderLng').value),p_items:$('deliveryOrderItems').value.trim(),p_total_amount:Number($('deliveryOrderTotal').value),p_payment_method:$('deliveryOrderPayment').value,p_notes:$('deliveryOrderNotes').value.trim()};
  if(!p.p_customer_name||!p.p_customer_phone||!p.p_delivery_address||!Number.isFinite(p.p_total_amount)||p.p_total_amount<0){$('deliveryOrderCreateMessage').textContent='أكمل اسم العميل والهاتف والعنوان والإجمالي بشكل صحيح.';return;}
  if((p.p_latitude==null)!==(p.p_longitude==null)||[p.p_latitude,p.p_longitude].some(x=>x!=null&&!Number.isFinite(x))){$('deliveryOrderCreateMessage').textContent='أدخل خط العرض والطول معًا أو اتركهما فارغين.';return;}
  const b=$('deliveryOrderCreateBtn');b.disabled=true;b.textContent='جارٍ حفظ الطلب...';
- try{const q=await db.rpc('create_delivery_order',p);if(q.error)throw q.error;await sendDeliveryPushEvent(q.data);$('deliveryOrderCreateMessage').textContent='تم تسجيل الطلب وإرساله إلى لوحة التشغيل.';['deliveryOrderCustomer','deliveryOrderPhone','deliveryOrderAddress','deliveryOrderLat','deliveryOrderLng','deliveryOrderItems','deliveryOrderTotal','deliveryOrderNotes'].forEach(id=>$(id).value='');await loadDeliveryOrders();}
+ try{const q=await db.rpc('create_delivery_order',p);if(q.error)throw q.error;await sendDeliveryPushEvent(q.data);$('deliveryOrderCreateMessage').textContent='تم تسجيل الطلب وإرساله إلى لوحة التشغيل.';['deliveryOrderCustomer','deliveryOrderPhone','deliveryOrderAddress','deliveryOrderLat','deliveryOrderLng','deliveryOrderItems','deliveryOrderTotal','deliveryOrderNotes'].forEach(id=>$(id).value='');deliveryMenuCart=[];renderDeliveryMenuCart();await loadDeliveryOrders();}
  catch(e){$('deliveryOrderCreateMessage').textContent='تعذر حفظ الطلب: '+(e.message||'راجع قاعدة البيانات.');}
  finally{b.disabled=false;b.textContent='حفظ وإرسال الطلب للتشغيل';}
 }
@@ -3572,6 +3665,11 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')setAppMenu(false);})
 $('deliveryPushEnableBtn').addEventListener('click',enableDeliveryPushNotifications);
  $('deliveryOrdersRefreshBtn').addEventListener('click',loadDeliveryOrders);
 $('deliveryOrdersBranchFilter').addEventListener('change',renderDeliveryOrders);$('deliveryOrdersStatusFilter').addEventListener('change',renderDeliveryOrders);$('deliveryOrdersSearch').addEventListener('input',renderDeliveryOrders);
+initDeliveryMenu();
+$('deliveryMenuCategory').addEventListener('change',renderDeliveryMenuProducts);
+$('deliveryMenuProduct').addEventListener('change',renderDeliveryMenuSizes);
+$('deliveryMenuAddBtn').addEventListener('click',addDeliveryMenuItem);
+$('deliveryMenuCart').addEventListener('click',e=>{const b=e.target.closest('[data-menu-remove]');if(b){deliveryMenuCart.splice(Number(b.dataset.menuRemove),1);renderDeliveryMenuCart();}});
 $('deliveryOrderCreateBtn').addEventListener('click',createDeliveryOrder);
 $('deliveryBulkAutoAssignBtn').addEventListener('click',autoAssignDeliveryOrdersBatch);
 $('deliveryOrdersList').addEventListener('click',e=>{const smart=e.target.closest('[data-auto-assign-order]'),a=e.target.closest('[data-assign-order]'),c=e.target.closest('[data-cancel-order]');if(smart)autoAssignDeliveryOrder(smart.dataset.autoAssignOrder);if(a)assignDeliveryOrder(a.dataset.assignOrder);if(c)cancelDeliveryOrder(c.dataset.cancelOrder);});
