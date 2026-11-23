@@ -3680,7 +3680,6 @@ $('deliveryOrdersBranchFilter').addEventListener('change',renderDeliveryOrders);
 initDeliveryMenu();
 $('deliveryMenuCategory').addEventListener('change',renderDeliveryMenuProducts);
 $('deliveryMenuProduct').addEventListener('change',renderDeliveryMenuSizes);
-$('deliveryMenuCategory').addEventListener('change',renderDeliveryMenuProducts);
 $('deliveryMenuAddBtn').addEventListener('click',addDeliveryMenuItem);
 $('deliveryMenuCart').addEventListener('click',e=>{const b=e.target.closest('[data-menu-remove]');if(b){deliveryMenuCart.splice(Number(b.dataset.menuRemove),1);renderDeliveryMenuCart();}});
 $('deliveryOrderCreateBtn').addEventListener('click',createDeliveryOrder);
