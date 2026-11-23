@@ -2430,16 +2430,13 @@ async function openDeliveryOrderHistory(orderId){
   if(q.error)throw q.error;
   const events=q.data||[];
   const actorIds=[...new Set(events.map(x=>x.actor_user_id).filter(Boolean))];
+  const repIds=[...new Set([...events.map(x=>x.details?.rep_user_id),order.assigned_rep_user_id].filter(Boolean))];
   let profiles=[],reps=[];
-  if(actorIds.length){
-   const [p,r]=await Promise.all([
-    db.from('profiles').select('user_id,username,role').in('user_id',actorIds),
-    db.from('delivery_rep_profiles').select('user_id,full_name,username').in('user_id',actorIds)
-   ]);
-   if(p.error)throw p.error;
-   if(r.error)throw r.error;
-   profiles=p.data||[];reps=r.data||[];
-  }
+  const [p,r]=await Promise.all([
+   actorIds.length?db.from('profiles').select('user_id,username,role').in('user_id',actorIds):Promise.resolve({data:[],error:null}),
+   repIds.length?db.from('delivery_rep_profiles').select('user_id,full_name,username').in('user_id',repIds):Promise.resolve({data:[],error:null})
+  ]);
+  profiles=p.data||[];reps=r.data||[];
   const actors=new Map();
   profiles.forEach(x=>actors.set(x.user_id,x.username||x.role||'مستخدم'));
   reps.forEach(x=>actors.set(x.user_id,x.full_name||x.username||actors.get(x.user_id)||'مندوب'));
