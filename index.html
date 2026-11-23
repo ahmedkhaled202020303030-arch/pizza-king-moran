@@ -1374,8 +1374,9 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
       <h2 style="margin:0">لوحة مندوب المطاعم</h2>
       <p id="deliveryRepWelcome" class="muted" style="margin:4px 0"></p>
     </div>
-    <button id="deliveryRepLogout" class="light" type="button">خروج</button>
+    <div class="row" style="gap:8px;flex-wrap:wrap"><button id="deliveryRepPushEnableBtn" class="light" type="button">تفعيل إشعارات الطلبات</button><button id="deliveryRepLogout" class="light" type="button">خروج</button></div>
   </div>
+  <p id="deliveryRepPushMessage" class="muted" aria-live="polite"></p>
   <div class="panel" style="margin-top:16px">
     <p><strong>الفرع:</strong> <span id="deliveryRepBranch">—</span></p>
     <p><strong>حالتك الحالية:</strong> <span id="deliveryRepStatusText">غير متاح</span></p>
@@ -2724,9 +2725,11 @@ function renderDeliveryOrders(){
  if(viewBtn){viewBtn.textContent=deliveryTripsBoardView?'عرض البطاقات':'عرض لوحة الحالات';viewBtn.setAttribute('aria-pressed',String(deliveryTripsBoardView));}
 }
 async function enableDeliveryPushNotifications(){
- const btn=$('deliveryPushEnableBtn');if(!btn)return;
- if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window)){showMessage('deliveryOrdersMessage','هذا الجهاز أو المتصفح لا يدعم إشعارات التطبيق.',true);return;}
- if(!currentUser||(!isAdmin&&!isBranchManager)){showMessage('deliveryOrdersMessage','الإشعارات متاحة للمدير الرئيسي ومدير الفرع فقط.',true);return;}
+ const repMode=!!currentDeliveryRep,btn=$(repMode?'deliveryRepPushEnableBtn':'deliveryPushEnableBtn'),message=$(repMode?'deliveryRepPushMessage':'deliveryOrdersMessage');
+ if(!btn)return;
+ const notify=(text,error=false)=>{if(repMode){message.textContent=text;message.style.color=error?'#ff9b8f':'#9bd9ad';}else showMessage('deliveryOrdersMessage',text,error);};
+ if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window)){notify('هذا الجهاز أو المتصفح لا يدعم إشعارات التطبيق.',true);return;}
+ if(!currentUser||(!repMode&&!isAdmin&&!isBranchManager)){notify('لا توجد صلاحية لتفعيل الإشعارات لهذا الحساب.',true);return;}
  btn.disabled=true;btn.textContent='جارٍ تفعيل الإشعارات...';
  try{
   const permission=await Notification.requestPermission();if(permission!=='granted')throw new Error('لم تسمح بإرسال الإشعارات. فعّلها من إعدادات المتصفح.');
@@ -2739,13 +2742,22 @@ async function enableDeliveryPushNotifications(){
   const {data:sessionData}=await db.auth.getSession();const token=sessionData?.session?.access_token;if(!token)throw new Error('انتهت جلسة الدخول. سجل الدخول مرة أخرى.');
   const response=await fetch(SUPABASE_URL+'/functions/v1/delivery-push',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+token},body:JSON.stringify({action:'subscribe',subscription:subscription.toJSON()})});
   const result=await response.json();if(!response.ok)throw new Error(result.error||'تعذر حفظ اشتراك الإشعارات.');
-  btn.textContent='الإشعارات مفعّلة ✓';btn.disabled=false;showMessage('deliveryOrdersMessage','تم تفعيل إشعارات الطلبات والتأخير على هذا الجهاز.');
- }catch(e){btn.disabled=false;btn.textContent='تفعيل إشعارات الطلبات';showMessage('deliveryOrdersMessage',e.message||'تعذر تفعيل الإشعارات.',true);}
+  btn.textContent='الإشعارات مفعّلة ✓';btn.disabled=false;notify(repMode?'تم تفعيل إشعارات إسناد الطلبات على هذا الجهاز.':'تم تفعيل إشعارات الطلبات والتأخير على هذا الجهاز.');
+ }catch(e){btn.disabled=false;btn.textContent='تفعيل إشعارات الطلبات';notify(e.message||'تعذر تفعيل الإشعارات.',true);}
 }
 async function sendDeliveryPushEvent(orderId){
  try{const {data}=await db.auth.getSession();const token=data?.session?.access_token;if(!token)return;
   await fetch(SUPABASE_URL+'/functions/v1/delivery-push',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+token},body:JSON.stringify({action:'new_order',order_id:orderId})});
  }catch(e){console.warn('Delivery push notification failed:',e);}
+}
+async function sendDeliveryAssignmentPush(orderId){
+ try{
+  const {data}=await db.auth.getSession(),token=data?.session?.access_token;if(!token)return {ok:false,reason:'no_session'};
+  const response=await fetch(SUPABASE_URL+'/functions/v1/delivery-push',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+token},body:JSON.stringify({action:'order_assigned',order_id:orderId})});
+  const result=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error(result.error||'تعذر إرسال إشعار المندوب.');
+  return {ok:true,sent:Number(result.sent)||0,reason:result.reason||null};
+ }catch(e){console.warn('Delivery representative push failed:',e);return {ok:false,reason:e.message||'push_failed'};}
 }
 async function loadDeliveryOrders(silent=false){
  if(!currentUser||(!isAdmin&&!isOperationsManager&&!isBranchManager))return;
@@ -2898,7 +2910,7 @@ async function createDeliveryOrder(){
  catch(e){$('deliveryOrderCreateMessage').textContent='تعذر حفظ الطلب: '+(e.message||'راجع قاعدة البيانات.');}
  finally{b.disabled=false;b.textContent='حفظ وإرسال الطلب للتشغيل';}
 }
-async function assignDeliveryOrder(id){if(!isAdmin&&!isOperationsManager)return;const rep=$('assignRep_'+id)?.value;if(!rep){showMessage('deliveryOrdersMessage','اختر المندوب أولاً.',true);return;}try{const q=await db.rpc('assign_delivery_order',{p_order_id:id,p_rep_user_id:rep});if(q.error)throw q.error;await loadDeliveryOrders();}catch(e){showMessage('deliveryOrdersMessage','تعذر إسناد الطلب: '+e.message,true);}}
+async function assignDeliveryOrder(id){if(!isAdmin&&!isOperationsManager)return;const rep=$('assignRep_'+id)?.value;if(!rep){showMessage('deliveryOrdersMessage','اختر المندوب أولاً.',true);return;}try{const q=await db.rpc('assign_delivery_order',{p_order_id:id,p_rep_user_id:rep});if(q.error)throw q.error;const notice=await sendDeliveryAssignmentPush(id);await loadDeliveryOrders();showMessage('deliveryOrdersMessage',notice.sent?'تم إسناد الطلب وإرسال إشعار للمندوب.':'تم إسناد الطلب بنجاح. إشعار المندوب لم يصل؛ تأكد من تفعيل الإشعارات ونشر تحديث خادم الإشعارات.',!notice.sent);}catch(e){showMessage('deliveryOrdersMessage','تعذر إسناد الطلب: '+e.message,true);}}
 async function autoAssignDeliveryOrdersBatch(){
  if(!isAdmin&&!isOperationsManager)return;
  const button=$('deliveryBulkAutoAssignBtn');
@@ -2911,7 +2923,7 @@ async function autoAssignDeliveryOrdersBatch(){
   return {...rep,lat,lng,load:activeCounts.get(rep.user_id)||0,fresh:Number.isFinite(recorded)&&now-recorded>=-60000&&now-recorded<=15*60*1000};
  });
  if(button){button.disabled=true;button.textContent='جارٍ توزيع الطلبات...';}
- let assigned=0,skippedNoCustomerLocation=0,skippedNoRep=0,failed=0;
+ let assigned=0,notified=0,skippedNoCustomerLocation=0,skippedNoRep=0,failed=0;
  try{
   for(const order of pending){
    if(order.latitude==null||order.longitude==null){skippedNoCustomerLocation++;continue;}
@@ -2921,11 +2933,11 @@ async function autoAssignDeliveryOrdersBatch(){
    try{
     const result=await db.rpc('assign_delivery_order',{p_order_id:order.id,p_rep_user_id:chosen.user_id});
     if(result.error)throw result.error;
-    chosen.load++;chosen.availability_status='busy';activeCounts.set(chosen.user_id,chosen.load);assigned++;
+    chosen.load++;chosen.availability_status='busy';activeCounts.set(chosen.user_id,chosen.load);assigned++;const push=await sendDeliveryAssignmentPush(order.id);if(push.sent>0)notified++;
    }catch(error){failed++;}
   }
   await loadDeliveryOrders();
-  showMessage('deliveryOrdersMessage','انتهى التوزيع الذكي: تم إسناد '+assigned+' طلب، وتعذر توزيع '+(skippedNoCustomerLocation+skippedNoRep+failed)+' طلب. بدون موقع العميل: '+skippedNoCustomerLocation+'، بدون مندوب مناسب: '+skippedNoRep+'، أخطاء إسناد: '+failed+'.');
+  showMessage('deliveryOrdersMessage','انتهى التوزيع الذكي: تم إسناد '+assigned+' طلب، ووصل إشعار إلى '+notified+' مندوب. تعذر توزيع '+(skippedNoCustomerLocation+skippedNoRep+failed)+' طلب. بدون موقع العميل: '+skippedNoCustomerLocation+'، بدون مندوب مناسب: '+skippedNoRep+'، أخطاء إسناد: '+failed+'.'+(notified<assigned?' تأكد من تفعيل إشعارات المندوبين ونشر تحديث الخادم.':''),notified<assigned&&assigned>0);
  }finally{if(button){button.disabled=false;button.textContent='توزيع الطلبات الجديدة تلقائيًا';}}
 }
 async function autoAssignDeliveryOrder(id){
@@ -2949,7 +2961,8 @@ async function autoAssignDeliveryOrder(id){
  try{
   const result=await db.rpc('assign_delivery_order',{p_order_id:id,p_rep_user_id:chosen.user_id});
   if(result.error)throw result.error;
-  showMessage('deliveryOrdersMessage','تم إسناد الطلب إلى '+(chosen.full_name||'المندوب')+' — '+chosen.km.toFixed(1)+' كم تقريبًا، ولديه '+chosen.load+' طلب نشط قبل الإسناد.');
+  const notice=await sendDeliveryAssignmentPush(id);
+  showMessage('deliveryOrdersMessage','تم إسناد الطلب إلى '+(chosen.full_name||'المندوب')+' — '+chosen.km.toFixed(1)+' كم تقريبًا، ولديه '+chosen.load+' طلب نشط قبل الإسناد.'+(notice.sent?' وتم إرسال إشعار للمندوب.':' لكن إشعار المندوب لم يصل؛ تأكد من تفعيل الإشعارات ونشر تحديث الخادم.'),!notice.sent);
   await loadDeliveryOrders();
  }catch(error){showMessage('deliveryOrdersMessage','تعذر التوزيع التلقائي: '+(error.message||'خطأ غير معروف'),true);if(button){button.disabled=false;button.textContent='توزيع تلقائي ذكي';}}
 }
@@ -3942,6 +3955,7 @@ $('appMenuBackdrop').addEventListener('click',()=>setAppMenu(false));
 $('appMainNav').addEventListener('click',e=>{if(e.target.closest('button'))setAppMenu(false);});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')setAppMenu(false);});
 $('deliveryPushEnableBtn').addEventListener('click',enableDeliveryPushNotifications);
+$('deliveryRepPushEnableBtn').addEventListener('click',enableDeliveryPushNotifications);
  $('deliveryOrdersRefreshBtn').addEventListener('click',loadDeliveryOrders);
 $('deliveryTripsViewToggle').addEventListener('click',()=>{deliveryTripsBoardView=!deliveryTripsBoardView;renderDeliveryOrders();});
 $('deliveryOrdersBranchFilter').addEventListener('change',renderDeliveryOrders);$('deliveryOrdersStatusFilter').addEventListener('change',renderDeliveryOrders);$('deliveryOrdersSearch').addEventListener('input',renderDeliveryOrders);
