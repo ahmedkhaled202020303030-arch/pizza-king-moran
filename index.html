@@ -2542,26 +2542,26 @@ function stopDeliveryOrdersRealtime(){
 }
 
 const DELIVERY_MENU=[
- {category:'بيتزا كلاسيك',name:'مارجريتا',sizes:[['عادي',110]]},
- {category:'بيتزا كلاسيك',name:'خضروات',sizes:[['عادي',110]]},
- {category:'بيتزا كلاسيك',name:'عشاق الجبنة',sizes:[['عادي',135]]},
- {category:'بيتزا كلاسيك',name:'ميكسيكانو',sizes:[['عادي',135]]},
- {category:'بيتزا كلاسيك',name:'هوت دوجز',sizes:[['عادي',135]]},
- {category:'بيتزا كلاسيك',name:'بابريكا حارة',sizes:[['عادي',135]]},
- {category:'بيتزا كلاسيك',name:'كينج سوبريم',sizes:[['عادي',135]]},
- {category:'بيتزا كلاسيك',name:'كينج بيبروني',sizes:[['عادي',135]]},
- {category:'بيتزا كلاسيك',name:'تشيكن سوبريم',sizes:[['عادي',150]]},
- {category:'بيتزا كلاسيك',name:'تشيكن باربكيو',sizes:[['عادي',150]]},
- {category:'بيتزا كلاسيك',name:'بافلو تشيكن رانش',sizes:[['عادي',150]]},
- {category:'بيتزا كلاسيك',name:'تشيكن رانش',sizes:[['عادي',160]]},
- {category:'بيتزا كلاسيك',name:'ناشفيل تشيكن',sizes:[['عادي',160]]},
- {category:'بيتزا كلاسيك',name:'ويسترن تشيكن',sizes:[['عادي',160]]},
- {category:'بيتزا كلاسيك',name:'زينجر سموكي',sizes:[['عادي',160]]},
- {category:'بيتزا كلاسيك',name:'تشيكن رانش بيكون',sizes:[['عادي',160]]},
- {category:'بيتزا كلاسيك',name:'تونة',sizes:[['عادي',150]]},
- {category:'بيتزا كلاسيك',name:'جمبري',sizes:[['عادي',195]]},
- {category:'بيتزا كلاسيك',name:'كريسبي جمبري',sizes:[['عادي',195]]},
- {category:'بيتزا كلاسيك',name:'سي فود رانش',sizes:[['عادي',190]]},
+ {category:'بيتزا كلاسيك',name:'مارجريتا',sizes:[['صغير',110],['متوسط',155],['كبير',220]]},
+ {category:'بيتزا كلاسيك',name:'خضروات',sizes:[['صغير',110],['متوسط',155],['كبير',220]]},
+ {category:'بيتزا كلاسيك',name:'عشاق الجبنة',sizes:[['صغير',135],['متوسط',185],['كبير',255]]},
+ {category:'بيتزا كلاسيك',name:'ميكسيكانو',sizes:[['صغير',135],['متوسط',185],['كبير',255]]},
+ {category:'بيتزا كلاسيك',name:'هوت دوجز',sizes:[['صغير',135],['متوسط',185],['كبير',255]]},
+ {category:'بيتزا كلاسيك',name:'بابريكا حارة',sizes:[['صغير',135],['متوسط',215],['كبير',295]]},
+ {category:'بيتزا كلاسيك',name:'كينج سوبريم',sizes:[['صغير',135],['متوسط',215],['كبير',295]]},
+ {category:'بيتزا كلاسيك',name:'كينج بيبروني',sizes:[['صغير',135],['متوسط',215],['كبير',295]]},
+ {category:'بيتزا كلاسيك',name:'تشيكن سوبريم',sizes:[['صغير',150],['متوسط',215],['كبير',295]]},
+ {category:'بيتزا كلاسيك',name:'تشيكن باربكيو',sizes:[['صغير',150],['متوسط',215],['كبير',295]]},
+ {category:'بيتزا كلاسيك',name:'بافلو تشيكن رانش',sizes:[['صغير',150],['متوسط',215],['كبير',295]]},
+ {category:'بيتزا كلاسيك',name:'تشيكن رانش',sizes:[['صغير',160],['متوسط',225],['كبير',325]]},
+ {category:'بيتزا كلاسيك',name:'ناشفيل تشيكن',sizes:[['صغير',160],['متوسط',225],['كبير',325]]},
+ {category:'بيتزا كلاسيك',name:'ويسترن تشيكن',sizes:[['صغير',160],['متوسط',225],['كبير',325]]},
+ {category:'بيتزا كلاسيك',name:'زينجر سموكي',sizes:[['صغير',160],['متوسط',225],['كبير',325]]},
+ {category:'بيتزا كلاسيك',name:'تشيكن رانش بيكون',sizes:[['صغير',160],['متوسط',225],['كبير',325]]},
+ {category:'بيتزا كلاسيك',name:'تونة',sizes:[['صغير',150],['متوسط',225],['كبير',325]]},
+ {category:'بيتزا كلاسيك',name:'جمبري',sizes:[['صغير',195],['متوسط',300],['كبير',400]]},
+ {category:'بيتزا كلاسيك',name:'كريسبي جمبري',sizes:[['صغير',195],['متوسط',300],['كبير',400]]},
+ {category:'بيتزا كلاسيك',name:'سي فود رانش',sizes:[['صغير',190],['متوسط',300],['كبير',400]]},
  {category:'بيتزا الممالك',name:'مملكة اليونان',sizes:[['وسط',235],['كبير',305]]},
  {category:'بيتزا الممالك',name:'مملكة مصر',sizes:[['وسط',255],['كبير',345]]},
  {category:'بيتزا الممالك',name:'مملكة المكسيك',sizes:[['وسط',250],['كبير',325]]},
@@ -2597,8 +2597,11 @@ function renderDeliveryMenuProducts(){
  renderDeliveryMenuSizes();
 }
 function renderDeliveryMenuSizes(){
- const item=DELIVERY_MENU[Number($('deliveryMenuProduct').value)];
- $('deliveryMenuSize').innerHTML=(item?.sizes||[]).map((x,i)=>'<option value="'+i+'">'+escapeHTML(x[0])+' - '+x[1]+' جنيه</option>').join('');
+ const productSelect=$('deliveryMenuProduct'),sizeSelect=$('deliveryMenuSize');
+ const item=productSelect.value!==''?DELIVERY_MENU[Number(productSelect.value)]:null;
+ sizeSelect.innerHTML=(item?.sizes||[]).map((x,i)=>'<option value="'+i+'">'+escapeHTML(x[0])+' - '+x[1]+' جنيه</option>').join('');
+ sizeSelect.disabled=!(item?.sizes?.length);
+ if(item?.sizes?.length)sizeSelect.selectedIndex=0;
 }
 function renderDeliveryMenuCart(){
  const host=$('deliveryMenuCart');
@@ -2608,7 +2611,9 @@ function renderDeliveryMenuCart(){
  $('deliveryOrderTotal').value=deliveryMenuCart.reduce((a,x)=>a+x.price*x.qty,0).toFixed(2);
 }
 function addDeliveryMenuItem(){
- const item=DELIVERY_MENU[Number($('deliveryMenuProduct').value)],size=item?.sizes[Number($('deliveryMenuSize').value)],qty=Number($('deliveryMenuQty').value);
+ const productValue=$('deliveryMenuProduct').value;
+ const item=productValue!==''?DELIVERY_MENU[Number(productValue)]:null;
+ const size=item?.sizes[Number($('deliveryMenuSize').value)],qty=Number($('deliveryMenuQty').value);
  if(!item||!size||!Number.isInteger(qty)||qty<1||qty>50){alert('اختر الصنف والحجم وأدخل كمية صحيحة.');return;}
  deliveryMenuCart.push({name:item.name,size:size[0],price:size[1],qty});renderDeliveryMenuCart();$('deliveryMenuQty').value='1';
 }
