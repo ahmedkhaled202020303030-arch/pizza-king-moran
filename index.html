@@ -8,18 +8,6 @@
 <meta name="description" content="نظام إدارة ومتابعة خدمة العملاء Pizza King & Morin">
 <link rel="manifest" href="/manifest.webmanifest">
 <script>
-/* Capture early script errors so login can show the real startup failure. */
-window.PKM_BOOT_ERRORS = [];
-window.addEventListener('error', function (event) {
-  if (event && (event.message || event.filename)) {
-    window.PKM_BOOT_ERRORS.push({
-      message: event.message || 'Script load error',
-      file: event.filename || '',
-      line: event.lineno || 0,
-      column: event.colno || 0
-    });
-  }
-}, true);
 (() => {
   const deliveryMode = new URLSearchParams(location.search).get('app') === 'delivery';
   window.DELIVERY_APP_MODE = deliveryMode;
@@ -1485,19 +1473,7 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
  </div>
  <div><label for="deliveryOrderTotal">إجمالي الطلب بالجنيه</label><input id="deliveryOrderTotal" type="number" min="0" step="0.01"></div><div><label for="deliveryOrderPayment">طريقة الدفع</label><select id="deliveryOrderPayment"><option value="cash">نقدي عند الاستلام</option><option value="card">بطاقة / مدفوع إلكترونيًا</option><option value="wallet">محفظة إلكترونية</option></select></div>
  <div class="full"><label for="deliveryOrderNotes">ملاحظات للمندوب</label><textarea id="deliveryOrderNotes"></textarea></div></div>
- <div class="full delivery-receipt-upload">
-   <label>إدخال الأوردر من الريسيت</label>
-   <div class="row" style="align-items:center;gap:8px">
-    <button type="button" id="scanDeliveryReceiptBtn" class="secondary" style="flex:1">📷 صوّر الريسيت واسحب البيانات تلقائيًا</button>
-    <button type="button" id="chooseDeliveryReceiptBtn" class="light" style="flex:1">اختيار صورة من الجهاز</button>
-   </div>
-   <input id="deliveryReceiptCamera" type="file" accept="image/*" capture="environment" hidden>
-   <input id="deliveryReceiptImage" type="file" accept="image/*" hidden>
-   <div id="deliveryReceiptScanStatus" class="muted" aria-live="polite">صوّر الإيصال بوضوح، وسيحاول النظام قراءة بيانات العميل والأصناف والإجمالي. راجع البيانات قبل الحفظ.</div>
-   <label for="deliveryOrderReceipt">إرفاق صورة الريسيت مع الأوردر (اختياري)</label>
-   <input id="deliveryOrderReceipt" type="file" accept="image/jpeg,image/png,image/webp,application/pdf">
-   <small class="muted">سيتم حفظ صورة الريسيت مع الأوردر بعد الحفظ. الحد الأقصى 8 ميجابايت.</small>
-  </div>
+ <div class="full delivery-receipt-upload"><label for="deliveryOrderReceipt">صورة الريسيت أو ملف PDF (اختياري)</label><input id="deliveryOrderReceipt" type="file" accept="image/jpeg,image/png,image/webp,application/pdf"><small class="muted">ارفع الريسيت الأصلية؛ سيتم ربطها بالأوردر بعد الحفظ. الحد الأقصى 8 ميجابايت.</small></div>
  <button type="button" id="deliveryOrderCreateBtn">حفظ وإرسال الطلب للتشغيل</button><p id="deliveryOrderCreateMessage" class="muted"></p></div>
 </section>
 <section id="tripsView" class="panel hidden">
@@ -1790,14 +1766,6 @@ const SUPABASE_URL = 'https://mrbdigdeawtoetqdpoye.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_6-QrCruaBq6WvA47-iJ6Mw_xxYSg6cy';
 
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// Expose login actions to the independent login-button fallback script.
-window.PKM_LOGIN_ACTIONS = {
-  admin: () => loginAdmin(),
-  operations: () => loginOperationsManager(),
-  manager: () => loginBranchManager(),
-  deliveryRep: () => loginDeliveryRep()
-};
 
 const branches = [
 'عباس العقاد','الشمس','روكسي','مصر حلوان','المعادي',
@@ -2893,61 +2861,6 @@ async function showDeliveryOrderReceipt(orderId){
   window.open(result.data.signedUrl,'_blank','noopener');
  }catch(e){showMessage('deliveryOrdersMessage','تعذر عرض الريسيت: '+(e.message||''),true);}
 }
-let deliveryReceiptOcrWorkerPromise=null;
-async function getDeliveryReceiptOcrWorker(){
- if(!deliveryReceiptOcrWorkerPromise){
-  deliveryReceiptOcrWorkerPromise=Tesseract.createWorker('ara+eng',1).then(async worker=>{
-   await worker.setParameters({preserve_interword_spaces:'1',tessedit_pageseg_mode:'6'});return worker;
-  }).catch(error=>{deliveryReceiptOcrWorkerPromise=null;throw error;});
- }
- return deliveryReceiptOcrWorkerPromise;
-}
-function receiptLines(text){return String(text||'').split(/\\r?\\n/).map(x=>x.replace(/[|]/g,' ').trim()).filter(x=>x.length>1);}
-function receiptValueAfter(lines,patterns){
- for(let i=0;i<lines.length;i++){
-  const line=lines[i],norm=normalizeOCRText(line);
-  if(patterns.some(re=>re.test(norm))){
-   const value=line.replace(/^.*?(?:اسم العميل|العميل|customer(?: name)?|phone|هاتف|موبايل|تليفون|العنوان|address|الاجمالي|الإجمالي|total|المجموع|الصافي|net)\\s*[:：#-]?\\s*/i,'').trim();
-   if(value&&value!==line.trim())return value;
-   if(lines[i+1])return lines[i+1];
-  }
- }
- return '';
-}
-function parseDeliveryReceipt(text){
- const lines=receiptLines(text),all=normalizeArabicDigits(text),result={};
- const phones=(all.match(/(?:\\+?20|0)?1[0125][0-9٠-٩\\s-]{7,12}/g)||[]).map(v=>v.replace(/\\D/g,'')).filter(v=>v.length>=10&&v.length<=13);
- if(phones.length)result.phone=phones.sort((a,b)=>b.length-a.length)[0];
- result.customer=receiptValueAfter(lines,[/اسم العميل|العميل|customer(?: name)?/]);
- result.address=receiptValueAfter(lines,[/العنوان|عنوان التوصيل|address|delivery address/]);
- const totalLine=lines.find(x=>/(اجمالي|الإجمالي|الاجمالي|المجموع|الصافي|total|net amount)/i.test(normalizeOCRText(x)));
- if(totalLine){const nums=normalizeArabicDigits(totalLine).match(/\\d+(?:[.,]\\d{1,2})?/g)||[];if(nums.length)result.total=nums[nums.length-1].replace(',','.');}
- const itemStart=lines.findIndex(x=>/(الاصناف|الأصناف|تفاصيل الطلب|items|order details)/i.test(normalizeOCRText(x)));
- if(itemStart>=0){const items=[];for(let i=itemStart+1;i<lines.length&&items.length<12;i++){if(/(اجمالي|الإجمالي|الاجمالي|المجموع|الصافي|total|thank|شكرا)/i.test(normalizeOCRText(lines[i])))break;items.push(lines[i]);}if(items.length)result.items=items.join('\\n');}
- else{const items=lines.filter(x=>/(بيتزا|pizza|برجر|burger|بطاطس|fries|مشروب|drink|ساندوتش|sandwich|وجبة|meal)/i.test(normalizeOCRText(x)));if(items.length)result.items=items.slice(0,10).join('\\n');}
- const payment=normalizeOCRText(text);
- if(/فيزا|visa|card|بطاقه/.test(payment))result.payment='card';else if(/محفظه|wallet|فودافون كاش|اتصالات كاش/.test(payment))result.payment='wallet';else if(/كاش|نقدي|cash/.test(payment))result.payment='cash';
- return result;
-}
-async function scanDeliveryReceipt(file){
- const status=$('deliveryReceiptScanStatus'),button=$('scanDeliveryReceiptBtn');if(!file)return;
- if(!/^image\\//.test(file.type)){status.textContent='الماسح يحتاج صورة للريسيت؛ ملفات PDF يمكن إرفاقها فقط.';return;}
- if(file.size>8*1024*1024){status.textContent='حجم الصورة أكبر من 8 ميجابايت. اختر صورة أصغر.';return;}
- if(!window.Tesseract){status.textContent='محرك قراءة الصور غير متاح. حدّث الصفحة وحاول مرة أخرى.';return;}
- button.disabled=true;status.textContent='جاري تجهيز صورة الريسيت وقراءة البيانات...';
- try{
-  const image=await prepareCardImage(file),worker=await getDeliveryReceiptOcrWorker(),result=await worker.recognize(image),found=parseDeliveryReceipt(result.data.text||''),applied=[];
-  if(found.customer){$('deliveryOrderCustomer').value=found.customer.slice(0,120);applied.push('اسم العميل');}
-  if(found.phone){$('deliveryOrderPhone').value=found.phone;applied.push('الهاتف');}
-  if(found.address){$('deliveryOrderAddress').value=found.address.slice(0,500);applied.push('العنوان');}
-  if(found.items){$('deliveryOrderItems').value=found.items.slice(0,3000);applied.push('الأصناف');}
-  if(found.total){$('deliveryOrderTotal').value=found.total;applied.push('الإجمالي');}
-  if(found.payment){$('deliveryOrderPayment').value=found.payment;applied.push('طريقة الدفع');}
-  try{const transfer=new DataTransfer();transfer.items.add(file);$('deliveryOrderReceipt').files=transfer.files;}catch(e){}
-  status.textContent=applied.length?'تم استخراج: '+applied.join('، ')+'. راجع كل البيانات يدويًا قبل حفظ الأوردر؛ قد يخطئ التعرف الضوئي.':'لم يتم التعرف على بيانات واضحة. جرّب تصوير الريسيت من أعلى وبإضاءة جيدة، أو أدخل البيانات يدويًا.';
- }catch(e){status.textContent='تعذرت قراءة الريسيت: '+(e.message||'حاول بصورة أوضح.');}
- finally{button.disabled=false;}
-}
 async function createDeliveryOrder(){
  if(!isBranchManager&&!isAdmin)return;
  const p={p_branch:isAdmin?$('deliveryOrderBranch').value:currentManagerProfile?.branch,p_customer_name:$('deliveryOrderCustomer').value.trim(),p_customer_phone:$('deliveryOrderPhone').value.trim(),p_delivery_address:$('deliveryOrderAddress').value.trim(),p_latitude:$('deliveryOrderLat').value===''?null:Number($('deliveryOrderLat').value),p_longitude:$('deliveryOrderLng').value===''?null:Number($('deliveryOrderLng').value),p_items:$('deliveryOrderItems').value.trim(),p_total_amount:Number($('deliveryOrderTotal').value),p_payment_method:$('deliveryOrderPayment').value,p_notes:$('deliveryOrderNotes').value.trim()};
@@ -4008,10 +3921,6 @@ $('deliveryMenuCategory').addEventListener('change',renderDeliveryMenuProducts);
 $('deliveryMenuProduct').addEventListener('change',renderDeliveryMenuSizes);
 $('deliveryMenuAddBtn').addEventListener('click',addDeliveryMenuItem);
 $('deliveryMenuCart').addEventListener('click',e=>{const b=e.target.closest('[data-menu-remove]');if(b){deliveryMenuCart.splice(Number(b.dataset.menuRemove),1);renderDeliveryMenuCart();}});
-$('scanDeliveryReceiptBtn').addEventListener('click',()=> $('deliveryReceiptCamera').click());
-$('chooseDeliveryReceiptBtn').addEventListener('click',()=> $('deliveryReceiptImage').click());
-$('deliveryReceiptCamera').addEventListener('change',e=>{const f=e.target.files?.[0];if(f)scanDeliveryReceipt(f);});
-$('deliveryReceiptImage').addEventListener('change',e=>{const f=e.target.files?.[0];if(f)scanDeliveryReceipt(f);});
 $('deliveryOrderCreateBtn').addEventListener('click',createDeliveryOrder);
 $('deliveryBulkAutoAssignBtn').addEventListener('click',autoAssignDeliveryOrdersBatch);
 $('deliveryOrdersList').addEventListener('click',e=>{const smart=e.target.closest('[data-auto-assign-order]'),a=e.target.closest('[data-assign-order]'),c=e.target.closest('[data-cancel-order]');if(smart)autoAssignDeliveryOrder(smart.dataset.autoAssignOrder);if(a)assignDeliveryOrder(a.dataset.assignOrder);if(c)cancelDeliveryOrder(c.dataset.cancelOrder);});
@@ -4133,107 +4042,6 @@ if (window.DELIVERY_APP_MODE) {
   $('loginPanel').classList.remove('hidden');
 }
 
-</script>
-
-<script>
-/* PKM_LOGIN_FALLBACK_HANDLER: keep login type selection responsive even if another app script fails. */
-(function () {
-  function openLoginPanel(panelId) {
-    var panel = document.getElementById(panelId);
-    var choices = document.getElementById('loginChoices');
-    if (!panel || !choices) return false;
-    document.querySelectorAll('.login-fields').forEach(function (item) {
-      item.classList.toggle('hidden', item !== panel);
-    });
-    choices.classList.add('hidden');
-    var msg = document.getElementById('loginMsg');
-    if (msg) { msg.textContent = ''; msg.classList.add('hidden'); }
-    var input = panel.querySelector('input, select');
-    if (input) { try { input.focus({ preventScroll: true }); } catch (_) { input.focus(); } }
-    return true;
-  }
-  function showLoginChoices() {
-    document.querySelectorAll('.login-fields').forEach(function (item) {
-      item.classList.add('hidden');
-    });
-    var choices = document.getElementById('loginChoices');
-    if (choices) choices.classList.remove('hidden');
-    var msg = document.getElementById('loginMsg');
-    if (msg) { msg.textContent = ''; msg.classList.add('hidden'); }
-  }
-  document.addEventListener('click', function (event) {
-    var loginButton = event.target.closest && event.target.closest('#adminLogin, #operationsLogin, #managerLogin, #deliveryRepLogin');
-    if (loginButton) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      var actionNames = {
-        adminLogin: 'admin',
-        operationsLogin: 'operations',
-        managerLogin: 'manager',
-        deliveryRepLogin: 'deliveryRep'
-      };
-      var globalNames = {
-        adminLogin: 'loginAdmin',
-        operationsLogin: 'loginOperationsManager',
-        managerLogin: 'loginBranchManager',
-        deliveryRepLogin: 'loginDeliveryRep'
-      };
-      var handlers = function () {
-        var action = window.PKM_LOGIN_ACTIONS && window.PKM_LOGIN_ACTIONS[actionNames[loginButton.id]];
-        // The main script may stop before publishing PKM_LOGIN_ACTIONS.
-        // Top-level function declarations in the classic app script remain on window.
-        if (typeof action !== 'function') action = window[globalNames[loginButton.id]];
-        if (typeof action === 'function') return action();
-        var bootErrors = window.PKM_BOOT_ERRORS || [];
-        var lastBootError = bootErrors.length ? bootErrors[bootErrors.length - 1] : null;
-        var detail = lastBootError ? (' سبب التوقف: ' + lastBootError.message + (lastBootError.file ? ' (' + lastBootError.file.split('/').pop() + ':' + lastBootError.line + ')': '')) : '';
-        return Promise.reject(new Error('وظيفة الدخول غير متاحة لأن التطبيق الأساسي لم يكتمل تحميله.' + detail + ' أعد تحميل الصفحة بعد التأكد من الاتصال بالإنترنت.'));
-      };
-      var originalText = loginButton.textContent;
-      loginButton.disabled = true;
-      loginButton.textContent = 'جارٍ بدء تسجيل الدخول...';
-      Promise.resolve().then(handlers).catch(function (error) {
-        var msg = document.getElementById('loginMsg');
-        if (msg) {
-          msg.textContent = 'حدث خطأ أثناء محاولة الدخول: ' + (error && error.message ? error.message : 'خطأ غير معروف');
-          msg.classList.remove('hidden');
-        }
-        console.error('PKM login handler error:', error);
-      }).finally(function () {
-        loginButton.disabled = false;
-        if (loginButton.isConnected && loginButton.textContent === 'جارٍ بدء تسجيل الدخول...') loginButton.textContent = originalText;
-      });
-      return;
-    }
-    var choice = event.target.closest && event.target.closest('[data-login-choice]');
-    if (choice) {
-      var id = choice.getAttribute('data-login-choice');
-      if (openLoginPanel(id)) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-      }
-      return;
-    }
-    var back = event.target.closest && event.target.closest('.login-back');
-    if (back) {
-      showLoginChoices();
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      return;
-    }
-    var register = event.target.closest && event.target.closest('#openManagerRegister');
-    if (register && openLoginPanel('managerRegisterFields')) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      return;
-    }
-    var registerBack = event.target.closest && event.target.closest('.manager-register-back');
-    if (registerBack && openLoginPanel('managerLoginFields')) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-    }
-  }, true);
-})();
 </script>
 
 <button id="pwaInstallBtn" type="button" aria-label="تثبيت التطبيق">
