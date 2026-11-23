@@ -2487,7 +2487,7 @@ async function autoAssignDeliveryOrdersBatch(){
  try{
   for(const order of pending){
    if(order.latitude==null||order.longitude==null){skippedNoCustomerLocation++;continue;}
-   const options=candidates.filter(rep=>rep.branch===order.branch&&rep.fresh&&Number.isFinite(rep.lat)&&Number.isFinite(rep.lng)).map(rep=>({...rep,distance:distanceKm(Number(order.latitude),Number(order.longitude),rep.lat,rep.lng),score:distanceKm(Number(order.latitude),Number(order.longitude),rep.lat,rep.lng)+(rep.load*3.5)})).sort((a,b)=>a.score-b.score);
+   const options=candidates.filter(rep=>rep.branch===order.branch&&rep.fresh&&rep.load<3&&Number.isFinite(rep.lat)&&Number.isFinite(rep.lng)).map(rep=>({...rep,distance:distanceKm(Number(order.latitude),Number(order.longitude),rep.lat,rep.lng),score:distanceKm(Number(order.latitude),Number(order.longitude),rep.lat,rep.lng)+(rep.load*3.5)})).sort((a,b)=>a.score-b.score);
    if(!options.length){skippedNoRep++;continue;}
    const chosen=options[0];
    try{
