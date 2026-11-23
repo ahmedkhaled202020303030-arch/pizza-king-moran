@@ -1779,6 +1779,14 @@ const SUPABASE_ANON_KEY = 'sb_publishable_6-QrCruaBq6WvA47-iJ6Mw_xxYSg6cy';
 
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// Expose login actions to the independent login-button fallback script.
+window.PKM_LOGIN_ACTIONS = {
+  admin: () => loginAdmin(),
+  operations: () => loginOperationsManager(),
+  manager: () => loginBranchManager(),
+  deliveryRep: () => loginDeliveryRep()
+};
+
 const branches = [
 'عباس العقاد','الشمس','روكسي','مصر حلوان','المعادي',
 'زهراء المعادي','شبرا','باب اللوق','المقطم','العبور',
@@ -4146,16 +4154,20 @@ if (window.DELIVERY_APP_MODE) {
     if (loginButton) {
       event.preventDefault();
       event.stopImmediatePropagation();
-      var handlers = {
-        adminLogin: function () { return typeof loginAdmin === 'function' ? loginAdmin() : Promise.reject(new Error('تعذر تحميل وظيفة دخول المدير الرئيسي.')); },
-        operationsLogin: function () { return typeof loginOperationsManager === 'function' ? loginOperationsManager() : Promise.reject(new Error('تعذر تحميل وظيفة دخول مدير التشغيل.')); },
-        managerLogin: function () { return typeof loginBranchManager === 'function' ? loginBranchManager() : Promise.reject(new Error('تعذر تحميل وظيفة دخول مدير الفرع.')); },
-        deliveryRepLogin: function () { return typeof loginDeliveryRep === 'function' ? loginDeliveryRep() : Promise.reject(new Error('تعذر تحميل وظيفة دخول المندوب.')); }
+      var actionNames = {
+        adminLogin: 'admin',
+        operationsLogin: 'operations',
+        managerLogin: 'manager',
+        deliveryRepLogin: 'deliveryRep'
+      };
+      var handlers = function () {
+        var action = window.PKM_LOGIN_ACTIONS && window.PKM_LOGIN_ACTIONS[actionNames[loginButton.id]];
+        return typeof action === 'function' ? action() : Promise.reject(new Error('لم يتم تحميل وظائف الدخول من التطبيق الأساسي. أعد تحميل الصفحة.'));
       };
       var originalText = loginButton.textContent;
       loginButton.disabled = true;
       loginButton.textContent = 'جارٍ بدء تسجيل الدخول...';
-      Promise.resolve().then(handlers[loginButton.id]).catch(function (error) {
+      Promise.resolve().then(handlers).catch(function (error) {
         var msg = document.getElementById('loginMsg');
         if (msg) {
           msg.textContent = 'حدث خطأ أثناء محاولة الدخول: ' + (error && error.message ? error.message : 'خطأ غير معروف');
