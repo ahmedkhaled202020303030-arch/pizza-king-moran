@@ -4115,6 +4115,64 @@ if (window.DELIVERY_APP_MODE) {
 
 </script>
 
+<script>
+/* PKM_LOGIN_FALLBACK_HANDLER: keep login type selection responsive even if another app script fails. */
+(function () {
+  function openLoginPanel(panelId) {
+    var panel = document.getElementById(panelId);
+    var choices = document.getElementById('loginChoices');
+    if (!panel || !choices) return false;
+    document.querySelectorAll('.login-fields').forEach(function (item) {
+      item.classList.toggle('hidden', item !== panel);
+    });
+    choices.classList.add('hidden');
+    var msg = document.getElementById('loginMsg');
+    if (msg) { msg.textContent = ''; msg.classList.add('hidden'); }
+    var input = panel.querySelector('input, select');
+    if (input) { try { input.focus({ preventScroll: true }); } catch (_) { input.focus(); } }
+    return true;
+  }
+  function showLoginChoices() {
+    document.querySelectorAll('.login-fields').forEach(function (item) {
+      item.classList.add('hidden');
+    });
+    var choices = document.getElementById('loginChoices');
+    if (choices) choices.classList.remove('hidden');
+    var msg = document.getElementById('loginMsg');
+    if (msg) { msg.textContent = ''; msg.classList.add('hidden'); }
+  }
+  document.addEventListener('click', function (event) {
+    var choice = event.target.closest && event.target.closest('[data-login-choice]');
+    if (choice) {
+      var id = choice.getAttribute('data-login-choice');
+      if (openLoginPanel(id)) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+      return;
+    }
+    var back = event.target.closest && event.target.closest('.login-back');
+    if (back) {
+      showLoginChoices();
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      return;
+    }
+    var register = event.target.closest && event.target.closest('#openManagerRegister');
+    if (register && openLoginPanel('managerRegisterFields')) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      return;
+    }
+    var registerBack = event.target.closest && event.target.closest('.manager-register-back');
+    if (registerBack && openLoginPanel('managerLoginFields')) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  }, true);
+})();
+</script>
+
 <button id="pwaInstallBtn" type="button" aria-label="تثبيت التطبيق">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5"/><path d="M5 17v3h14v-3"/></svg>
   تثبيت التطبيق
