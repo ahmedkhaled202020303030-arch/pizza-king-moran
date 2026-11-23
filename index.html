@@ -1078,13 +1078,13 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
 
 
 /* Delivery operations ETA panel */
-.delivery-ops-eta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0 4px;padding:11px;border:1px solid rgba(212,175,55,.22);border-radius:10px;background:rgba(212,175,55,.045)}
+.delivery-ops-eta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0 4px;padding:11px;border:1px solid rgba(212,175,55,.22);border-radius:10px;background:rgba(212,175,55,.045)}
 .delivery-ops-eta>div{display:flex;flex-direction:column;gap:5px;min-width:0}
 .delivery-ops-eta small{font-size:10px;color:#a99d82}
 .delivery-ops-eta strong{font-size:11px;color:#f0d68e;line-height:1.5;overflow-wrap:anywhere}
 .delivery-ops-eta>b{grid-column:1/-1;font-size:10px;font-weight:700;padding-top:6px;border-top:1px solid rgba(212,175,55,.14)}
 .delivery-ops-alert{color:#ff9b8f}.delivery-ops-ok{color:#9bd9ad}.delivery-ops-note{color:#b9ae91}
-@media(max-width:430px){.delivery-ops-eta{grid-template-columns:1fr 1fr}.delivery-ops-eta>div:last-of-type{grid-column:1/-1}}
+@media(max-width:430px){.delivery-ops-eta{grid-template-columns:1fr 1fr}}
 /* Auditable delivery order history */
 .delivery-history-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:12px 0 18px}
 .delivery-history-summary>div{padding:11px;border:1px solid rgba(212,175,55,.25);border-radius:11px;background:rgba(212,175,55,.06);min-width:0}
@@ -2647,7 +2647,9 @@ function deliveryOrderCard(o,repView=false){
  const etaLate=expectedArrival&&o.status==='picked_up'&&Date.now()>expectedArrival.getTime();
  const acceptedText=o.accepted_at?new Date(o.accepted_at).toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'}):'لم يقبل المندوب الطلب بعد';
  const pickupText=o.picked_up_at?new Date(o.picked_up_at).toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'}):'لم يتم الاستلام من الفرع بعد';
- const operationsEta='<div class="delivery-ops-eta '+(etaLate?'is-late':'')+'"><div><small>وقت قبول المندوب</small><strong>'+acceptedText+'</strong></div><div><small>وقت الاستلام من الفرع</small><strong>'+pickupText+'</strong></div><div><small>الوصول المتوقع</small><strong>'+etaText+'</strong></div>'+(etaLate?'<b class="delivery-ops-alert">تنبيه: تجاوز موعد الوصول التقديري · '+Math.floor((Date.now()-expectedArrival.getTime())/60000)+' دقيقة</b>':o.status==='picked_up'?'<b class="delivery-ops-ok">الطلب داخل مهلة التوصيل التقديرية (45 دقيقة)</b>':'<b class="delivery-ops-note">تبدأ مهلة التوصيل التقديرية من وقت الاستلام من الفرع</b>')+'</div>';
+ const deliveryEnd=o.delivered_at?new Date(o.delivered_at).getTime():(o.status==='picked_up'?Date.now():null);
+ const deliveryDuration=o.picked_up_at&&deliveryEnd!=null?fmtElapsed(deliveryEnd-new Date(o.picked_up_at).getTime()):'يبدأ بعد الاستلام';
+ const operationsEta='<div class="delivery-ops-eta '+(etaLate?'is-late':'')+'"><div><small>وقت قبول المندوب</small><strong>'+acceptedText+'</strong></div><div><small>وقت الاستلام من الفرع</small><strong>'+pickupText+'</strong></div><div><small>الوصول المتوقع</small><strong>'+etaText+'</strong></div><div><small>زمن التوصيل الفعلي</small><strong>'+deliveryDuration+'</strong></div>'+(etaLate?'<b class="delivery-ops-alert">تنبيه: تجاوز موعد الوصول التقديري · '+Math.floor((Date.now()-expectedArrival.getTime())/60000)+' دقيقة</b>':o.status==='picked_up'?'<b class="delivery-ops-ok">الطلب داخل مهلة التوصيل التقديرية (45 دقيقة)</b>':'<b class="delivery-ops-note">تبدأ مهلة التوصيل التقديرية من وقت الاستلام من الفرع</b>')+'</div>';
  const fmtElapsed=ms=>{if(!Number.isFinite(ms)||ms<0)return '—';const m=Math.floor(ms/60000);return m<60?m+' دقيقة':Math.floor(m/60)+' س '+(m%60)+' د';};
  const validTimeline=timelinePoints.filter(p=>p.at&&Number.isFinite(new Date(p.at).getTime()));
  const timeline=timelinePoints.map((p,index)=>{const exists=p.at&&Number.isFinite(new Date(p.at).getTime()),next=timelinePoints.slice(index+1).find(n=>n.at&&Number.isFinite(new Date(n.at).getTime())),end=next?new Date(next.at).getTime():(o.status!=='delivered'&&o.status!=='cancelled'&&exists?Date.now():null),duration=exists&&end!=null?fmtElapsed(end-new Date(p.at).getTime()):'بانتظار المرحلة التالية';return '<div class="delivery-timeline-step '+(exists?'is-done':'')+'"><span class="delivery-timeline-dot"></span><div><strong>'+p.label+'</strong><small>'+(exists?new Date(p.at).toLocaleString('ar-EG'):'لم تبدأ بعد')+'</small></div><em>'+(exists?duration:'—')+'</em></div>';}).join('');
