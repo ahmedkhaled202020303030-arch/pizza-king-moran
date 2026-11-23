@@ -1248,6 +1248,7 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
 }
 
 
+.delivery-receipt-upload{padding:10px;border:1px dashed rgba(212,175,55,.45);border-radius:10px;background:rgba(212,175,55,.045)}.delivery-receipt-upload input{width:100%;margin:6px 0}.delivery-receipt-upload small{display:block;font-size:10px}
 /* Expand order details only when requested from its compact card */
 #tripsView .delivery-card-extra{display:none;margin-top:8px}
 #tripsView .delivery-card-extra.is-open{display:block}
@@ -1472,6 +1473,7 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
  </div>
  <div><label for="deliveryOrderTotal">إجمالي الطلب بالجنيه</label><input id="deliveryOrderTotal" type="number" min="0" step="0.01"></div><div><label for="deliveryOrderPayment">طريقة الدفع</label><select id="deliveryOrderPayment"><option value="cash">نقدي عند الاستلام</option><option value="card">بطاقة / مدفوع إلكترونيًا</option><option value="wallet">محفظة إلكترونية</option></select></div>
  <div class="full"><label for="deliveryOrderNotes">ملاحظات للمندوب</label><textarea id="deliveryOrderNotes"></textarea></div></div>
+ <div class="full delivery-receipt-upload"><label for="deliveryOrderReceipt">صورة الريسيت أو ملف PDF (اختياري)</label><input id="deliveryOrderReceipt" type="file" accept="image/jpeg,image/png,image/webp,application/pdf"><small class="muted">ارفع الريسيت الأصلية؛ سيتم ربطها بالأوردر بعد الحفظ. الحد الأقصى 8 ميجابايت.</small></div>
  <button type="button" id="deliveryOrderCreateBtn">حفظ وإرسال الطلب للتشغيل</button><p id="deliveryOrderCreateMessage" class="muted"></p></div>
 </section>
 <section id="tripsView" class="panel hidden">
@@ -2619,6 +2621,7 @@ function deliveryOrderCard(o,repView=false){
  }
  const amount=Number(o.total_amount||0).toLocaleString('ar-EG',{minimumFractionDigits:2,maximumFractionDigits:2});
  const collection=o.collection_status==='collected'?'تم التحصيل':o.collection_status==='not_applicable'?'مدفوع إلكترونيًا':'بانتظار التحصيل';
+ const receiptAction=o.receipt_path?'<button type="button" class="light" data-show-order-receipt="'+escapeHTML(o.id)+'">عرض الريسيت</button>':'<small class="muted">لا توجد ريسيت مرفقة</small>';
 
  const progressSteps=[{key:'new',label:'جديد'},{key:'assigned',label:'تم الإسناد'},{key:'accepted',label:'قبله المندوب'},{key:'picked_up',label:'استلمه من الفرع'},{key:'delivered',label:'تم التسليم'}];
  const progressIndex=progressSteps.findIndex(step=>step.key===o.status);
@@ -2635,7 +2638,7 @@ function deliveryOrderCard(o,repView=false){
  const timeline=timelinePoints.map((p,index)=>{const exists=p.at&&Number.isFinite(new Date(p.at).getTime()),next=timelinePoints.slice(index+1).find(n=>n.at&&Number.isFinite(new Date(n.at).getTime())),end=next?new Date(next.at).getTime():(o.status!=='delivered'&&o.status!=='cancelled'&&exists?Date.now():null),duration=exists&&end!=null?fmtElapsed(end-new Date(p.at).getTime()):'بانتظار المرحلة التالية';return '<div class="delivery-timeline-step '+(exists?'is-done':'')+'"><span class="delivery-timeline-dot"></span><div><strong>'+p.label+'</strong><small>'+(exists?new Date(p.at).toLocaleString('ar-EG'):'لم تبدأ بعد')+'</small></div><em>'+(exists?duration:'—')+'</em></div>';}).join('');
  const totalElapsed=validTimeline.length?fmtElapsed((new Date(o.delivered_at||((o.status==='cancelled')?o.updated_at:Date.now())).getTime())-new Date(o.created_at).getTime()):'—';
  const timelineBlock='<details class="delivery-order-timeline"><summary><span>السجل الزمني للطلب</span><b>المدة حتى الآن: '+totalElapsed+'</b></summary><div class="delivery-timeline-list">'+timeline+'</div></details>';
- return '<article class="delivery-order-card'+(isOverdue?' delivery-order-overdue':'')+'"><div class="delivery-card-top"><div><span class="delivery-order-number">طلب #'+escapeHTML(o.order_no||String(o.id).slice(0,8))+'</span><h3>'+escapeHTML(o.customer_name)+'</h3>'+(isOverdue?'<small class="delivery-overdue-flag">متأخر '+deliveryMinutes+' دقيقة · تجاوز 45 دقيقة</small>':'')+'</div><span class="delivery-status '+statusClass+'">'+escapeHTML(deliveryStatusLabel(o.status))+'</span></div>'+progressBar+'<div class="delivery-order-total"><small>إجمالي الطلب</small><strong>'+amount+' <small>ج.م</small></strong></div><div class="delivery-card-details"><div><small>رقم الهاتف</small><a href="tel:'+escapeHTML(o.customer_phone)+'">'+escapeHTML(o.customer_phone)+'</a></div><div><small>الفرع</small><strong>'+escapeHTML(o.branch)+'</strong></div><div class="wide"><small>عنوان التوصيل</small><strong>'+escapeHTML(o.delivery_address)+'</strong>'+(map?'<p>'+map+'</p>':'')+'</div><div class="wide"><small>الأصناف والكميات</small><strong>'+escapeHTML(o.items||'—')+'</strong></div><div><small>طريقة الدفع</small><strong>'+escapeHTML(deliveryPaymentLabel(o.payment_method))+'</strong></div><div><small>المندوب</small><strong>'+escapeHTML(rep?.full_name||'لم يتم التعيين')+'</strong></div><div class="wide"><small>حالة التحصيل</small><strong>'+collection+(o.collected_amount==null?'':' — '+Number(o.collected_amount).toLocaleString('ar-EG')+' ج.م')+'</strong></div>'+(o.notes?'<div class="wide"><small>ملاحظات للمندوب</small><strong>'+escapeHTML(o.notes)+'</strong></div>':'')+'</div><div class="delivery-card-extra">'+operationsEta+timelineBlock+'</div><div class="delivery-card-footer"><small>'+escapeHTML(new Date(o.created_at).toLocaleString('ar-EG'))+'</small><div class="delivery-order-actions"><button type="button" class="light" data-toggle-order-details>عرض تفاصيل الأوردر</button><button type="button" class="light" data-order-history="'+escapeHTML(o.id)+'">سجل الحركة</button>'+actions+'</div></div></article>';
+ return '<article class="delivery-order-card'+(isOverdue?' delivery-order-overdue':'')+'"><div class="delivery-card-top"><div><span class="delivery-order-number">طلب #'+escapeHTML(o.order_no||String(o.id).slice(0,8))+'</span><h3>'+escapeHTML(o.customer_name)+'</h3>'+(isOverdue?'<small class="delivery-overdue-flag">متأخر '+deliveryMinutes+' دقيقة · تجاوز 45 دقيقة</small>':'')+'</div><span class="delivery-status '+statusClass+'">'+escapeHTML(deliveryStatusLabel(o.status))+'</span></div>'+progressBar+'<div class="delivery-order-total"><small>إجمالي الطلب</small><strong>'+amount+' <small>ج.م</small></strong></div><div class="delivery-card-details"><div><small>رقم الهاتف</small><a href="tel:'+escapeHTML(o.customer_phone)+'">'+escapeHTML(o.customer_phone)+'</a></div><div><small>الفرع</small><strong>'+escapeHTML(o.branch)+'</strong></div><div class="wide"><small>عنوان التوصيل</small><strong>'+escapeHTML(o.delivery_address)+'</strong>'+(map?'<p>'+map+'</p>':'')+'</div><div class="wide"><small>الأصناف والكميات</small><strong>'+escapeHTML(o.items||'—')+'</strong></div><div><small>طريقة الدفع</small><strong>'+escapeHTML(deliveryPaymentLabel(o.payment_method))+'</strong></div><div><small>المندوب</small><strong>'+escapeHTML(rep?.full_name||'لم يتم التعيين')+'</strong></div><div class="wide"><small>حالة التحصيل</small><strong>'+collection+(o.collected_amount==null?'':' — '+Number(o.collected_amount).toLocaleString('ar-EG')+' ج.م')+'</strong></div>'+(o.notes?'<div class="wide"><small>ملاحظات للمندوب</small><strong>'+escapeHTML(o.notes)+'</strong></div>':'')+'</div><div class="delivery-card-extra">'+operationsEta+timelineBlock+'</div><div class="delivery-card-footer"><small>'+escapeHTML(new Date(o.created_at).toLocaleString('ar-EG'))+'</small><div class="delivery-order-actions"><button type="button" class="light" data-toggle-order-details>عرض تفاصيل الأوردر</button>'+receiptAction+'<button type="button" class="light" data-order-history="'+escapeHTML(o.id)+'">سجل الحركة</button>'+actions+'</div></div></article>';
 }
 async function openDeliveryOrderHistory(orderId){
  const order=deliveryOrderRows.find(x=>String(x.id)===String(orderId));
@@ -2825,13 +2828,36 @@ function addDeliveryMenuItem(){
  deliveryMenuCart.push({name:item.name,size:size[0],price:size[1],qty});renderDeliveryMenuCart();$('deliveryMenuQty').value='1';
 }
 
+async function uploadDeliveryOrderReceipt(orderId,file){
+ if(!file)return null;
+ const allowed=['image/jpeg','image/png','image/webp','application/pdf'];
+ if(!allowed.includes(file.type))throw new Error('نوع الملف غير مدعوم. استخدم JPG أو PNG أو WEBP أو PDF.');
+ if(file.size>8*1024*1024)throw new Error('حجم الريسيت أكبر من 8 ميجابايت.');
+ const ext=({'image/jpeg':'jpg','image/png':'png','image/webp':'webp','application/pdf':'pdf'})[file.type]||'bin';
+ const path=String(orderId)+'/'+Date.now()+'_receipt.'+ext;
+ const up=await db.storage.from('delivery-order-receipts').upload(path,file,{contentType:file.type,upsert:false});
+ if(up.error)throw up.error;
+ const saved=await db.from('delivery_orders').update({receipt_path:path}).eq('id',orderId);
+ if(saved.error){await db.storage.from('delivery-order-receipts').remove([path]);throw saved.error;}
+ return path;
+}
+async function showDeliveryOrderReceipt(orderId){
+ const order=deliveryOrderRows.find(x=>String(x.id)===String(orderId));
+ if(!order?.receipt_path){showMessage('deliveryOrdersMessage','لا توجد ريسيت مرفقة بهذا الأوردر.',true);return;}
+ try{
+  const result=await db.storage.from('delivery-order-receipts').createSignedUrl(order.receipt_path,300);
+  if(result.error)throw result.error;
+  if(!result.data?.signedUrl)throw new Error('تعذر إنشاء رابط عرض الريسيت.');
+  window.open(result.data.signedUrl,'_blank','noopener');
+ }catch(e){showMessage('deliveryOrdersMessage','تعذر عرض الريسيت: '+(e.message||''),true);}
+}
 async function createDeliveryOrder(){
  if(!isBranchManager&&!isAdmin)return;
  const p={p_branch:isAdmin?$('deliveryOrderBranch').value:currentManagerProfile?.branch,p_customer_name:$('deliveryOrderCustomer').value.trim(),p_customer_phone:$('deliveryOrderPhone').value.trim(),p_delivery_address:$('deliveryOrderAddress').value.trim(),p_latitude:$('deliveryOrderLat').value===''?null:Number($('deliveryOrderLat').value),p_longitude:$('deliveryOrderLng').value===''?null:Number($('deliveryOrderLng').value),p_items:$('deliveryOrderItems').value.trim(),p_total_amount:Number($('deliveryOrderTotal').value),p_payment_method:$('deliveryOrderPayment').value,p_notes:$('deliveryOrderNotes').value.trim()};
  if(!p.p_branch||!p.p_customer_name||!p.p_customer_phone||!p.p_delivery_address||!Number.isFinite(p.p_total_amount)||p.p_total_amount<0){$('deliveryOrderCreateMessage').textContent='أكمل اسم العميل والهاتف والعنوان والإجمالي بشكل صحيح.';return;}
  if((p.p_latitude==null)!==(p.p_longitude==null)||[p.p_latitude,p.p_longitude].some(x=>x!=null&&!Number.isFinite(x))){$('deliveryOrderCreateMessage').textContent='أدخل خط العرض والطول معًا أو اتركهما فارغين.';return;}
- const b=$('deliveryOrderCreateBtn');b.disabled=true;b.textContent='جارٍ حفظ الطلب...';
- try{const q=await db.rpc('create_delivery_order',p);if(q.error)throw q.error;await sendDeliveryPushEvent(q.data);$('deliveryOrderCreateMessage').textContent='تم تسجيل الطلب وإرساله إلى لوحة التشغيل.';['deliveryOrderCustomer','deliveryOrderPhone','deliveryOrderAddress','deliveryOrderLat','deliveryOrderLng','deliveryOrderItems','deliveryOrderTotal','deliveryOrderNotes'].forEach(id=>$(id).value='');deliveryMenuCart=[];renderDeliveryMenuCart();await loadDeliveryOrders();}
+ const b=$('deliveryOrderCreateBtn'),receiptFile=$('deliveryOrderReceipt').files?.[0]||null;b.disabled=true;b.textContent='جارٍ حفظ الطلب...';
+ try{const q=await db.rpc('create_delivery_order',p);if(q.error)throw q.error;const orderId=typeof q.data==='string'?q.data:(q.data?.id||q.data?.order_id);if(!orderId)throw new Error('تم إنشاء الطلب لكن لم يتم استلام رقم الأوردر لربط الريسيت.');await sendDeliveryPushEvent(orderId);let receiptMessage='';if(receiptFile){try{await uploadDeliveryOrderReceipt(orderId,receiptFile);receiptMessage=' وتم إرفاق الريسيت بنجاح.';}catch(uploadError){receiptMessage=' لكن تعذر رفع الريسيت: '+(uploadError.message||'')+' — يمكنك إعادة رفعها بعد ذلك.';}}$('deliveryOrderCreateMessage').textContent='تم تسجيل الطلب وإرساله إلى لوحة التشغيل.'+receiptMessage;['deliveryOrderCustomer','deliveryOrderPhone','deliveryOrderAddress','deliveryOrderLat','deliveryOrderLng','deliveryOrderItems','deliveryOrderTotal','deliveryOrderNotes'].forEach(id=>$(id).value='');$('deliveryOrderReceipt').value='';deliveryMenuCart=[];renderDeliveryMenuCart();await loadDeliveryOrders();}
  catch(e){$('deliveryOrderCreateMessage').textContent='تعذر حفظ الطلب: '+(e.message||'راجع قاعدة البيانات.');}
  finally{b.disabled=false;b.textContent='حفظ وإرسال الطلب للتشغيل';}
 }
@@ -3888,7 +3914,7 @@ $('deliveryMenuCart').addEventListener('click',e=>{const b=e.target.closest('[da
 $('deliveryOrderCreateBtn').addEventListener('click',createDeliveryOrder);
 $('deliveryBulkAutoAssignBtn').addEventListener('click',autoAssignDeliveryOrdersBatch);
 $('deliveryOrdersList').addEventListener('click',e=>{const smart=e.target.closest('[data-auto-assign-order]'),a=e.target.closest('[data-assign-order]'),c=e.target.closest('[data-cancel-order]');if(smart)autoAssignDeliveryOrder(smart.dataset.autoAssignOrder);if(a)assignDeliveryOrder(a.dataset.assignOrder);if(c)cancelDeliveryOrder(c.dataset.cancelOrder);});
-$('deliveryOrdersList').addEventListener('click',e=>{const toggle=e.target.closest('[data-toggle-order-details]');if(toggle){const card=toggle.closest('.delivery-order-card');const extra=card?.querySelector('.delivery-card-extra');if(extra){const opened=extra.classList.toggle('is-open');toggle.textContent=opened?'إخفاء التفاصيل':'عرض تفاصيل الأوردر';}}const b=e.target.closest('[data-order-history]');if(b)openDeliveryOrderHistory(b.dataset.orderHistory);});
+$('deliveryOrdersList').addEventListener('click',e=>{const receipt=e.target.closest('[data-show-order-receipt]');if(receipt)showDeliveryOrderReceipt(receipt.dataset.showOrderReceipt);const toggle=e.target.closest('[data-toggle-order-details]');if(toggle){const card=toggle.closest('.delivery-order-card');const extra=card?.querySelector('.delivery-card-extra');if(extra){const opened=extra.classList.toggle('is-open');toggle.textContent=opened?'إخفاء التفاصيل':'عرض تفاصيل الأوردر';}}const b=e.target.closest('[data-order-history]');if(b)openDeliveryOrderHistory(b.dataset.orderHistory);});
 $('deliveryOrderHistoryClose').addEventListener('click',()=>$('deliveryOrderHistoryDialog').close());
 $('deliveryOrderHistoryDialog').addEventListener('click',e=>{if(e.target===$('deliveryOrderHistoryDialog'))$('deliveryOrderHistoryDialog').close();});
 $('deliveryRepOrdersList').addEventListener('click',e=>{const b=e.target.closest('[data-rep-order-action]');if(b)updateMyDeliveryOrder(b.dataset.orderId,b.dataset.repOrderAction);});$('deliveryRepSubmitCashBtn').addEventListener('click',submitDeliveryRepCash);$('deliveryCashRefreshBtn').addEventListener('click',loadDeliveryCashHandovers);$('deliveryCashReportRefresh').addEventListener('click',loadDeliveryCashReport);$('deliveryCashReportExport').addEventListener('click',exportDeliveryCashReport);['deliveryCashReportBranch','deliveryCashReportFrom','deliveryCashReportTo'].forEach(id=>$(id).addEventListener('change',loadDeliveryCashReport));$('deliveryCashManagementList').addEventListener('click',e=>{const b=e.target.closest('[data-cash-decision]');if(b)decideDeliveryCashHandover(b.dataset.handoverId,b.dataset.cashDecision);});
