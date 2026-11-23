@@ -24,13 +24,23 @@ Deno.serve(async(req)=>{
  if(authError||!authData.user)return json({error:"Invalid session"},401);
  const uid=authData.user.id;
  const {data:profile,error:profileError}=await admin.from("profiles").select("role,branch").eq("user_id",uid).maybeSingle();
- if(profileError||!profile||!["admin","branch_manager"].includes(profile.role))return json({error:"Notifications are for main admin and branch managers only."},403);
+ if(profileError||!profile)return json({error:"Profile not found"},403);
+ let repProfile:any=null;
+ if(profile.role==="delivery_rep"){
+  const rep=await admin.from("delivery_rep_profiles").select("user_id,full_name,branch,is_active").eq("user_id",uid).maybeSingle();
+  if(rep.error||!rep.data||!rep.data.is_active)return json({error:"Active delivery representative account required."},403);
+  repProfile=rep.data;
+ }
+ const allowedRoles=["admin","operations_manager","branch_manager","delivery_rep"];
+ if(!allowedRoles.includes(profile.role))return json({error:"This account cannot use delivery notifications."},403);
  if(action==="subscribe"){
   const sub=body.subscription;if(!sub?.endpoint||!sub?.keys?.p256dh||!sub?.keys?.auth)return json({error:"Invalid push subscription"},400);
-  const {error}=await admin.from("delivery_push_subscriptions").upsert({user_id:uid,branch:profile.role==="branch_manager"?profile.branch:null,endpoint:sub.endpoint,subscription:sub,updated_at:new Date().toISOString()},{onConflict:"endpoint"});
+  const branch=profile.role==="branch_manager"?profile.branch:profile.role==="delivery_rep"?repProfile.branch:null;
+  const {error}=await admin.from("delivery_push_subscriptions").upsert({user_id:uid,branch,endpoint:sub.endpoint,subscription:sub,updated_at:new Date().toISOString()},{onConflict:"endpoint"});
   return error?json({error:error.message},500):json({success:true});
  }
  if(action==="new_order"){
+  if(!["admin","operations_manager","branch_manager"].includes(profile.role))return json({error:"Not allowed"},403);
   const orderId=String(body.order_id??"");if(!orderId)return json({error:"order_id required"},400);
   const {data:order,error}=await admin.from("delivery_orders").select("id,order_no,branch,customer_name,status").eq("id",orderId).maybeSingle();
   if(error||!order)return json({error:"Order not found"},404);
@@ -40,6 +50,18 @@ Deno.serve(async(req)=>{
   const ids=(recipients.data??[]).map(x=>x.user_id);
   const sent=await pushToUsers(admin,ids,{title:"طلب دليفري جديد #"+order.order_no,body:"فرع "+order.branch+" — "+order.customer_name,url:"/?view=delivery-orders",tag:"new-order-"+order.id},pub,priv,subject);
   return json({success:true,...sent});
+ }
+ if(action==="order_assigned"){
+  if(!["admin","operations_manager","branch_manager"].includes(profile.role))return json({error:"Not allowed"},403);
+  const orderId=String(body.order_id??"");if(!orderId)return json({error:"order_id required"},400);
+  const {data:order,error}=await admin.from("delivery_orders").select("id,order_no,branch,customer_name,delivery_address,total_amount,assigned_rep_user_id,status").eq("id",orderId).maybeSingle();
+  if(error||!order)return json({error:"Order not found"},404);
+  if(profile.role==="branch_manager"&&profile.branch!==order.branch)return json({error:"Wrong branch"},403);
+  if(!order.assigned_rep_user_id||!["assigned","accepted","picked_up"].includes(order.status))return json({error:"Order is not assigned to a representative."},409);
+  const {data:rep,error:repError}=await admin.from("delivery_rep_profiles").select("user_id,full_name,branch,is_active").eq("user_id",order.assigned_rep_user_id).maybeSingle();
+  if(repError||!rep||!rep.is_active||rep.branch!==order.branch)return json({error:"Assigned representative is not active in this branch."},409);
+  const sent=await pushToUsers(admin,[rep.user_id],{title:"طلب جديد مسند إليك #"+order.order_no,body:"فرع "+order.branch+" — "+order.customer_name+" — "+Number(order.total_amount||0).toLocaleString("ar-EG")+" ج.م",url:"/?app=delivery",tag:"assigned-order-"+order.id},pub,priv,subject);
+  return json({success:true,recipient:rep.full_name,...sent});
  }
  return json({error:"Unknown action"},400);
 });
