@@ -1278,6 +1278,7 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
  <div class="report-heading"><div><h2>أوردرات الدليفري</h2><p class="muted">إدخال أوردرات التوصيل يدويًا بواسطة مدير الفرع.</p></div></div>
   <div id="deliveryOrderCreatePanel" class="panel hidden"><h3>إضافة طلب دليفري جديد</h3><p class="muted">مدير الفرع يدخل الطلب يدويًا، وبعد الحفظ يظهر في لوحة التشغيل.</p>
  <div class="delivery-order-form-grid">
+ <div id="deliveryOrderBranchField" class="full hidden"><label for="deliveryOrderBranch">الفرع</label><select id="deliveryOrderBranch"></select></div>
  <div><label for="deliveryOrderCustomer">اسم العميل</label><input id="deliveryOrderCustomer" maxlength="120"></div><div><label for="deliveryOrderPhone">رقم الهاتف</label><input id="deliveryOrderPhone" type="tel" maxlength="30"></div>
  <div class="full"><label for="deliveryOrderAddress">عنوان التوصيل بالتفصيل</label><textarea id="deliveryOrderAddress" maxlength="500" placeholder="الشارع والمنطقة ورقم العقار وعلامة مميزة"></textarea></div>
  <div><label for="deliveryOrderLat">خط العرض (اختياري)</label><input id="deliveryOrderLat" type="number" step="any"></div><div><label for="deliveryOrderLng">خط الطول (اختياري)</label><input id="deliveryOrderLng" type="number" step="any"></div>
@@ -2626,9 +2627,9 @@ function addDeliveryMenuItem(){
 }
 
 async function createDeliveryOrder(){
- if(!isBranchManager)return;
- const p={p_customer_name:$('deliveryOrderCustomer').value.trim(),p_customer_phone:$('deliveryOrderPhone').value.trim(),p_delivery_address:$('deliveryOrderAddress').value.trim(),p_latitude:$('deliveryOrderLat').value===''?null:Number($('deliveryOrderLat').value),p_longitude:$('deliveryOrderLng').value===''?null:Number($('deliveryOrderLng').value),p_items:$('deliveryOrderItems').value.trim(),p_total_amount:Number($('deliveryOrderTotal').value),p_payment_method:$('deliveryOrderPayment').value,p_notes:$('deliveryOrderNotes').value.trim()};
- if(!p.p_customer_name||!p.p_customer_phone||!p.p_delivery_address||!Number.isFinite(p.p_total_amount)||p.p_total_amount<0){$('deliveryOrderCreateMessage').textContent='أكمل اسم العميل والهاتف والعنوان والإجمالي بشكل صحيح.';return;}
+ if(!isBranchManager&&!isAdmin)return;
+ const p={p_branch:isAdmin?$('deliveryOrderBranch').value:currentManagerProfile?.branch,p_customer_name:$('deliveryOrderCustomer').value.trim(),p_customer_phone:$('deliveryOrderPhone').value.trim(),p_delivery_address:$('deliveryOrderAddress').value.trim(),p_latitude:$('deliveryOrderLat').value===''?null:Number($('deliveryOrderLat').value),p_longitude:$('deliveryOrderLng').value===''?null:Number($('deliveryOrderLng').value),p_items:$('deliveryOrderItems').value.trim(),p_total_amount:Number($('deliveryOrderTotal').value),p_payment_method:$('deliveryOrderPayment').value,p_notes:$('deliveryOrderNotes').value.trim()};
+ if(!p.p_branch||!p.p_customer_name||!p.p_customer_phone||!p.p_delivery_address||!Number.isFinite(p.p_total_amount)||p.p_total_amount<0){$('deliveryOrderCreateMessage').textContent='أكمل اسم العميل والهاتف والعنوان والإجمالي بشكل صحيح.';return;}
  if((p.p_latitude==null)!==(p.p_longitude==null)||[p.p_latitude,p.p_longitude].some(x=>x!=null&&!Number.isFinite(x))){$('deliveryOrderCreateMessage').textContent='أدخل خط العرض والطول معًا أو اتركهما فارغين.';return;}
  const b=$('deliveryOrderCreateBtn');b.disabled=true;b.textContent='جارٍ حفظ الطلب...';
  try{const q=await db.rpc('create_delivery_order',p);if(q.error)throw q.error;await sendDeliveryPushEvent(q.data);$('deliveryOrderCreateMessage').textContent='تم تسجيل الطلب وإرساله إلى لوحة التشغيل.';['deliveryOrderCustomer','deliveryOrderPhone','deliveryOrderAddress','deliveryOrderLat','deliveryOrderLng','deliveryOrderItems','deliveryOrderTotal','deliveryOrderNotes'].forEach(id=>$(id).value='');deliveryMenuCart=[];renderDeliveryMenuCart();await loadDeliveryOrders();}
@@ -2772,7 +2773,9 @@ async function showApp(user,admin,managerProfile=null,operationsManager=false) {
   $('deliveryRepsMapNavBtn').classList.toggle('hidden',!admin&&!operationsManager&&!isBranchManager);
   $('deliveryOrdersNavBtn').classList.toggle('hidden',!admin&&!isBranchManager);
   $('tripsNavBtn').classList.toggle('hidden',!admin&&!operationsManager&&!isBranchManager);
-  $('deliveryOrderCreatePanel').classList.toggle('hidden',!isBranchManager);
+  $('deliveryOrderCreatePanel').classList.toggle('hidden',!isBranchManager&&!admin);
+  $('deliveryOrderBranchField').classList.toggle('hidden',!admin);
+  $('deliveryOrderBranch').innerHTML=(branches||[]).map(branch=>'<option value="'+escapeHTML(branch)+'">'+escapeHTML(branch)+'</option>').join('');
   $('deliveryPushEnableBtn').classList.toggle('hidden',!admin&&!isBranchManager);
   $('deliveryOrdersFilterPanel').classList.toggle('hidden',isBranchManager);
   $('deliveryOrdersBranchFilter').innerHTML='<option value="">كل الفروع</option>'+(isBranchManager?[managerProfile.branch]:branches).map(branch=>'<option value="'+escapeHTML(branch)+'">'+escapeHTML(branch)+'</option>').join('');
