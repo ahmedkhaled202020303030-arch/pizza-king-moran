@@ -1124,6 +1124,47 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
 .delivery-menu-line:last-child{border-bottom:0}.delivery-menu-line button{width:auto;margin:0;padding:6px 10px}
 .delivery-menu-total{display:flex;justify-content:space-between;font-weight:900;color:#d4af37;padding-top:10px}
 @media(max-width:650px){.delivery-menu-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.delivery-menu-line{grid-template-columns:1fr auto}.delivery-menu-line button{grid-column:2}}
+
+/* Compact, tidy trip cards */
+#tripsView #deliveryOrdersList.delivery-order-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;align-items:stretch}
+#tripsView .delivery-order-card{padding:11px;border-radius:12px;border-top-width:2px;box-shadow:0 4px 12px rgba(0,0,0,.14)}
+#tripsView .delivery-card-top{gap:6px}
+#tripsView .delivery-order-card h3{font-size:15px;line-height:1.35}
+#tripsView .delivery-order-number{font-size:10px}
+#tripsView .delivery-status{padding:4px 7px;font-size:10px}
+#tripsView .delivery-order-progress{margin:9px 0 7px;gap:2px}
+#tripsView .delivery-progress-step{gap:3px;min-width:0}
+#tripsView .delivery-progress-step small{font-size:8px;line-height:1.2}
+#tripsView .delivery-progress-dot{width:17px;height:17px;font-size:9px}
+#tripsView .delivery-order-total{margin:8px 0;padding:7px 9px;border-radius:8px}
+#tripsView .delivery-order-total strong{font-size:17px}
+#tripsView .delivery-card-details{gap:7px 9px}
+#tripsView .delivery-card-details>div{gap:2px}
+#tripsView .delivery-card-details small{font-size:9px}
+#tripsView .delivery-card-details strong,#tripsView .delivery-card-details a{font-size:11px;line-height:1.45}
+#tripsView .delivery-ops-eta{gap:6px;margin:8px 0 2px;padding:8px}
+#tripsView .delivery-ops-eta small{font-size:9px}
+#tripsView .delivery-ops-eta strong{font-size:10px}
+#tripsView .delivery-card-footer{gap:7px;margin-top:auto;padding-top:8px}
+#tripsView .delivery-card-footer>small{font-size:9px}
+#tripsView .delivery-order-actions{gap:5px}
+#tripsView .delivery-order-actions button{min-height:31px;padding:6px 8px;font-size:10px}
+#tripsView .delivery-assign-row{gap:5px}
+#tripsView .delivery-assign-row select{min-width:0;min-height:34px;font-size:10px}
+#tripsView .delivery-assign-row button{min-height:31px;padding:6px 8px;font-size:10px}
+@media(max-width:900px){#tripsView #deliveryOrdersList.delivery-order-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}}
+@media(max-width:420px){
+ #tripsView .delivery-order-card{padding:9px}
+ #tripsView .delivery-order-card h3{font-size:13px}
+ #tripsView .delivery-progress-step small{font-size:7px}
+ #tripsView .delivery-card-details{gap:6px}
+ #tripsView .delivery-card-details strong,#tripsView .delivery-card-details a{font-size:10px}
+ #tripsView .delivery-ops-eta{grid-template-columns:1fr 1fr}
+ #tripsView .delivery-ops-eta>div:last-of-type{grid-column:1/-1}
+ #tripsView .delivery-order-actions button{font-size:9px;padding:5px 6px}
+}
+@media(max-width:350px){#tripsView #deliveryOrdersList.delivery-order-grid{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
