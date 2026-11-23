@@ -1033,6 +1033,19 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
 .delivery-performance-leaders{grid-template-columns:repeat(2,minmax(0,1fr))}
 @media(max-width:680px){.delivery-performance-leaders{grid-template-columns:1fr}}
 
+/* Professional trips workspace: status tabs and clean responsive order cards */
+.delivery-trips-status-tabs{display:flex;gap:8px;overflow-x:auto;padding:5px 1px 12px;margin:8px 0 2px;scrollbar-width:thin}
+.delivery-trips-status-tabs button{flex:0 0 auto;display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:8px 13px;border:1px solid rgba(212,175,55,.24);border-radius:11px;background:#151515;color:#d8cfbb;font-size:12px;font-weight:750;white-space:nowrap}
+.delivery-trips-status-tabs button b{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 5px;border-radius:7px;background:rgba(212,175,55,.12);color:#f0d17f;font-size:11px}
+.delivery-trips-status-tabs button.active{background:linear-gradient(135deg,#d4af37,#f0d68e);border-color:#f0d68e;color:#17130a;box-shadow:0 4px 14px rgba(212,175,55,.16)}
+.delivery-trips-status-tabs button.active b{background:rgba(20,16,5,.14);color:#17130a}
+#tripsView>.report-heading{align-items:center;padding-bottom:14px;border-bottom:1px solid rgba(212,175,55,.18)}
+#tripsView>#deliveryOrdersList{margin-top:12px;align-items:start}
+#tripsView .delivery-order-card{height:100%;display:flex;flex-direction:column}
+#tripsView .delivery-card-footer{margin-top:auto;padding-top:13px}
+#tripsView #deliveryOrdersFilterPanel{margin-top:16px}
+@media(max-width:620px){.delivery-trips-status-tabs{margin-inline:-3px;padding-inline:3px}.delivery-trips-status-tabs button{min-height:38px;padding:7px 10px;font-size:11px}#tripsView .delivery-orders-summary{margin-top:10px}}
+
 /* Dispatch center kanban board */
 .delivery-dispatch-board{display:grid;grid-template-columns:repeat(4,minmax(270px,1fr));gap:12px;align-items:start;overflow-x:auto;padding:4px 2px 12px;scroll-snap-type:x proximity}
 .delivery-dispatch-lane{min-width:270px;border:1px solid rgba(212,175,55,.22);border-radius:14px;background:rgba(20,18,14,.72);padding:10px;scroll-snap-align:start}
@@ -1314,6 +1327,7 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
  <div id="deliveryCashReportMessage" class="muted" aria-live="polite"></div>
 </section>
   <div id="deliveryOrdersFilterPanel" class="delivery-orders-toolbar"><div class="delivery-filter-field"><label for="deliveryOrdersBranchFilter">الفرع</label><select id="deliveryOrdersBranchFilter"><option value="">كل الفروع</option></select></div><div class="delivery-filter-field"><label for="deliveryOrdersStatusFilter">حالة الطلب</label><select id="deliveryOrdersStatusFilter"><option value="">كل الحالات</option><option value="new">طلبات جديدة</option><option value="assigned">تم الإسناد</option><option value="accepted">المندوب قبل الطلب</option><option value="picked_up">قيد التوصيل</option><option value="delivered">تم التسليم</option><option value="cancelled">ملغي</option></select></div><div class="delivery-filter-field delivery-search-field"><label for="deliveryOrdersSearch">بحث سريع</label><input id="deliveryOrdersSearch" type="search" placeholder="اسم العميل أو الهاتف أو رقم الطلب أو العنوان"></div></div>
+ <div id="deliveryTripsStatusTabs" class="delivery-trips-status-tabs" role="group" aria-label="تصفية الرحلات حسب الحالة"></div>
  <div id="deliveryOrdersSummary" class="delivery-orders-summary" aria-live="polite"></div><div id="deliveryOrdersMessage" class="msg hidden"></div><div id="deliveryOrdersList" class="delivery-order-grid"><p class="muted">اضغط تحديث لعرض الطلبات.</p></div>
 </section>
 <dialog id="deliveryOrderHistoryDialog" class="report-dialog">
@@ -2487,11 +2501,14 @@ function renderDeliveryOrders(){
  if(summary){const overdueCount=branchRows.filter(x=>x.status==='picked_up'&&x.picked_up_at&&(Date.now()-new Date(x.picked_up_at).getTime())>45*60000).length;summary.innerHTML='<div class="delivery-summary-card"><small>إجمالي الطلبات</small><strong>'+branchRows.length+'</strong></div><div class="delivery-summary-card"><small>طلبات جديدة</small><strong>'+count('new')+'</strong></div><div class="delivery-summary-card"><small>قيد التوصيل</small><strong>'+branchRows.filter(x=>['assigned','accepted','picked_up'].includes(x.status)).length+'</strong></div><div class="delivery-summary-card delivery-overdue-summary"><small>طلبات متأخرة +45 دقيقة</small><strong>'+overdueCount+'</strong></div><div class="delivery-summary-card"><small>تم التسليم</small><strong>'+count('delivered')+'</strong></div>';}
  const rows=branchRows.filter(x=>(!status||x.status===status)&&(!term||[x.order_no,x.customer_name,x.customer_phone,x.delivery_address,x.items,x.branch].some(v=>String(v||'').toLocaleLowerCase().includes(term))));
  const host=$('deliveryOrdersList');
- const lanes=[{key:'new',title:'طلبات جديدة',icon:'🆕',tone:'new'},{key:'assigned',title:'تم إسنادها',icon:'📋',tone:'assigned'},{key:'accepted',title:'قبلها المندوب',icon:'🙋',tone:'accepted'},{key:'picked_up',title:'قيد التوصيل',icon:'🛵',tone:'picked'},{key:'delivered',title:'تم التسليم',icon:'✓',tone:'done'},{key:'cancelled',title:'ملغاة',icon:'×',tone:'cancelled'}];
- const visibleLanes=lanes.filter(lane=>!status||lane.key===status);
- host.classList.add('delivery-dispatch-board');
- host.innerHTML=visibleLanes.map(lane=>{const laneRows=rows.filter(order=>order.status===lane.key).sort((a,b)=>{const ta=new Date(a.status==='picked_up'?(a.picked_up_at||a.created_at):a.created_at||0).getTime(),tb=new Date(b.status==='picked_up'?(b.picked_up_at||b.created_at):b.created_at||0).getTime();return ['new','assigned','accepted','picked_up'].includes(lane.key)?ta-tb:tb-ta;});return '<section class="delivery-dispatch-lane lane-'+lane.tone+'"><header class="delivery-dispatch-lane-head"><div><span>'+lane.icon+'</span><strong>'+lane.title+'</strong></div><b>'+laneRows.length+'</b></header><div class="delivery-dispatch-lane-body">'+(laneRows.length?laneRows.map(order=>deliveryOrderCard(order)).join(''):'<div class="delivery-dispatch-empty">لا توجد طلبات</div>')+'</div></section>';}).join('');
- if(!rows.length)host.innerHTML='<div class="delivery-orders-empty"><strong>لا توجد طلبات مطابقة</strong><span>جرّب تغيير حالة الطلب أو كلمة البحث.</span></div>';
+ const lanes=[{key:'new',title:'جديدة',icon:'＋'},{key:'assigned',title:'تم الإسناد',icon:'↗'},{key:'accepted',title:'قبلها المندوب',icon:'✓'},{key:'picked_up',title:'قيد التوصيل',icon:'🛵'},{key:'delivered',title:'تم التسليم',icon:'✓'},{key:'cancelled',title:'ملغاة',icon:'×'}];
+ const tabs=$('deliveryTripsStatusTabs');
+ if(tabs)tabs.innerHTML='<button type="button" class="'+(!status?'active':'')+'" data-trip-status="">كل الرحلات <b>'+branchRows.length+'</b></button>'+lanes.map(lane=>'<button type="button" class="'+(status===lane.key?'active':'')+'" data-trip-status="'+lane.key+'">'+lane.icon+' '+lane.title+' <b>'+count(lane.key)+'</b></button>').join('');
+ host.classList.remove('delivery-dispatch-board');
+ const priority={new:0,assigned:1,accepted:2,picked_up:3,delivered:4,cancelled:5};
+ rows.sort((a,b)=>(priority[a.status]??9)-(priority[b.status]??9)||new Date(b.created_at||0)-new Date(a.created_at||0));
+ host.classList.add('delivery-order-grid');
+ host.innerHTML=rows.length?rows.map(order=>deliveryOrderCard(order)).join(''):'<div class="delivery-orders-empty"><strong>لا توجد رحلات مطابقة</strong><span>غيّر حالة الطلب أو كلمة البحث لعرض نتائج أخرى.</span></div>';
 }
 async function enableDeliveryPushNotifications(){
  const btn=$('deliveryPushEnableBtn');if(!btn)return;
@@ -3680,6 +3697,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')setAppMenu(false);})
 $('deliveryPushEnableBtn').addEventListener('click',enableDeliveryPushNotifications);
  $('deliveryOrdersRefreshBtn').addEventListener('click',loadDeliveryOrders);
 $('deliveryOrdersBranchFilter').addEventListener('change',renderDeliveryOrders);$('deliveryOrdersStatusFilter').addEventListener('change',renderDeliveryOrders);$('deliveryOrdersSearch').addEventListener('input',renderDeliveryOrders);
+$('deliveryTripsStatusTabs').addEventListener('click',e=>{const b=e.target.closest('[data-trip-status]');if(!b)return;$('deliveryOrdersStatusFilter').value=b.dataset.tripStatus;renderDeliveryOrders();});
 initDeliveryMenu();
 $('deliveryMenuCategory').addEventListener('change',renderDeliveryMenuProducts);
 $('deliveryMenuProduct').addEventListener('change',renderDeliveryMenuSizes);
