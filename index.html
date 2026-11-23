@@ -1057,6 +1057,18 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
 .delivery-ops-eta>b{grid-column:1/-1;font-size:10px;font-weight:700;padding-top:6px;border-top:1px solid rgba(212,175,55,.14)}
 .delivery-ops-alert{color:#ff9b8f}.delivery-ops-ok{color:#9bd9ad}.delivery-ops-note{color:#b9ae91}
 @media(max-width:430px){.delivery-ops-eta{grid-template-columns:1fr 1fr}.delivery-ops-eta>div:last-of-type{grid-column:1/-1}}
+/* Auditable delivery order history */
+.delivery-history-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:12px 0 18px}
+.delivery-history-summary>div{padding:11px;border:1px solid rgba(212,175,55,.25);border-radius:11px;background:rgba(212,175,55,.06);min-width:0}
+.delivery-history-summary small{display:block;color:#b9ae91;font-size:10px}
+.delivery-history-summary strong{display:block;color:#f0d17f;font-size:12px;margin-top:5px;overflow-wrap:anywhere}
+.delivery-history-list{display:grid;gap:0}
+.delivery-history-event{display:grid;grid-template-columns:13px minmax(0,1fr);gap:10px;padding:12px 4px;border-bottom:1px solid rgba(212,175,55,.13)}
+.delivery-history-dot{width:10px;height:10px;margin-top:5px;border-radius:50%;background:#d4af37;box-shadow:0 0 0 4px rgba(212,175,55,.12)}
+.delivery-history-event strong{color:#f0d17f;font-size:13px}
+.delivery-history-event p{margin:4px 0;color:#eee5d0;font-size:12px}
+.delivery-history-event small{color:#a99f8d;font-size:10px}
+@media(max-width:520px){.delivery-history-summary{grid-template-columns:1fr}.delivery-history-summary>div{padding:9px}}
 /* Per-order operational timeline */
 .delivery-order-timeline{margin:12px 0 4px;border:1px solid rgba(212,175,55,.2);border-radius:10px;background:rgba(212,175,55,.035);overflow:hidden}
 .delivery-order-timeline summary{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 11px;cursor:pointer;list-style:none;color:#e8cf83;font-size:12px;font-weight:800}
@@ -1280,6 +1292,12 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
   <div id="deliveryOrdersFilterPanel" class="delivery-orders-toolbar"><div class="delivery-filter-field"><label for="deliveryOrdersBranchFilter">الفرع</label><select id="deliveryOrdersBranchFilter"><option value="">كل الفروع</option></select></div><div class="delivery-filter-field"><label for="deliveryOrdersStatusFilter">حالة الطلب</label><select id="deliveryOrdersStatusFilter"><option value="">كل الحالات</option><option value="new">طلبات جديدة</option><option value="assigned">تم الإسناد</option><option value="accepted">المندوب قبل الطلب</option><option value="picked_up">قيد التوصيل</option><option value="delivered">تم التسليم</option><option value="cancelled">ملغي</option></select></div><div class="delivery-filter-field delivery-search-field"><label for="deliveryOrdersSearch">بحث سريع</label><input id="deliveryOrdersSearch" type="search" placeholder="اسم العميل أو الهاتف أو رقم الطلب أو العنوان"></div></div>
  <div id="deliveryOrdersSummary" class="delivery-orders-summary" aria-live="polite"></div><div id="deliveryOrdersMessage" class="msg hidden"></div><div id="deliveryOrdersList" class="delivery-order-grid"><p class="muted">اضغط تحديث لعرض الطلبات.</p></div>
 </section>
+<dialog id="deliveryOrderHistoryDialog" class="report-dialog">
+ <div class="report-dialog-card">
+  <div class="report-heading"><div><h2 id="deliveryOrderHistoryTitle">سجل حركة الطلب</h2><p class="muted" id="deliveryOrderHistorySubtitle">كل الأحداث المسجلة للطلب بالترتيب الزمني.</p></div><button type="button" id="deliveryOrderHistoryClose" class="light" style="width:auto">إغلاق</button></div>
+  <div id="deliveryOrderHistoryBody"><p class="muted">جارٍ تحميل سجل الطلب...</p></div>
+ </div>
+</dialog>
 <section id="deliveryRepsView" class="panel hidden">
  <div class="report-heading"><div><h2>إدارة مندوبي المطاعم</h2><p class="muted">إدارة الحسابات ومتابعة حالة كل مندوب وفرعه</p></div><div class="row"><button type="button" id="deliveryRepAddBtn" class="primary-btn">إضافة مندوب</button><button type="button" id="deliveryRepsRefreshBtn" class="light">تحديث القائمة</button></div></div>
  <div id="deliveryRepRequestsPanel" class="panel"><div class="report-heading"><div><h3>طلبات تسجيل المندوبين</h3><p class="muted">المدير الرئيسي يرى كل الطلبات، ومدير الفرع يرى طلبات فرعه فقط.</p></div><button type="button" id="deliveryRepRequestsRefresh" class="light">تحديث الطلبات</button></div><div id="deliveryRepRequestsList"><p class="muted">لا توجد طلبات محملة.</p></div></div>
@@ -2397,7 +2415,49 @@ function deliveryOrderCard(o,repView=false){
  const timeline=timelinePoints.map((p,index)=>{const exists=p.at&&Number.isFinite(new Date(p.at).getTime()),next=timelinePoints.slice(index+1).find(n=>n.at&&Number.isFinite(new Date(n.at).getTime())),end=next?new Date(next.at).getTime():(o.status!=='delivered'&&o.status!=='cancelled'&&exists?Date.now():null),duration=exists&&end!=null?fmtElapsed(end-new Date(p.at).getTime()):'بانتظار المرحلة التالية';return '<div class="delivery-timeline-step '+(exists?'is-done':'')+'"><span class="delivery-timeline-dot"></span><div><strong>'+p.label+'</strong><small>'+(exists?new Date(p.at).toLocaleString('ar-EG'):'لم تبدأ بعد')+'</small></div><em>'+(exists?duration:'—')+'</em></div>';}).join('');
  const totalElapsed=validTimeline.length?fmtElapsed((new Date(o.delivered_at||((o.status==='cancelled')?o.updated_at:Date.now())).getTime())-new Date(o.created_at).getTime()):'—';
  const timelineBlock='<details class="delivery-order-timeline"><summary><span>السجل الزمني للطلب</span><b>المدة حتى الآن: '+totalElapsed+'</b></summary><div class="delivery-timeline-list">'+timeline+'</div></details>';
- return '<article class="delivery-order-card'+(isOverdue?' delivery-order-overdue':'')+'"><div class="delivery-card-top"><div><span class="delivery-order-number">طلب #'+escapeHTML(o.order_no||String(o.id).slice(0,8))+'</span><h3>'+escapeHTML(o.customer_name)+'</h3>'+(isOverdue?'<small class="delivery-overdue-flag">متأخر '+deliveryMinutes+' دقيقة · تجاوز 45 دقيقة</small>':'')+'</div><span class="delivery-status '+statusClass+'">'+escapeHTML(deliveryStatusLabel(o.status))+'</span></div><div class="delivery-order-total"><small>إجمالي الطلب</small><strong>'+amount+' <small>ج.م</small></strong></div><div class="delivery-card-details"><div><small>رقم الهاتف</small><a href="tel:'+escapeHTML(o.customer_phone)+'">'+escapeHTML(o.customer_phone)+'</a></div><div><small>الفرع</small><strong>'+escapeHTML(o.branch)+'</strong></div><div class="wide"><small>عنوان التوصيل</small><strong>'+escapeHTML(o.delivery_address)+'</strong>'+(map?'<p>'+map+'</p>':'')+'</div><div class="wide"><small>الأصناف والكميات</small><strong>'+escapeHTML(o.items||'—')+'</strong></div><div><small>طريقة الدفع</small><strong>'+escapeHTML(deliveryPaymentLabel(o.payment_method))+'</strong></div><div><small>المندوب</small><strong>'+escapeHTML(rep?.full_name||'لم يتم التعيين')+'</strong></div><div class="wide"><small>حالة التحصيل</small><strong>'+collection+(o.collected_amount==null?'':' — '+Number(o.collected_amount).toLocaleString('ar-EG')+' ج.م')+'</strong></div>'+(o.notes?'<div class="wide"><small>ملاحظات للمندوب</small><strong>'+escapeHTML(o.notes)+'</strong></div>':'')+'</div>'+operationsEta+timelineBlock+'<div class="delivery-card-footer"><small>'+escapeHTML(new Date(o.created_at).toLocaleString('ar-EG'))+'</small><div class="delivery-order-actions">'+actions+'</div></div></article>';
+ return '<article class="delivery-order-card'+(isOverdue?' delivery-order-overdue':'')+'"><div class="delivery-card-top"><div><span class="delivery-order-number">طلب #'+escapeHTML(o.order_no||String(o.id).slice(0,8))+'</span><h3>'+escapeHTML(o.customer_name)+'</h3>'+(isOverdue?'<small class="delivery-overdue-flag">متأخر '+deliveryMinutes+' دقيقة · تجاوز 45 دقيقة</small>':'')+'</div><span class="delivery-status '+statusClass+'">'+escapeHTML(deliveryStatusLabel(o.status))+'</span></div><div class="delivery-order-total"><small>إجمالي الطلب</small><strong>'+amount+' <small>ج.م</small></strong></div><div class="delivery-card-details"><div><small>رقم الهاتف</small><a href="tel:'+escapeHTML(o.customer_phone)+'">'+escapeHTML(o.customer_phone)+'</a></div><div><small>الفرع</small><strong>'+escapeHTML(o.branch)+'</strong></div><div class="wide"><small>عنوان التوصيل</small><strong>'+escapeHTML(o.delivery_address)+'</strong>'+(map?'<p>'+map+'</p>':'')+'</div><div class="wide"><small>الأصناف والكميات</small><strong>'+escapeHTML(o.items||'—')+'</strong></div><div><small>طريقة الدفع</small><strong>'+escapeHTML(deliveryPaymentLabel(o.payment_method))+'</strong></div><div><small>المندوب</small><strong>'+escapeHTML(rep?.full_name||'لم يتم التعيين')+'</strong></div><div class="wide"><small>حالة التحصيل</small><strong>'+collection+(o.collected_amount==null?'':' — '+Number(o.collected_amount).toLocaleString('ar-EG')+' ج.م')+'</strong></div>'+(o.notes?'<div class="wide"><small>ملاحظات للمندوب</small><strong>'+escapeHTML(o.notes)+'</strong></div>':'')+'</div>'+operationsEta+timelineBlock+'<div class="delivery-card-footer"><small>'+escapeHTML(new Date(o.created_at).toLocaleString('ar-EG'))+'</small><div class="delivery-order-actions"><button type="button" class="light" data-order-history="'+escapeHTML(o.id)+'">تفاصيل وسجل الحركة</button>'+actions+'</div></div></article>';
+}
+async function openDeliveryOrderHistory(orderId){
+ const order=deliveryOrderRows.find(x=>String(x.id)===String(orderId));
+ if(!order)return;
+ const dialog=$('deliveryOrderHistoryDialog'),body=$('deliveryOrderHistoryBody');
+ $('deliveryOrderHistoryTitle').textContent='سجل حركة الطلب #'+(order.order_no||String(order.id).slice(0,8));
+ $('deliveryOrderHistorySubtitle').textContent=order.customer_name+' — '+order.branch;
+ body.innerHTML='<p class="muted">جارٍ تحميل سجل الحركة...</p>';
+ dialog.showModal();
+ try{
+  const q=await db.from('delivery_order_events').select('id,actor_user_id,event_type,old_status,new_status,details,created_at').eq('order_id',order.id).order('created_at',{ascending:true});
+  if(q.error)throw q.error;
+  const events=q.data||[];
+  const actorIds=[...new Set(events.map(x=>x.actor_user_id).filter(Boolean))];
+  let profiles=[],reps=[];
+  if(actorIds.length){
+   const [p,r]=await Promise.all([
+    db.from('profiles').select('user_id,username,role').in('user_id',actorIds),
+    db.from('delivery_rep_profiles').select('user_id,full_name,username').in('user_id',actorIds)
+   ]);
+   if(p.error)throw p.error;
+   if(r.error)throw r.error;
+   profiles=p.data||[];reps=r.data||[];
+  }
+  const actors=new Map();
+  profiles.forEach(x=>actors.set(x.user_id,x.username||x.role||'مستخدم'));
+  reps.forEach(x=>actors.set(x.user_id,x.full_name||x.username||actors.get(x.user_id)||'مندوب'));
+  const labels={created:'إنشاء الطلب',status_changed:'تغيير حالة الطلب',rep_assigned:'إسناد / تغيير المندوب',collection_updated:'تحديث التحصيل'};
+  const statusNames={new:'جديد',assigned:'تم الإسناد',accepted:'تم القبول',picked_up:'استلام من الفرع',delivered:'تم التسليم',cancelled:'ملغي'};
+  const fmt=v=>v?new Date(v).toLocaleString('ar-EG',{dateStyle:'medium',timeStyle:'short'}):'—';
+  const eventDetails=e=>{
+   const d=e.details||{},parts=[];
+   if(e.old_status||e.new_status)parts.push((statusNames[e.old_status]||e.old_status||'—')+' ← '+(statusNames[e.new_status]||e.new_status||'—'));
+   if(d.branch)parts.push('الفرع: '+d.branch);
+   if(d.rep_user_id){const rep=reps.find(x=>x.user_id===d.rep_user_id);parts.push('المندوب: '+(rep?.full_name||rep?.username||'تم تحديث التعيين'));}
+   if(d.collected_amount!=null)parts.push('المبلغ المحصل: '+Number(d.collected_amount).toLocaleString('ar-EG')+' ج.م');
+   if(d.collection_status)parts.push('حالة التحصيل: '+(d.collection_status==='collected'?'تم التحصيل':d.collection_status==='not_applicable'?'مدفوع إلكترونيًا':'بانتظار التحصيل'));
+   return parts.join(' · ')||'تم تسجيل الحركة';
+  };
+  const steps=events.map(e=>'<article class="delivery-history-event"><span class="delivery-history-dot"></span><div><strong>'+escapeHTML(labels[e.event_type]||e.event_type)+'</strong><p>'+escapeHTML(eventDetails(e))+'</p><small>'+escapeHTML(fmt(e.created_at))+' · بواسطة: '+escapeHTML(actors.get(e.actor_user_id)||'النظام / مستخدم غير معروف')+'</small></div></article>').join('');
+  body.innerHTML='<div class="delivery-history-summary"><div><small>الحالة الحالية</small><strong>'+escapeHTML(deliveryStatusLabel(order.status))+'</strong></div><div><small>تاريخ إنشاء الطلب</small><strong>'+escapeHTML(fmt(order.created_at))+'</strong></div><div><small>آخر تحديث</small><strong>'+escapeHTML(fmt(order.updated_at))+'</strong></div></div>'+(events.length?'<div class="delivery-history-list">'+steps+'</div>':'<p class="muted">لا توجد أحداث مسجلة لهذا الطلب حتى الآن.</p>');
+ }catch(error){body.innerHTML='<p class="msg">تعذر تحميل سجل الحركة: '+escapeHTML(error.message||'خطأ غير معروف')+'</p>';}
 }
 function renderDeliveryOrders(){
  const branch=$('deliveryOrdersBranchFilter').value,status=$('deliveryOrdersStatusFilter').value,term=$('deliveryOrdersSearch').value.trim().toLocaleLowerCase();
@@ -3512,6 +3572,9 @@ $('deliveryOrdersBranchFilter').addEventListener('change',renderDeliveryOrders);
 $('deliveryOrderCreateBtn').addEventListener('click',createDeliveryOrder);
 $('deliveryBulkAutoAssignBtn').addEventListener('click',autoAssignDeliveryOrdersBatch);
 $('deliveryOrdersList').addEventListener('click',e=>{const smart=e.target.closest('[data-auto-assign-order]'),a=e.target.closest('[data-assign-order]'),c=e.target.closest('[data-cancel-order]');if(smart)autoAssignDeliveryOrder(smart.dataset.autoAssignOrder);if(a)assignDeliveryOrder(a.dataset.assignOrder);if(c)cancelDeliveryOrder(c.dataset.cancelOrder);});
+$('deliveryOrdersList').addEventListener('click',e=>{const b=e.target.closest('[data-order-history]');if(b)openDeliveryOrderHistory(b.dataset.orderHistory);});
+$('deliveryOrderHistoryClose').addEventListener('click',()=>$('deliveryOrderHistoryDialog').close());
+$('deliveryOrderHistoryDialog').addEventListener('click',e=>{if(e.target===$('deliveryOrderHistoryDialog'))$('deliveryOrderHistoryDialog').close();});
 $('deliveryRepOrdersList').addEventListener('click',e=>{const b=e.target.closest('[data-rep-order-action]');if(b)updateMyDeliveryOrder(b.dataset.orderId,b.dataset.repOrderAction);});$('deliveryRepSubmitCashBtn').addEventListener('click',submitDeliveryRepCash);$('deliveryCashRefreshBtn').addEventListener('click',loadDeliveryCashHandovers);$('deliveryCashReportRefresh').addEventListener('click',loadDeliveryCashReport);$('deliveryCashReportExport').addEventListener('click',exportDeliveryCashReport);['deliveryCashReportBranch','deliveryCashReportFrom','deliveryCashReportTo'].forEach(id=>$(id).addEventListener('change',loadDeliveryCashReport));$('deliveryCashManagementList').addEventListener('click',e=>{const b=e.target.closest('[data-cash-decision]');if(b)decideDeliveryCashHandover(b.dataset.handoverId,b.dataset.cashDecision);});
 $('deliveryMapRefreshBtn').addEventListener('click',loadDeliveryRepsMap);
 $('deliveryMapBranchFilter').addEventListener('change',loadDeliveryRepsMap);
