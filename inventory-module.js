@@ -34,7 +34,7 @@ async function loadInventory(){
  const error=a.error||b.error||c.error;
  if(error){msg('تعذر تحميل المخازن. تأكد من تنفيذ inventory_migration.sql في Supabase: '+error.message,true);return;}
  invItems=a.data||[];invDocs=b.data||[];invLines=c.data||[];
- if(window.isBranchManager){$('inventoryBranch').innerHTML='<option value="'+esc(currentBranch())+'">'+esc(currentBranch())+'</option>';$('inventoryBranch').value=currentBranch();$('inventoryBranch').disabled=true;}
+ if(isBranchManager){$('inventoryBranch').innerHTML='<option value="'+esc(currentBranch())+'">'+esc(currentBranch())+'</option>';$('inventoryBranch').value=currentBranch();$('inventoryBranch').disabled=true;}
  else {$('inventoryBranch').disabled=false;if(!$('inventoryBranch').querySelector('option[value=""]'))$('inventoryBranch').insertAdjacentHTML('afterbegin','<option value="">كل الفروع — عرض فقط</option>');}
  renderItems();renderHistory();renderReconciliation();msg('تم تحميل بيانات المخازن.');
 }
