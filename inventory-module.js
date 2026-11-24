@@ -5,8 +5,8 @@ const suppliers=['المصنع - نموذج 1','المصنع - نموذج 2','د
 let invItems=[], invDocs=[], invLines=[], invOcrBusy=false;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const msg=(s,bad=false)=>{const e=$('inventoryMessage');if(e){e.textContent=s;e.style.color=bad?'#ff9b91':'';}};
-const currentBranch=()=>window.currentManagerProfile?.branch||'';
-const selectedBranch=()=>window.isBranchManager?currentBranch():$('inventoryBranch').value;
+const currentBranch=()=>currentManagerProfile?.branch||'';
+const selectedBranch=()=>isBranchManager?currentBranch():$('inventoryBranch').value;
 const fillSelect=(el,values,first)=>{if(!el)return;el.innerHTML=(first?'<option value="">'+esc(first)+'</option>':'')+values.map(x=>'<option>'+esc(x)+'</option>').join('');};
 function linesFromText(raw){
  const out=[];
@@ -24,7 +24,7 @@ function renderLineEditor(rows){
 function readEditor(){return [...$('inventoryLineEditor').querySelectorAll('[data-inv-name]')].map((e)=>{const i=e.dataset.invName;return {name:e.value.trim(),qty:Number($('inventoryLineEditor').querySelector('[data-inv-qty="'+i+'"]').value),unit:$('inventoryLineEditor').querySelector('[data-inv-unit="'+i+'"]').value.trim()||'وحدة'};}).filter(x=>x.name&&Number.isFinite(x.qty)&&x.qty>=0);}
 function addLine(name='',qty='',unit='وحدة'){const a=readEditor();a.push({name,qty,unit});renderLineEditor(a);}
 async function loadInventory(){
- if(!window.db||!window.currentUser)return;
+ if(!db||!currentUser)return;
  msg('جاري تحميل بيانات المخازن...');
  const [a,b,c]=await Promise.all([
   db.from('inventory_items').select('*').eq('active',true).order('supplier').order('item_name'),
@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded',()=>{
  fillSelect($('inventoryHistorySupplier'),suppliers,'كل الموردين');
  fillSelect($('inventoryCompareSupplier'),suppliers);
  $('inventoryDate').value=new Date().toLocaleDateString('en-CA',{timeZone:'Africa/Cairo'});
- fillSelect($('inventoryBranch'),window.branches||[]);
+ fillSelect($('inventoryBranch'),branches||[]);
  $('inventorySupplier').addEventListener('change',renderItems);
  $('inventoryHistorySupplier').addEventListener('change',renderHistory);
  $('inventoryCompareSupplier').addEventListener('change',renderReconciliation);
