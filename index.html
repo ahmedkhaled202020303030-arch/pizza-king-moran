@@ -1792,6 +1792,31 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
 /* Login navigation safety layer: keeps role-selection buttons responsive
    even if a later application script fails during initialization. */
 document.addEventListener('click', function(event) {
+  const loginButton = event.target.closest('#adminLogin, #operationsLogin, #managerLogin, #deliveryRepLogin');
+  if (loginButton) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    const actions = {
+      adminLogin: () => loginAdmin(),
+      operationsLogin: () => loginOperationsManager(),
+      managerLogin: () => loginBranchManager(),
+      deliveryRepLogin: () => loginDeliveryRep()
+    };
+    const action = actions[loginButton.id];
+    if (action) {
+      Promise.resolve().then(action).catch(function(error) {
+        const message = error && error.message ? error.message : 'حدث خطأ غير متوقع أثناء تسجيل الدخول.';
+        const box = document.getElementById('loginMsg');
+        if (box) {
+          box.textContent = 'تعذر إكمال تسجيل الدخول: ' + message;
+          box.classList.remove('hidden');
+        } else {
+          alert('تعذر إكمال تسجيل الدخول: ' + message);
+        }
+      });
+    }
+    return;
+  }
   const choice = event.target.closest('[data-login-choice]');
   if (choice) {
     const targetId = choice.getAttribute('data-login-choice');
