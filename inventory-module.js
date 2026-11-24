@@ -50,11 +50,16 @@ function renderHistory(){
 }
 function renderReconciliation(){
  const supplier=$('inventoryCompareSupplier').value||suppliers[0],branch=selectedBranch();
- const docs=invDocs.filter(d=>d.supplier===supplier&&(!branch||d.branch===branch));
+ const from=$('inventoryCompareFrom').value,to=$('inventoryCompareTo').value;
+ if(!from||!to){$('inventoryCompareTable').innerHTML='<p class="muted">حدد تاريخ البداية والنهاية لعرض المطابقة.</p>';return;}
+ if(from>to){$('inventoryCompareTable').innerHTML='<p class="muted">تاريخ البداية لازم يكون قبل تاريخ النهاية أو مساويًا له.</p>';return;}
+ const docs=invDocs.filter(d=>d.supplier===supplier&&(!branch||d.branch===branch)&&d.doc_date>=from&&d.doc_date<=to);
  const actual={},account={};
  for(const d of docs){const target=d.doc_type==='receipt'?actual:account;invLines.filter(x=>x.document_id===d.id).forEach(x=>target[x.item_name]=(target[x.item_name]||0)+Number(x.quantity));}
  const names=[...new Set([...Object.keys(actual),...Object.keys(account)])].sort((a,b)=>a.localeCompare(b,'ar'));
- $('inventoryCompareTable').innerHTML=names.length?'<div class="inventory-table-wrap"><table><thead><tr><th>الصنف</th><th>استلام فعلي</th><th>كشف المحاسب</th><th>الفرق (فعلي - محاسب)</th><th>الحالة</th></tr></thead><tbody>'+names.map(n=>{const a=actual[n]||0,b=account[n]||0,d=a-b;return '<tr><td>'+esc(n)+'</td><td>'+a+'</td><td>'+b+'</td><td>'+d+'</td><td>'+(d===0?'متطابق':d<0?'عجز':'زيادة')+'</td></tr>';}).join('')+'</tbody></table></div>':'<p class="muted">سجّل أذون الاستلام وكشوف المحاسب أولًا لعرض الفروق.</p>';
+ const totals=names.reduce((t,n)=>{t.actual+=actual[n]||0;t.account+=account[n]||0;return t;},{actual:0,account:0});
+ const summary='<div class="inventory-item"><strong>الفترة: '+esc(from)+' إلى '+esc(to)+'</strong><span>إجمالي الاستلام: '+totals.actual+'</span><span>إجمالي كشف المحاسب: '+totals.account+'</span></div>';
+ $('inventoryCompareTable').innerHTML=names.length?summary+'<div class="inventory-table-wrap"><table><thead><tr><th>الصنف</th><th>إجمالي الاستلام الفعلي</th><th>إجمالي كشف المحاسب</th><th>الفرق (فعلي - محاسب)</th><th>الحالة</th></tr></thead><tbody>'+names.map(n=>{const a=actual[n]||0,b=account[n]||0,d=a-b;return '<tr><td>'+esc(n)+'</td><td>'+a+'</td><td>'+b+'</td><td>'+d+'</td><td>'+(d===0?'متطابق':d<0?'عجز':'زيادة')+'</td></tr>';}).join('')+'</tbody></table></div>':'<p class="muted">لا توجد مستندات لهذا المورد والفرع داخل الفترة المحددة.</p>';
 }
 async function saveDocument(){
  const rows=readEditor(),type=$('inventoryDocType').value,supplier=$('inventorySupplier').value,branch=selectedBranch(),date=$('inventoryDate').value;
@@ -96,10 +101,12 @@ document.addEventListener('DOMContentLoaded',()=>{
  fillSelect($('inventoryHistorySupplier'),suppliers,'كل الموردين');
  fillSelect($('inventoryCompareSupplier'),suppliers);
  $('inventoryDate').value=new Date().toLocaleDateString('en-CA',{timeZone:'Africa/Cairo'});
+ const today=new Date().toLocaleDateString('en-CA',{timeZone:'Africa/Cairo'});$('inventoryCompareTo').value=today;$('inventoryCompareFrom').value=today.slice(0,8)+'01';
  fillSelect($('inventoryBranch'),branches||[]);
  $('inventorySupplier').addEventListener('change',renderItems);
  $('inventoryHistorySupplier').addEventListener('change',renderHistory);
  $('inventoryCompareSupplier').addEventListener('change',renderReconciliation);
+ $('inventoryCompareApplyBtn').addEventListener('click',renderReconciliation);
  $('inventoryBranch').addEventListener('change',()=>{renderHistory();renderReconciliation();});
  $('inventoryAddItemBtn').addEventListener('click',async()=>{const name=$('inventoryNewItem').value.trim(),supplier=$('inventorySupplier').value;if(!name)return msg('اكتب اسم الصنف أولًا.',true);const q=await db.from('inventory_items').insert({supplier,item_name:name,unit:$('inventoryNewUnit').value.trim()||'وحدة'});if(q.error)msg('تعذر إضافة الصنف: '+q.error.message,true);else{$('inventoryNewItem').value='';$('inventoryNewUnit').value='';await loadInventory();}});
  $('inventoryItemsList').addEventListener('click',async e=>{const b=e.target.closest('[data-item-delete]');if(!b||!confirm('حذف الصنف من القائمة؟'))return;const q=await db.from('inventory_items').delete().eq('id',b.dataset.itemDelete);if(q.error)msg(q.error.message,true);else await loadInventory();});
