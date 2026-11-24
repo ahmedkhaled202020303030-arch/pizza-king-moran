@@ -1789,6 +1789,35 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
 
 
 <script>
+/* Login navigation safety layer: keeps role-selection buttons responsive
+   even if a later application script fails during initialization. */
+document.addEventListener('click', function(event) {
+  const choice = event.target.closest('[data-login-choice]');
+  if (choice) {
+    const targetId = choice.getAttribute('data-login-choice');
+    const target = document.getElementById(targetId);
+    const choices = document.getElementById('loginChoices');
+    if (target && choices) {
+      document.querySelectorAll('#loginPanel .login-fields').forEach(function(panel) {
+        panel.classList.toggle('hidden', panel !== target);
+      });
+      choices.classList.add('hidden');
+      const input = target.querySelector('input, select');
+      if (input) input.focus();
+    }
+    return;
+  }
+  if (event.target.closest('#loginPanel .login-back')) {
+    document.querySelectorAll('#loginPanel .login-fields').forEach(function(panel) {
+      panel.classList.add('hidden');
+    });
+    const choices = document.getElementById('loginChoices');
+    if (choices) choices.classList.remove('hidden');
+  }
+}, true);
+</script>
+
+<script>
 const SUPABASE_URL = 'https://mrbdigdeawtoetqdpoye.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_6-QrCruaBq6WvA47-iJ6Mw_xxYSg6cy';
 
