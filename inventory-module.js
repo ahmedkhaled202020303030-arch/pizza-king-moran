@@ -62,7 +62,7 @@ async function saveDocument(){
  if(rows.some(x=>!x.name||!Number.isFinite(x.qty)||x.qty<0)){msg('راجع أسماء الأصناف والكميات.',true);return;}
  const btn=$('inventorySaveBtn');btn.disabled=true;
  try{
-  const h=await db.from('inventory_documents').insert({doc_type:type,supplier,branch,doc_date:date,reference_no:$('inventoryReference').value.trim()||null,notes:$('inventoryNotes').value.trim()||null,created_by:window.currentUser.id}).select().single();
+  const h=await db.from('inventory_documents').insert({doc_type:type,supplier,branch,doc_date:date,reference_no:$('inventoryReference').value.trim()||null,notes:$('inventoryNotes').value.trim()||null,created_by:currentUser.id}).select().single();
   if(h.error)throw h.error;
   const ins=await db.from('inventory_document_lines').insert(rows.map(x=>({document_id:h.data.id,item_name:x.name,quantity:x.qty,unit:x.unit})));
   if(ins.error){await db.from('inventory_documents').delete().eq('id',h.data.id);throw ins.error;}
