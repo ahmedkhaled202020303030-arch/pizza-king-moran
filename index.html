@@ -3127,7 +3127,7 @@ async function showApp(user,admin,managerProfile=null,operationsManager=false) {
   $('deliveryRepsMapNavBtn').classList.toggle('hidden',!admin&&!operationsManager&&!isBranchManager);
   $('deliveryOrdersNavBtn').classList.toggle('hidden',!admin&&!isBranchManager);
   $('tripsNavBtn').classList.toggle('hidden',!admin&&!operationsManager&&!isBranchManager);
-  $('inventoryNavBtn').classList.toggle('hidden',!admin&&!operationsManager&&!isBranchManager);
+  $('inventoryNavBtn')?.classList.toggle('hidden',!admin&&!operationsManager&&!isBranchManager);
   $('deliveryOrderCreatePanel').classList.toggle('hidden',!isBranchManager&&!admin);
   $('deliveryOrderBranchField').classList.toggle('hidden',!admin);
   $('deliveryOrderBranch').innerHTML=(branches||[]).map(branch=>'<option value="'+escapeHTML(branch)+'">'+escapeHTML(branch)+'</option>').join('');
