@@ -1444,6 +1444,19 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
   <button type="button" id="customersNavBtn" class="active">إدارة العملاء</button>
   <button type="button" id="staffNavBtn" class="secondary">دليل عمالة الفروع</button><button type="button" id="attendanceNavBtn" class="secondary hidden">الحضور والانصراف</button><button type="button" id="deliveryRepsNavBtn" class="secondary hidden">مندوبي المطاعم</button><button type="button" id="deliveryRepsMapNavBtn" class="secondary hidden">خريطة المندوبين</button><button type="button" id="deliveryOrdersNavBtn" class="secondary hidden">أوردرات الدليفري</button><button type="button" id="tripsNavBtn" class="secondary hidden">الرحلات</button>
 </nav>
+<section id="inventoryView" class="panel hidden">
+ <style>
+ #inventoryView{color:var(--text,#eee)}#inventoryView .inventory-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}#inventoryView .inventory-card{border:1px solid rgba(212,175,55,.35);border-radius:14px;padding:14px;background:rgba(20,20,20,.45);margin:12px 0}#inventoryView input,#inventoryView select,#inventoryView textarea{width:100%;min-width:0;box-sizing:border-box;margin:5px 0 10px}#inventoryView .inventory-line{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:6px;align-items:center;margin:6px 0}#inventoryView .inventory-item{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:9px;border-bottom:1px solid #555}#inventoryView .inventory-history-card{padding:10px;margin:8px 0}#inventoryView .inventory-table-wrap{overflow:auto}#inventoryView table{width:100%;border-collapse:collapse;min-width:520px}#inventoryView th,#inventoryView td{padding:9px;border-bottom:1px solid #777;text-align:center}#inventoryView th{color:#d4af37}@media(max-width:560px){#inventoryView .inventory-line{grid-template-columns:1fr 1fr}#inventoryView .inventory-line input:first-child{grid-column:span 2}}
+ </style>
+ <div class="report-heading"><div><h2>المخازن والتوريدات</h2><p class="muted">تسجيل أذون الاستلام ومطابقتها مع كشوف المحاسب — كميات فقط دون أسعار.</p></div><button type="button" id="inventoryRefreshBtn" class="light">تحديث</button></div>
+ <p id="inventoryMessage" class="muted" aria-live="polite">جاري تجهيز الوحدة...</p>
+ <div class="inventory-grid">
+  <section class="inventory-card"><h3>الأصناف حسب المورد</h3><label>المورد / نموذج الورقة</label><select id="inventorySupplier"></select><div id="inventoryItemsList"></div><label>إضافة صنف يدويًا</label><input id="inventoryNewItem" placeholder="اسم الصنف كما هو في الورقة"><div class="row"><input id="inventoryNewUnit" placeholder="الوحدة (كرتونة / كيلو / قطعة)"><button type="button" id="inventoryAddItemBtn">إضافة الصنف</button></div></section>
+  <section class="inventory-card"><h3>إضافة إذن أو كشف</h3><label>نوع المستند</label><select id="inventoryDocType"><option value="receipt">إذن استلام فعلي</option><option value="accountant">كشف المحاسب للمطابقة</option></select><p id="inventoryDocTypeLabel" class="muted">إذن استلام فعلي</p><label>المورد</label><select id="inventorySupplierMirror" disabled aria-label="يُحدد المورد من قائمة الأصناف"></select><label>الفرع</label><select id="inventoryBranch"></select><label>التاريخ</label><input id="inventoryDate" type="date"><label>رقم الإذن / المرجع</label><input id="inventoryReference" placeholder="اختياري"><label>الأصناف والكميات</label><div id="inventoryLineEditor"></div><div class="row"><button type="button" id="inventoryAddLineBtn" class="light">إضافة سطر</button><button type="button" id="inventoryScanBtn" class="light">تصوير ومسح</button><button type="button" id="inventoryUploadBtn" class="light">رفع صورة</button></div><input id="inventoryCameraInput" type="file" accept="image/*" capture="environment" hidden><input id="inventoryFileInput" type="file" accept="image/*" hidden><label>النص المستخرج للمراجعة</label><textarea id="inventoryOcrText" rows="4" placeholder="يمكنك مراجعة النص أو نسخه هنا"></textarea><label>ملاحظات</label><input id="inventoryNotes" placeholder="ملاحظات اختيارية"><button type="button" id="inventorySaveBtn">حفظ المستند والكميات</button></section>
+ </div>
+ <section class="inventory-card"><h3>مطابقة الاستلام مع كشف المحاسب</h3><label>المورد</label><select id="inventoryCompareSupplier"></select><div id="inventoryCompareTable"></div></section>
+ <section class="inventory-card"><h3>سجل الأذون والكشوف</h3><label>تصفية المورد</label><select id="inventoryHistorySupplier"></select><div id="inventoryHistory"></div></section>
+</section>
 
 <section id="deliveryRepsMapView" class="panel hidden">
  <div class="report-heading"><div><h2>خريطة المندوبين</h2><p class="muted">متابعة مواقع المندوبين المتاحين والمشغولين أثناء العمل.</p></div><span id="deliveryMapCount" class="tag">0 مندوب</span></div>
@@ -3054,6 +3067,7 @@ async function showApp(user,admin,managerProfile=null,operationsManager=false) {
   $('deliveryRepsMapNavBtn').classList.toggle('hidden',!admin&&!operationsManager&&!isBranchManager);
   $('deliveryOrdersNavBtn').classList.toggle('hidden',!admin&&!isBranchManager);
   $('tripsNavBtn').classList.toggle('hidden',!admin&&!operationsManager&&!isBranchManager);
+  $('inventoryNavBtn').classList.toggle('hidden',!admin&&!operationsManager&&!isBranchManager);
   $('deliveryOrderCreatePanel').classList.toggle('hidden',!isBranchManager&&!admin);
   $('deliveryOrderBranchField').classList.toggle('hidden',!admin);
   $('deliveryOrderBranch').innerHTML=(branches||[]).map(branch=>'<option value="'+escapeHTML(branch)+'">'+escapeHTML(branch)+'</option>').join('');
@@ -4153,6 +4167,7 @@ if (window.DELIVERY_APP_MODE) {
 function setTheme(t){const light=t==='light';root.classList.toggle('light-theme',light);btn.innerHTML=light?'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 15.5A8.5 8.5 0 0 1 8.5 3.5 8.5 8.5 0 1 0 20.5 15.5Z"/></svg>':'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>';btn.title=light?'التحويل إلى الوضع الداكن':'التحويل إلى الوضع الفاتح';btn.setAttribute('aria-label',btn.title);try{localStorage.setItem('pkm-theme',t)}catch(e){}}
 setTheme(theme);btn.addEventListener('click',()=>setTheme(root.classList.contains('light-theme')?'dark':'light'));})();
 </script>
+<script src="/inventory-module.js" defer></script>
 <script src="/receipt-scanner.js" defer></script>
 </body>
   </html>
