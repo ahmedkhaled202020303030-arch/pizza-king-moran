@@ -1791,6 +1791,14 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
 <script>
 /* Login navigation safety layer: keeps role-selection buttons responsive
    even if a later application script fails during initialization. */
+window.addEventListener('error', function(event) {
+  const box = document.getElementById('loginMsg');
+  if (!box || !event || !event.message) return;
+  box.textContent = 'خطأ في تحميل جزء من البرنامج: ' + event.message +
+    (event.lineno ? ' — السطر ' + event.lineno : '') +
+    '. ابعت صورة الرسالة دي للدعم.';
+  box.classList.remove('hidden');
+});
 document.addEventListener('click', function(event) {
   const loginButton = event.target.closest('#adminLogin, #operationsLogin, #managerLogin, #deliveryRepLogin');
   if (loginButton) {
