@@ -6,7 +6,7 @@ let invItems=[], invDocs=[], invLines=[], invOcrBusy=false;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const msg=(s,bad=false)=>{const e=$('inventoryMessage');if(e){e.textContent=s;e.style.color=bad?'#ff9b91':'';}};
 const currentBranch=()=>currentManagerProfile?.branch||'';
-const selectedBranch=()=>isBranchManager?currentBranch():$('inventoryBranch').value;
+const selectedBranch=()=>isBranchManager?currentBranch():($('inventoryBranch').value||'');
 const fillSelect=(el,values,first)=>{if(!el)return;el.innerHTML=(first?'<option value="">'+esc(first)+'</option>':'')+values.map(x=>'<option>'+esc(x)+'</option>').join('');};
 function linesFromText(raw){
  const out=[];
@@ -34,8 +34,8 @@ async function loadInventory(){
  const error=a.error||b.error||c.error;
  if(error){msg('تعذر تحميل المخازن. تأكد من تنفيذ inventory_migration.sql في Supabase: '+error.message,true);return;}
  invItems=a.data||[];invDocs=b.data||[];invLines=c.data||[];
- if(window.isBranchManager){$('inventoryBranch').value=currentBranch();$('inventoryBranch').disabled=true;}
- else $('inventoryBranch').disabled=false;
+ if(window.isBranchManager){$('inventoryBranch').innerHTML='<option value="'+esc(currentBranch())+'">'+esc(currentBranch())+'</option>';$('inventoryBranch').value=currentBranch();$('inventoryBranch').disabled=true;}
+ else {$('inventoryBranch').disabled=false;if(!$('inventoryBranch').querySelector('option[value=""]'))$('inventoryBranch').insertAdjacentHTML('afterbegin','<option value="">كل الفروع — عرض فقط</option>');}
  renderItems();renderHistory();renderReconciliation();msg('تم تحميل بيانات المخازن.');
 }
 function renderItems(){
@@ -58,7 +58,7 @@ function renderReconciliation(){
 }
 async function saveDocument(){
  const rows=readEditor(),type=$('inventoryDocType').value,supplier=$('inventorySupplier').value,branch=selectedBranch(),date=$('inventoryDate').value;
- if(!branch||!date||!rows.length){msg('حدد الفرع والتاريخ وأدخل صنفًا واحدًا على الأقل مع كميته.',true);return;}
+ if(!branch||!date||!rows.length){msg('اختَر فرعًا محددًا (لا يمكن الحفظ على اختيار كل الفروع)، وحدد التاريخ وأدخل صنفًا واحدًا على الأقل.',true);return;}
  if(rows.some(x=>!x.name||!Number.isFinite(x.qty)||x.qty<0)){msg('راجع أسماء الأصناف والكميات.',true);return;}
  const btn=$('inventorySaveBtn');btn.disabled=true;
  try{
