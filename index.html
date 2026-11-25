@@ -28,6 +28,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 :root{
@@ -3009,13 +3010,33 @@ function extractDeliveryReceiptFields(raw){
 }
 async function scanDeliveryReceipt(file){
  if(!file)return;
- if(!file.type.startsWith('image/')){$('receiptScanMessage').textContent='قراءة PDF غير متاحة حاليًا؛ الملف سيُرفق بالأوردر، ويمكنك تصوير الريسيت أو اختيار صورة لقراءة البيانات.';return;}
+ if(!file.type.startsWith('image/')&&file.type!=='application/pdf'){$('receiptScanMessage').textContent='نوع الملف غير مدعوم للقراءة. استخدم صورة أو PDF.';return;}
  if(!window.Tesseract){$('receiptScanMessage').textContent='محرك قراءة الصور غير متاح. حدّث الصفحة وحاول مرة أخرى.';return;}
- $('receiptScanProgress').style.width='2%';$('receiptScanMessage').textContent='جاري تجهيز صورة الريسيت...';
+ $('receiptScanProgress').style.width='2%';$('receiptScanMessage').textContent='جاري تجهيز الريسيت...';
  $('receiptScanRaw').classList.add('hidden');
  $('receiptScanBtn').disabled=true;$('receiptCameraBtn').disabled=true;
  try{
-  const image=await prepareCardImage(file),worker=await getReceiptOcrWorker(),result=await worker.recognize(image),raw=result.data.text||'';
+  const worker=await getReceiptOcrWorker();let raw='';
+  if(file.type==='application/pdf'){
+   if(!window.pdfjsLib)throw new Error('مكتبة قراءة PDF لم تُحمّل. حدّث الصفحة وحاول مرة أخرى.');
+   window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+   const pdf=await window.pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
+   const pages=Math.min(pdf.numPages,3);
+   for(let pageNo=1;pageNo<=pages;pageNo++){
+    $('receiptScanMessage').textContent='جاري قراءة صفحة '+pageNo+' من '+pages+' في ملف PDF...';
+    const page=await pdf.getPage(pageNo),base=page.getViewport({scale:1}),scale=Math.min(2.2,1600/base.width);
+    const viewport=page.getViewport({scale}),canvas=document.createElement('canvas');
+    canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);
+    await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;
+    const image=await prepareCardImage(canvas),result=await worker.recognize(image);
+    raw+='\n--- صفحة '+pageNo+' ---\n'+(result.data.text||'');
+    canvas.width=canvas.height=1;
+   }
+   if(pdf.numPages>pages)raw+='\nتمت قراءة أول '+pages+' صفحات فقط من أصل '+pdf.numPages+'.';
+  }else{
+   $('receiptScanMessage').textContent='جاري تحليل صورة الريسيت...';
+   const image=await prepareCardImage(file),result=await worker.recognize(image);raw=result.data.text||'';
+  }
   $('receiptScanRaw').value=raw;$('receiptScanRaw').classList.remove('hidden');
   const found=extractDeliveryReceiptFields(raw),applied=[];
   if(found.customer&&!$('deliveryOrderCustomer').value.trim()){$('deliveryOrderCustomer').value=found.customer;applied.push('اسم العميل');}
@@ -4097,8 +4118,8 @@ $('deliveryMenuProduct').addEventListener('change',renderDeliveryMenuSizes);
 $('deliveryMenuAddBtn').addEventListener('click',addDeliveryMenuItem);
 $('deliveryMenuCart').addEventListener('click',e=>{const b=e.target.closest('[data-menu-remove]');if(b){deliveryMenuCart.splice(Number(b.dataset.menuRemove),1);renderDeliveryMenuCart();}});
 $('deliveryOrderCreateBtn').addEventListener('click',createDeliveryOrder);
-$('receiptCameraBtn').addEventListener('click',()=>$('deliveryOrderReceiptCamera').click());
-$('receiptScanBtn').addEventListener('click',()=>$('deliveryOrderReceipt').click());
+$('receiptCameraBtn').addEventListener('click',()=>{$('deliveryOrderReceiptCamera').value='';$('deliveryOrderReceiptCamera').click();});
+$('receiptScanBtn').addEventListener('click',()=>{$('deliveryOrderReceipt').value='';$('deliveryOrderReceipt').click();});
 $('deliveryOrderReceipt').addEventListener('change',e=>{const file=e.target.files?.[0];if(file)scanDeliveryReceipt(file);});
 $('deliveryOrderReceiptCamera').addEventListener('change',e=>{const file=e.target.files?.[0];if(file){$('deliveryOrderReceipt').value='';scanDeliveryReceipt(file);}});
 
