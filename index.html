@@ -2977,12 +2977,64 @@ async function showDeliveryOrderReceipt(orderId){
   window.open(result.data.signedUrl,'_blank','noopener');
  }catch(e){showMessage('deliveryOrdersMessage','تعذر عرض الريسيت: '+(e.message||''),true);}
 }
+let receiptOcrWorkerPromise=null;
+async function getReceiptOcrWorker(){
+ if(!receiptOcrWorkerPromise){
+  receiptOcrWorkerPromise=Tesseract.createWorker('ara+eng',1,{logger:m=>{
+   const bar=$('receiptScanProgress');
+   if(m.status==='recognizing text'&&Number.isFinite(m.progress)){bar.style.width=Math.max(3,Math.round(m.progress*100))+'%';$('receiptScanMessage').textContent='جاري قراءة الريسيت: '+Math.round(m.progress*100)+'٪';}
+   else if(m.status==='loading language traineddata')$('receiptScanMessage').textContent='تحميل محرك قراءة الريسيت لأول مرة...';
+  }}).then(async w=>{await w.setParameters({tessedit_pageseg_mode:'6',preserve_interword_spaces:'1'});return w;}).catch(e=>{receiptOcrWorkerPromise=null;throw e;});
+ }
+ return receiptOcrWorkerPromise;
+}
+function receiptLineValue(lines,patterns){
+ for(let i=0;i<lines.length;i++){const line=lines[i];if(patterns.some(p=>p.test(line))){const after=line.replace(/^.*?(?:الاسم|اسم العميل|العميل|customer|name|address|العنوان|موبايل|هاتف|phone|الإجمالي|الاجمالي|total|net|الصافي)\s*[:：#-]?\s*/i,'').trim();if(after&&after!==line)return after;if(lines[i+1])return lines[i+1];}}
+ return '';
+}
+function extractDeliveryReceiptFields(raw){
+ const normalized=normalizeArabicDigits(raw),lines=normalized.split(/\n+/).map(x=>x.replace(/\s+/g,' ').trim()).filter(Boolean);
+ const all=normalizeOCRText(normalized);
+ const phoneMatches=normalized.match(/01[0-2,5][0-9\s-]{8,12}/g)||[];
+ const phone=phoneMatches.map(x=>x.replace(/\D/g,'')).find(x=>/^01[0125]\d{8}$/.test(x))||'';
+ const totalCandidates=[];
+ for(const line of lines){if(/اجمالي|الإجمالي|الاجمالي|total|net amount|الصافي/i.test(line)){const nums=line.match(/\d+(?:[.,]\d{1,2})?/g)||[];if(nums.length)totalCandidates.push(nums[nums.length-1].replace(',','.'));}}
+ const total=totalCandidates.length?Number(totalCandidates[totalCandidates.length-1]):NaN;
+ const customer=receiptLineValue(lines,[/اسم العميل/i,/العميل\s*[:：]/i,/customer\s*name/i,/customer\s*[:：]/i,/name\s*[:：]/i]);
+ const address=receiptLineValue(lines,[/العنوان\s*[:：]/i,/address\s*[:：]/i,/delivery\s*address/i]);
+ const itemLines=lines.filter(line=>/\d/.test(line)&&!/^01[0125]/.test(line)&&!/(اجمالي|الإجمالي|الاجمالي|total|net|tax|ضريبه|ضريبة|vat|توصيل|delivery|cash|visa|card|change|الباقي)/i.test(line)&&!/\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}/.test(line)&&line.length>3);
+ const items=itemLines.filter(line=>/(?:x|×|\*|\s)\d+\s*(?:ج|جنيه|egp|le)?\s*\d{2,}/i.test(line)||/\d{2,}[.,]?\d{0,2}\s*(?:ج|egp|le)?$/i.test(line)).slice(0,18).join('\n');
+ const payment=/visa|master|card|بطاقه|بطاقة|مدفوع الكتروني/i.test(all)?'card':/wallet|محفظه|محفظة/i.test(all)?'wallet':'';
+ return {phone,customer:customer.replace(/\s{2,}/g,' ').trim(),address:address.trim(),total:Number.isFinite(total)&&total>=0?total:null,items,payment};
+}
+async function scanDeliveryReceipt(file){
+ if(!file)return;
+ if(!file.type.startsWith('image/')){$('receiptScanMessage').textContent='قراءة PDF غير متاحة حاليًا؛ الملف سيُرفق بالأوردر، ويمكنك تصوير الريسيت أو اختيار صورة لقراءة البيانات.';return;}
+ if(!window.Tesseract){$('receiptScanMessage').textContent='محرك قراءة الصور غير متاح. حدّث الصفحة وحاول مرة أخرى.';return;}
+ $('receiptScanProgress').style.width='2%';$('receiptScanMessage').textContent='جاري تجهيز صورة الريسيت...';
+ $('receiptScanRaw').classList.add('hidden');
+ $('receiptScanBtn').disabled=true;$('receiptCameraBtn').disabled=true;
+ try{
+  const image=await prepareCardImage(file),worker=await getReceiptOcrWorker(),result=await worker.recognize(image),raw=result.data.text||'';
+  $('receiptScanRaw').value=raw;$('receiptScanRaw').classList.remove('hidden');
+  const found=extractDeliveryReceiptFields(raw),applied=[];
+  if(found.customer&&!$('deliveryOrderCustomer').value.trim()){$('deliveryOrderCustomer').value=found.customer;applied.push('اسم العميل');}
+  if(found.phone&&!$('deliveryOrderPhone').value.trim()){$('deliveryOrderPhone').value=found.phone;applied.push('الهاتف');}
+  if(found.address&&!$('deliveryOrderAddress').value.trim()){$('deliveryOrderAddress').value=found.address;applied.push('العنوان');}
+  if(found.total!==null&&!$('deliveryOrderTotal').value){$('deliveryOrderTotal').value=found.total;applied.push('الإجمالي');}
+  if(found.items&&!$('deliveryOrderItems').value.trim()){$('deliveryOrderItems').value=found.items;applied.push('الأصناف المحتملة');}
+  if(found.payment)$('deliveryOrderPayment').value=found.payment;
+  $('receiptScanProgress').style.width='100%';
+  $('receiptScanMessage').textContent=applied.length?'تم استخراج '+applied.join('، ')+' — راجع كل البيانات يدويًا قبل حفظ الأوردر.':'تمت قراءة النص، لكن لم يتم التعرف بثقة على حقول كافية. راجع النص وأدخل البيانات يدويًا.';
+ }catch(e){$('receiptScanMessage').textContent='تعذرت قراءة الريسيت: '+(e.message||'حاول بصورة أوضح.');}
+ finally{$('receiptScanBtn').disabled=false;$('receiptCameraBtn').disabled=false;}
+}
 async function createDeliveryOrder(){
  if(!isBranchManager&&!isAdmin)return;
  const p={p_branch:isAdmin?$('deliveryOrderBranch').value:currentManagerProfile?.branch,p_customer_name:$('deliveryOrderCustomer').value.trim(),p_customer_phone:$('deliveryOrderPhone').value.trim(),p_delivery_address:$('deliveryOrderAddress').value.trim(),p_latitude:$('deliveryOrderLat').value===''?null:Number($('deliveryOrderLat').value),p_longitude:$('deliveryOrderLng').value===''?null:Number($('deliveryOrderLng').value),p_items:$('deliveryOrderItems').value.trim(),p_total_amount:Number($('deliveryOrderTotal').value),p_payment_method:$('deliveryOrderPayment').value,p_notes:$('deliveryOrderNotes').value.trim()};
  if(!p.p_branch||!p.p_customer_name||!p.p_customer_phone||!p.p_delivery_address||!Number.isFinite(p.p_total_amount)||p.p_total_amount<0){$('deliveryOrderCreateMessage').textContent='أكمل اسم العميل والهاتف والعنوان والإجمالي بشكل صحيح.';return;}
  if((p.p_latitude==null)!==(p.p_longitude==null)||[p.p_latitude,p.p_longitude].some(x=>x!=null&&!Number.isFinite(x))){$('deliveryOrderCreateMessage').textContent='أدخل خط العرض والطول معًا أو اتركهما فارغين.';return;}
- const b=$('deliveryOrderCreateBtn'),receiptFile=$('deliveryOrderReceipt').files?.[0]||null;b.disabled=true;b.textContent='جارٍ حفظ الطلب...';
+ const b=$('deliveryOrderCreateBtn'),receiptFile=$('deliveryOrderReceipt').files?.[0]||$('deliveryOrderReceiptCamera').files?.[0]||null;b.disabled=true;b.textContent='جارٍ حفظ الطلب...';
  try{const q=await db.rpc('create_delivery_order',p);if(q.error)throw q.error;const orderId=typeof q.data==='string'?q.data:(q.data?.id||q.data?.order_id);if(!orderId)throw new Error('تم إنشاء الطلب لكن لم يتم استلام رقم الأوردر لربط الريسيت.');await sendDeliveryPushEvent(orderId);let receiptMessage='';if(receiptFile){try{await uploadDeliveryOrderReceipt(orderId,receiptFile);receiptMessage=' وتم إرفاق الريسيت بنجاح.';}catch(uploadError){receiptMessage=' لكن تعذر رفع الريسيت: '+(uploadError.message||'')+' — يمكنك إعادة رفعها بعد ذلك.';}}$('deliveryOrderCreateMessage').textContent='تم تسجيل الطلب وإرساله إلى لوحة التشغيل.'+receiptMessage;['deliveryOrderCustomer','deliveryOrderPhone','deliveryOrderAddress','deliveryOrderLat','deliveryOrderLng','deliveryOrderItems','deliveryOrderTotal','deliveryOrderNotes'].forEach(id=>$(id).value='');$('deliveryOrderReceipt').value='';deliveryMenuCart=[];renderDeliveryMenuCart();await loadDeliveryOrders();}
  catch(e){$('deliveryOrderCreateMessage').textContent='تعذر حفظ الطلب: '+(e.message||'راجع قاعدة البيانات.');}
  finally{b.disabled=false;b.textContent='حفظ وإرسال الطلب للتشغيل';}
@@ -4045,6 +4097,11 @@ $('deliveryMenuProduct').addEventListener('change',renderDeliveryMenuSizes);
 $('deliveryMenuAddBtn').addEventListener('click',addDeliveryMenuItem);
 $('deliveryMenuCart').addEventListener('click',e=>{const b=e.target.closest('[data-menu-remove]');if(b){deliveryMenuCart.splice(Number(b.dataset.menuRemove),1);renderDeliveryMenuCart();}});
 $('deliveryOrderCreateBtn').addEventListener('click',createDeliveryOrder);
+$('receiptCameraBtn').addEventListener('click',()=>$('deliveryOrderReceiptCamera').click());
+$('receiptScanBtn').addEventListener('click',()=>$('deliveryOrderReceipt').click());
+$('deliveryOrderReceipt').addEventListener('change',e=>{const file=e.target.files?.[0];if(file)scanDeliveryReceipt(file);});
+$('deliveryOrderReceiptCamera').addEventListener('change',e=>{const file=e.target.files?.[0];if(file){$('deliveryOrderReceipt').value='';scanDeliveryReceipt(file);}});
+
 $('deliveryBulkAutoAssignBtn').addEventListener('click',autoAssignDeliveryOrdersBatch);
 $('deliveryOrdersList').addEventListener('click',e=>{const smart=e.target.closest('[data-auto-assign-order]'),a=e.target.closest('[data-assign-order]'),c=e.target.closest('[data-cancel-order]');if(smart)autoAssignDeliveryOrder(smart.dataset.autoAssignOrder);if(a)assignDeliveryOrder(a.dataset.assignOrder);if(c)cancelDeliveryOrder(c.dataset.cancelOrder);});
 $('deliveryOrdersList').addEventListener('click',e=>{const receipt=e.target.closest('[data-show-order-receipt]');if(receipt)showDeliveryOrderReceipt(receipt.dataset.showOrderReceipt);const printReceipt=e.target.closest('[data-print-order-receipt]');if(printReceipt)printDeliveryOrderReceipt(printReceipt.dataset.printOrderReceipt);const toggle=e.target.closest('[data-toggle-order-details]');if(toggle){const card=toggle.closest('.delivery-order-card');const extra=card?.querySelector('.delivery-card-extra');if(extra){const opened=extra.classList.toggle('is-open');toggle.textContent=opened?'إخفاء التفاصيل':'عرض تفاصيل الأوردر';}}const b=e.target.closest('[data-order-history]');if(b)openDeliveryOrderHistory(b.dataset.orderHistory);});
