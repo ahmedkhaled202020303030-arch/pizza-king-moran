@@ -1381,11 +1381,11 @@ html.delivery-app-mode #pwaInstallBtn svg{width:22px!important;height:22px!impor
   <div class="panel" style="margin-top:16px">
     <p><strong>الفرع:</strong> <span id="deliveryRepBranch">—</span></p>
     <p><strong>حالتك الحالية:</strong> <span id="deliveryRepStatusText">غير متاح</span></p>
-    <p id="deliveryRepLocationMessage" class="muted">لن يتم مشاركة موقعك إلا عندما تختار متاح أو مشغول.</p>
+    <p id="deliveryRepLocationMessage" class="muted">يبدأ التتبع تلقائياً عند الدخول، ويتوقف عند تسجيل الانصراف.</p>
     <div class="row" style="gap:10px;flex-wrap:wrap">
       <button id="deliveryRepAvailable" type="button">متاح</button>
       <button id="deliveryRepBusy" type="button" class="secondary">مشغول</button>
-      <button id="deliveryRepUnavailable" type="button" class="light">غير متاح</button>
+      <button id="deliveryRepUnavailable" type="button" class="light">تسجيل الانصراف وإيقاف التتبع</button>
     </div>
     <div id="deliveryRepCashBox" class="panel" style="margin-top:16px;border:1px solid rgba(212,175,55,.35)"><h3>خزنة المندوب والتحصيل</h3><p class="muted">المبالغ النقدية التي تم تحصيلها ولم يتم تسليمها للإدارة بعد.</p><div id="deliveryRepCashSummary" class="delivery-orders-summary"></div><button type="button" id="deliveryRepSubmitCashBtn" class="primary-btn">تسجيل تسليم العهدة للإدارة</button><p id="deliveryRepCashMessage" class="muted"></p><div id="deliveryRepCashHistory"></div></div>
     <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line)"><div class="report-heading"><div><h3>طلباتي الحالية <span id="deliveryRepOrdersCount" class="muted">(0)</span></h3><p class="muted">اقبل الطلب، حدّث حالته، وسجّل التحصيل عند التسليم.</p><small id="deliveryRepOrdersUpdated" class="muted">لم يتم التحديث بعد</small></div><button type="button" id="deliveryRepOrdersRefresh" class="light">تحديث الطلبات</button></div><div id="deliveryRepOrdersList" class="delivery-order-grid"><p class="muted">لا توجد طلبات مسندة إليك.</p></div></div>
@@ -2084,6 +2084,7 @@ function stopDeliveryRepTracking(){
 
 function startDeliveryRepTracking(){
  stopDeliveryRepTracking();
+ if(!currentDeliveryRep||currentDeliveryRep.availability_status==='unavailable')return;
  if(!navigator.geolocation){
   $('deliveryRepLocationMessage').textContent='المتصفح لا يدعم تحديد الموقع.';
   return;
@@ -2125,9 +2126,10 @@ async function setMyDeliveryRepStatus(status){
  renderDeliveryRepStatus(status);
  if(status==='unavailable'){
   stopDeliveryRepTracking();
-  $('deliveryRepLocationMessage').textContent='تم إيقاف مشاركة موقعك وإخفاء آخر موقع.';
+  $('deliveryRepLocationMessage').textContent='تم تسجيل الانصراف وإيقاف تتبع الموقع.';
  }else{
   startDeliveryRepTracking();
+  $('deliveryRepLocationMessage').textContent='أنت على رأس العمل — تتبع الموقع يعمل الآن.';
  }
 }
 
@@ -2195,8 +2197,12 @@ async function loginDeliveryRep(){
  $('deliveryRepBranch').textContent=rep.branch;
  renderDeliveryRepStatus(rep.availability_status);
  await loadMyDeliveryOrders();
- if(rep.availability_status==='available'||rep.availability_status==='busy')startDeliveryRepTracking();
- else $('deliveryRepLocationMessage').textContent='أنت غير متاح حالياً، وموقعك غير مشارك.';
+ // بدء الوردية والتتبع تلقائياً بمجرد تسجيل دخول المندوب.
+ if(rep.availability_status==='unavailable'){
+  await setMyDeliveryRepStatus('available');
+ }else{
+  startDeliveryRepTracking();
+ }
 }
 
 async function loginBranchManager(){
@@ -3230,6 +3236,11 @@ async function logout() {
   if(branchManagersTimerInterval){clearInterval(branchManagersTimerInterval);branchManagersTimerInterval=null;}
   if(branchManagersRefreshInterval){clearInterval(branchManagersRefreshInterval);branchManagersRefreshInterval=null;}
   activeBranchManagerRows=[];activeBranchManagerNames.clear();$('branchManagersTimerBubble')?.classList.add('hidden');
+  if(currentDeliveryRep){
+   try{
+    await db.rpc('set_delivery_rep_status',{p_status:'unavailable'});
+   }catch(_){}
+  }
   stopDeliveryRepTracking();
   currentDeliveryRep = null;
   $('deliveryRepOrdersList').innerHTML='<p class="muted">لا توجد طلبات مسندة إليك.</p>';
